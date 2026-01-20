@@ -1,21 +1,53 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Shield, Upload, FileText, Bot, LogOut, Plus } from "lucide-react";
+import { Shield, Upload, FileText, Bot, LogOut, Building2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import AIOracle from "@/components/AIOracle";
+import DocumentUpload from "@/components/DocumentUpload";
+import DocumentList from "@/components/DocumentList";
+import InstitutionConnect from "@/components/InstitutionConnect";
 
 const Vault = () => {
   const navigate = useNavigate();
+  const { user, loading, signOut } = useAuth();
+  const [oracleOpen, setOracleOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [institutionOpen, setInstitutionOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background grid-bg flex items-center justify-center">
+        <div className="text-center">
+          <Shield className="mx-auto text-primary animate-pulse" size={48} />
+          <p className="mt-4 text-muted-foreground font-mono">Decrypting vault...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background grid-bg">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur">
+      <header className="border-b border-border bg-card/50 backdrop-blur sticky top-0 z-40">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Shield className="text-primary" size={28} />
             <span className="font-display text-xl font-bold gradient-text">SOVEREIGN SECTOR</span>
           </div>
-          <Button variant="ghost" onClick={() => navigate("/")} className="text-muted-foreground">
+          <Button variant="ghost" onClick={handleSignOut} className="text-muted-foreground">
             <LogOut size={18} className="mr-2" />
             Exit Vault
           </Button>
@@ -23,87 +55,53 @@ const Vault = () => {
       </header>
 
       <main className="container mx-auto px-6 py-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
-          <h1 className="font-display text-4xl font-bold gradient-text mb-2">
-            Welcome to Your Sovereign Sector
-          </h1>
-          <p className="text-muted-foreground font-rajdhani">
-            Your encrypted document vault with AI-powered assistance
-          </p>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
+          <h1 className="font-display text-4xl font-bold gradient-text mb-2">Welcome to Your Sovereign Sector</h1>
+          <p className="text-muted-foreground font-rajdhani">Your encrypted document vault with AI-powered assistance</p>
         </motion.div>
 
-        {/* Quick Actions */}
-        <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          <motion.div
-            className="cyber-border rounded-xl p-8 text-center card-hover cursor-pointer"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center">
-              <Upload className="text-primary" size={28} />
+        <div className="grid md:grid-cols-4 gap-6 max-w-5xl mx-auto mb-12">
+          <motion.div className="cyber-border rounded-xl p-6 text-center card-hover cursor-pointer" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} onClick={() => setUploadOpen(true)}>
+            <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center">
+              <Upload className="text-primary" size={24} />
             </div>
-            <h3 className="font-display text-lg font-bold text-primary mb-2">Upload Document</h3>
-            <p className="text-sm text-muted-foreground font-rajdhani">
-              Securely store your sensitive documents with military-grade encryption
-            </p>
+            <h3 className="font-display font-bold text-primary mb-1">Upload</h3>
+            <p className="text-xs text-muted-foreground font-rajdhani">Secure documents</p>
           </motion.div>
 
-          <motion.div
-            className="cyber-border rounded-xl p-8 text-center card-hover cursor-pointer"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-accent/10 border border-accent/30 flex items-center justify-center">
-              <Bot className="text-accent" size={28} />
+          <motion.div className="cyber-border rounded-xl p-6 text-center card-hover cursor-pointer" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} onClick={() => setInstitutionOpen(true)}>
+            <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-accent/10 border border-accent/30 flex items-center justify-center">
+              <Building2 className="text-accent" size={24} />
             </div>
-            <h3 className="font-display text-lg font-bold text-accent mb-2">AI Oracle</h3>
-            <p className="text-sm text-muted-foreground font-rajdhani">
-              Get 24/7 guidance for navigating institutions and bureaucracy
-            </p>
+            <h3 className="font-display font-bold text-accent mb-1">Institutions</h3>
+            <p className="text-xs text-muted-foreground font-rajdhani">Connect & ingest</p>
           </motion.div>
 
-          <motion.div
-            className="cyber-border rounded-xl p-8 text-center card-hover cursor-pointer"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center">
-              <FileText className="text-primary" size={28} />
+          <motion.div className="cyber-border rounded-xl p-6 text-center card-hover cursor-pointer" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} onClick={() => setOracleOpen(true)}>
+            <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-accent/10 border border-accent/30 flex items-center justify-center">
+              <Bot className="text-accent" size={24} />
             </div>
-            <h3 className="font-display text-lg font-bold text-primary mb-2">My Documents</h3>
-            <p className="text-sm text-muted-foreground font-rajdhani">
-              View and manage your encrypted document collection
-            </p>
+            <h3 className="font-display font-bold text-accent mb-1">AI Oracle</h3>
+            <p className="text-xs text-muted-foreground font-rajdhani">24/7 guidance</p>
+          </motion.div>
+
+          <motion.div className="cyber-border rounded-xl p-6 text-center card-hover cursor-pointer" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+            <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center">
+              <FileText className="text-primary" size={24} />
+            </div>
+            <h3 className="font-display font-bold text-primary mb-1">Documents</h3>
+            <p className="text-xs text-muted-foreground font-rajdhani">View collection</p>
           </motion.div>
         </div>
 
-        {/* Empty State */}
-        <motion.div
-          className="mt-16 text-center py-16 border border-dashed border-border rounded-2xl"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-        >
-          <Plus className="mx-auto text-muted-foreground mb-4" size={48} />
-          <h3 className="font-display text-xl font-bold text-foreground mb-2">
-            Your Vault is Empty
-          </h3>
-          <p className="text-muted-foreground font-rajdhani mb-6">
-            Start by uploading your first document to the Sovereign Sector
-          </p>
-          <Button className="btn-gradient font-rajdhani font-bold text-primary-foreground">
-            <Upload size={18} className="mr-2" />
-            Upload First Document
-          </Button>
-        </motion.div>
+        <DocumentList refreshTrigger={refreshTrigger} />
+
+        <DocumentList refreshTrigger={refreshTrigger} />
       </main>
+
+      <AIOracle isOpen={oracleOpen} onClose={() => setOracleOpen(false)} />
+      <DocumentUpload isOpen={uploadOpen} onClose={() => setUploadOpen(false)} onUploadComplete={() => setRefreshTrigger((p) => p + 1)} />
+      <InstitutionConnect isOpen={institutionOpen} onClose={() => setInstitutionOpen(false)} />
     </div>
   );
 };
