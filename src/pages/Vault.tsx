@@ -95,8 +95,6 @@ const Vault = () => {
         </div>
 
         <DocumentList refreshTrigger={refreshTrigger} />
-
-        <DocumentList refreshTrigger={refreshTrigger} />
       </main>
 
       <AIOracle isOpen={oracleOpen} onClose={() => setOracleOpen(false)} />
