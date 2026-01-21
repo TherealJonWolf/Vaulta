@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Shield, Upload, FileText, Bot, LogOut, Building2, Plus } from "lucide-react";
+import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,20 +8,26 @@ import AIOracle from "@/components/AIOracle";
 import DocumentUpload from "@/components/DocumentUpload";
 import DocumentList from "@/components/DocumentList";
 import InstitutionConnect from "@/components/InstitutionConnect";
+import MFASettings from "@/components/MFASettings";
 
 const Vault = () => {
   const navigate = useNavigate();
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, mfaRequired, signOut } = useAuth();
   const [oracleOpen, setOracleOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [institutionOpen, setInstitutionOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
     }
-  }, [user, loading, navigate]);
+    // Redirect to auth if MFA is required but not verified
+    if (!loading && user && mfaRequired) {
+      navigate("/auth");
+    }
+  }, [user, loading, mfaRequired, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -43,14 +49,19 @@ const Vault = () => {
     <div className="min-h-screen bg-background grid-bg">
       <header className="border-b border-border bg-card/50 backdrop-blur sticky top-0 z-40">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
             <Shield className="text-primary" size={28} />
             <span className="font-display text-xl font-bold gradient-text">SOVEREIGN SECTOR</span>
           </div>
-          <Button variant="ghost" onClick={handleSignOut} className="text-muted-foreground">
-            <LogOut size={18} className="mr-2" />
-            Exit Vault
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={() => setSettingsOpen(true)} className="text-muted-foreground">
+              <Settings size={18} />
+            </Button>
+            <Button variant="ghost" onClick={handleSignOut} className="text-muted-foreground">
+              <LogOut size={18} className="mr-2" />
+              Exit Vault
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -100,6 +111,7 @@ const Vault = () => {
       <AIOracle isOpen={oracleOpen} onClose={() => setOracleOpen(false)} />
       <DocumentUpload isOpen={uploadOpen} onClose={() => setUploadOpen(false)} onUploadComplete={() => setRefreshTrigger((p) => p + 1)} />
       <InstitutionConnect isOpen={institutionOpen} onClose={() => setInstitutionOpen(false)} />
+      <MFASettings isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 };

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import MFAVerification from "@/components/MFAVerification";
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -16,15 +17,17 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showMFAVerification, setShowMFAVerification] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, signIn, signUp } = useAuth();
+  const { user, mfaRequired, currentLevel, signIn, signUp, checkMFAStatus } = useAuth();
 
   useEffect(() => {
-    if (user) {
+    // Only navigate if user is authenticated AND MFA is not required
+    if (user && !mfaRequired && currentLevel !== "aal1") {
       navigate("/vault");
     }
-  }, [user, navigate]);
+  }, [user, mfaRequired, currentLevel, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,22 +36,44 @@ const Auth = () => {
     setLoading(true);
     
     try {
-      const { error } = mode === "login" 
-        ? await signIn(email, password)
-        : await signUp(email, password);
-
-      if (error) {
-        toast({
-          variant: "destructive",
-          title: mode === "login" ? "Access Denied" : "Registration Failed",
-          description: error.message,
-        });
+      if (mode === "login") {
+        const { error, mfaRequired } = await signIn(email, password);
+        
+        if (error) {
+          toast({
+            variant: "destructive",
+            title: "Access Denied",
+            description: error.message,
+          });
+        } else if (mfaRequired) {
+          setShowMFAVerification(true);
+          toast({
+            title: "MFA Required",
+            description: "Please enter your authenticator code",
+          });
+        } else {
+          toast({
+            title: "Welcome back!",
+            description: "Accessing your Sovereign Sector...",
+          });
+          navigate("/vault");
+        }
       } else {
-        toast({
-          title: mode === "login" ? "Welcome back!" : "Vault Initialized!",
-          description: mode === "login" ? "Accessing your Sovereign Sector..." : "Your identity has been secured.",
-        });
-        navigate("/vault");
+        const { error } = await signUp(email, password);
+        
+        if (error) {
+          toast({
+            variant: "destructive",
+            title: "Registration Failed",
+            description: error.message,
+          });
+        } else {
+          toast({
+            title: "Vault Initialized!",
+            description: "Your identity has been secured.",
+          });
+          navigate("/vault");
+        }
       }
     } catch (error) {
       toast({
@@ -60,6 +85,27 @@ const Auth = () => {
       setLoading(false);
     }
   };
+
+  const handleMFAVerified = async () => {
+    setShowMFAVerification(false);
+    await checkMFAStatus();
+    toast({
+      title: "Verification Complete",
+      description: "Accessing your Sovereign Sector...",
+    });
+    navigate("/vault");
+  };
+
+  const handleMFACancel = async () => {
+    setShowMFAVerification(false);
+    // Sign out since MFA was cancelled
+    const { signOut } = await import("@/integrations/supabase/client").then(m => ({ signOut: m.supabase.auth.signOut.bind(m.supabase.auth) }));
+    await signOut();
+  };
+
+  if (showMFAVerification) {
+    return <MFAVerification onVerified={handleMFAVerified} onCancel={handleMFACancel} />;
+  }
 
   return (
     <div className="min-h-screen bg-background grid-bg flex flex-col">
