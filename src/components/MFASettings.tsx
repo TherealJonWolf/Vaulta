@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Shield, ShieldCheck, ShieldOff, Settings } from "lucide-react";
+import { Shield, ShieldCheck, ShieldOff, Settings, RefreshCw, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,6 +22,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import MFAEnrollment from "./MFAEnrollment";
+import RecoveryCodesDisplay from "./RecoveryCodesDisplay";
+import { generateRecoveryCodes, hashRecoveryCode } from "@/lib/crypto";
 
 interface MFASettingsProps {
   isOpen: boolean;
@@ -34,6 +36,11 @@ const MFASettings = ({ isOpen, onClose }: MFASettingsProps) => {
   const [enrollmentOpen, setEnrollmentOpen] = useState(false);
   const [disableConfirmOpen, setDisableConfirmOpen] = useState(false);
   const [disabling, setDisabling] = useState(false);
+  const [regenerateConfirmOpen, setRegenerateConfirmOpen] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [newRecoveryCodes, setNewRecoveryCodes] = useState<string[]>([]);
+  const [showRecoveryCodes, setShowRecoveryCodes] = useState(false);
+  const [remainingCodes, setRemainingCodes] = useState<number>(0);
   const { toast } = useToast();
 
   const checkMFAStatus = async () => {
@@ -43,6 +50,19 @@ const MFASettings = ({ isOpen, onClose }: MFASettingsProps) => {
         // Check if any factor is verified
         const hasVerifiedFactor = data.totp.some(f => f.status === "verified");
         setMfaEnabled(hasVerifiedFactor);
+        
+        if (hasVerifiedFactor) {
+          // Check remaining recovery codes
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { count } = await supabase
+              .from("mfa_recovery_codes")
+              .select("*", { count: "exact", head: true })
+              .eq("user_id", user.id)
+              .eq("used", false);
+            setRemainingCodes(count || 0);
+          }
+        }
       } else {
         setMfaEnabled(false);
       }
@@ -70,16 +90,22 @@ const MFASettings = ({ isOpen, onClose }: MFASettingsProps) => {
 
         if (error) throw error;
 
-        // Update profile
+        // Update profile and delete recovery codes
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           await supabase
             .from("profiles")
             .update({ mfa_enabled: false })
             .eq("user_id", user.id);
+          
+          await supabase
+            .from("mfa_recovery_codes")
+            .delete()
+            .eq("user_id", user.id);
         }
 
         setMfaEnabled(false);
+        setRemainingCodes(0);
         toast({
           title: "MFA Disabled",
           description: "Two-factor authentication has been removed from your account",
@@ -94,6 +120,51 @@ const MFASettings = ({ isOpen, onClose }: MFASettingsProps) => {
     } finally {
       setDisabling(false);
       setDisableConfirmOpen(false);
+    }
+  };
+
+  const handleRegenerateRecoveryCodes = async () => {
+    setRegenerating(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Generate new codes
+      const codes = generateRecoveryCodes(8);
+      
+      // Delete old codes
+      await supabase
+        .from("mfa_recovery_codes")
+        .delete()
+        .eq("user_id", user.id);
+
+      // Store new hashed codes
+      const hashedCodes = await Promise.all(
+        codes.map(async (code) => ({
+          user_id: user.id,
+          code_hash: await hashRecoveryCode(code),
+        }))
+      );
+
+      await supabase.from("mfa_recovery_codes").insert(hashedCodes);
+
+      setNewRecoveryCodes(codes);
+      setShowRecoveryCodes(true);
+      setRemainingCodes(8);
+      
+      toast({
+        title: "Recovery Codes Regenerated",
+        description: "Save your new codes before continuing",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to regenerate recovery codes",
+      });
+    } finally {
+      setRegenerating(false);
+      setRegenerateConfirmOpen(false);
     }
   };
 
@@ -141,14 +212,25 @@ const MFASettings = ({ isOpen, onClose }: MFASettingsProps) => {
                           : "Add an extra layer of security to your vault"}
                       </p>
                       {mfaEnabled ? (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => setDisableConfirmOpen(true)}
-                          className="font-rajdhani"
-                        >
-                          Disable MFA
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setRegenerateConfirmOpen(true)}
+                            className="font-rajdhani"
+                          >
+                            <RefreshCw size={14} className="mr-1" />
+                            Regenerate Codes ({remainingCodes} left)
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setDisableConfirmOpen(true)}
+                            className="font-rajdhani"
+                          >
+                            Disable MFA
+                          </Button>
+                        </div>
                       ) : (
                         <Button
                           size="sm"
@@ -207,7 +289,7 @@ const MFASettings = ({ isOpen, onClose }: MFASettingsProps) => {
               Disable Two-Factor Authentication?
             </AlertDialogTitle>
             <AlertDialogDescription className="font-rajdhani">
-              This will remove the extra layer of security from your vault. You can re-enable it anytime.
+              This will remove the extra layer of security from your vault and delete all recovery codes. You can re-enable it anytime.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -222,6 +304,37 @@ const MFASettings = ({ isOpen, onClose }: MFASettingsProps) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={regenerateConfirmOpen} onOpenChange={setRegenerateConfirmOpen}>
+        <AlertDialogContent className="cyber-border bg-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display flex items-center gap-2">
+              <Key size={20} />
+              Regenerate Recovery Codes?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="font-rajdhani">
+              This will invalidate all existing recovery codes and generate new ones. Make sure to save the new codes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="font-rajdhani">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRegenerateRecoveryCodes}
+              disabled={regenerating}
+              className="btn-gradient font-rajdhani"
+            >
+              {regenerating ? "Generating..." : "Generate New Codes"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <RecoveryCodesDisplay
+        isOpen={showRecoveryCodes}
+        onClose={() => setShowRecoveryCodes(false)}
+        codes={newRecoveryCodes}
+        onConfirm={() => setShowRecoveryCodes(false)}
+      />
     </>
   );
 };

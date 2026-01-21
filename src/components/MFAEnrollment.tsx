@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { generateRecoveryCodes, hashRecoveryCode } from "@/lib/crypto";
+import RecoveryCodesDisplay from "./RecoveryCodesDisplay";
 
 interface MFAEnrollmentProps {
   isOpen: boolean;
@@ -28,6 +30,8 @@ const MFAEnrollment = ({ isOpen, onClose, onEnrollmentComplete }: MFAEnrollmentP
   const [verifyCode, setVerifyCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [showRecoveryCodes, setShowRecoveryCodes] = useState(false);
   const { toast } = useToast();
 
   const startEnrollment = async () => {
@@ -83,9 +87,30 @@ const MFAEnrollment = ({ isOpen, onClose, onEnrollmentComplete }: MFAEnrollmentP
 
       if (verifyError) throw verifyError;
 
-      // Update profile to indicate MFA is enabled
+      // Generate recovery codes
+      const codes = generateRecoveryCodes(8);
+      setRecoveryCodes(codes);
+
+      // Get user and store hashed recovery codes
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        // Delete any existing recovery codes
+        await supabase
+          .from("mfa_recovery_codes")
+          .delete()
+          .eq("user_id", user.id);
+
+        // Store hashed recovery codes
+        const hashedCodes = await Promise.all(
+          codes.map(async (code) => ({
+            user_id: user.id,
+            code_hash: await hashRecoveryCode(code),
+          }))
+        );
+
+        await supabase.from("mfa_recovery_codes").insert(hashedCodes);
+
+        // Update profile to indicate MFA is enabled
         await supabase
           .from("profiles")
           .update({ mfa_enabled: true })
@@ -94,11 +119,11 @@ const MFAEnrollment = ({ isOpen, onClose, onEnrollmentComplete }: MFAEnrollmentP
 
       toast({
         title: "MFA Enabled!",
-        description: "Your account is now protected with two-factor authentication",
+        description: "Save your recovery codes before continuing",
       });
 
-      onEnrollmentComplete();
-      handleClose();
+      // Show recovery codes modal
+      setShowRecoveryCodes(true);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -108,6 +133,12 @@ const MFAEnrollment = ({ isOpen, onClose, onEnrollmentComplete }: MFAEnrollmentP
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRecoveryCodesConfirmed = () => {
+    setShowRecoveryCodes(false);
+    onEnrollmentComplete();
+    handleClose();
   };
 
   const copySecret = () => {
@@ -122,11 +153,13 @@ const MFAEnrollment = ({ isOpen, onClose, onEnrollmentComplete }: MFAEnrollmentP
     setQrCode("");
     setSecret("");
     setVerifyCode("");
+    setRecoveryCodes([]);
     onClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <>
+      <Dialog open={isOpen && !showRecoveryCodes} onOpenChange={handleClose}>
       <DialogContent className="cyber-border bg-card max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display text-xl gradient-text flex items-center gap-2">
@@ -279,6 +312,14 @@ const MFAEnrollment = ({ isOpen, onClose, onEnrollmentComplete }: MFAEnrollmentP
         )}
       </DialogContent>
     </Dialog>
+
+    <RecoveryCodesDisplay
+      isOpen={showRecoveryCodes}
+      onClose={() => setShowRecoveryCodes(false)}
+      codes={recoveryCodes}
+      onConfirm={handleRecoveryCodesConfirmed}
+    />
+    </>
   );
 };
 
