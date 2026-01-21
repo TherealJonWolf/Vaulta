@@ -1,73 +1,128 @@
-# Welcome to your Lovable project
+# Vaulta
 
-## Project info
+## Overview
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Vaulta is a secure, AI-forward digital vault platform designed to help users manage, protect, and interact with sensitive information in a modern, scalable way. The platform is built with a globally distributed frontend, a PostgreSQL-backed secure data layer, and serverless infrastructure to support rapid iteration and future growth.
 
-## How can I edit this code?
+Vaulta is currently in active development and early user acquisition.
 
-There are several ways of editing your application.
+---
 
-**Use Lovable**
+## Tech Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+### Frontend
 
-Changes made via Lovable will be committed automatically to this repo.
+* React (Vite)
+* TypeScript
+* Tailwind CSS
+* Deployed on Netlify (global CDN)
 
-**Use your preferred IDE**
+### Backend
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+* Supabase (PostgreSQL, Auth, Storage)
+* Row Level Security (RLS) enabled
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Services
 
-Follow these steps:
+* Railway (isolated backend services)
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Distribution
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+* Web Application
+* Progressive Web App (PWA) for desktop and mobile
 
-# Step 3: Install the necessary dependencies.
-npm i
+---
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+## Features
+
+* Secure authentication and session management
+* Encrypted data storage and access control
+* Scalable PostgreSQL database
+* Serverless-friendly architecture
+* Mobile- and desktop-ready via PWA
+
+---
+
+## Environment Configuration
+
+This project uses environment variables for configuration. **Sensitive values are never committed to the repository.**
+
+Example:
+
+```
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_public_anon_key
+```
+
+---
+
+## Development
+
+### Install Dependencies
+
+```bash
+npm install
+```
+
+### Run Locally
+
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Build for Production
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+npm run build
+```
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Deployment
 
-## What technologies are used for this project?
+* Source of truth: GitHub
+* Automatic deployments via Netlify
+* Backend services managed via Supabase and Railway
 
-This project is built with:
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Ownership & Licensing
 
-## How can I deploy this project?
+**Copyright © Jonathan McEwen. All rights reserved.**
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+This repository, including but not limited to all source code, documentation, architecture, designs, concepts, and intellectual property contained herein, is the exclusive property of **Jonathan McEwen**.
 
-## Can I connect a custom domain to my Lovable project?
+### Exclusive License
 
-Yes, you can!
+No license is granted to any individual, organization, or entity other than **Jonathan McEwen**. This project is **not open source**.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+You may **not**:
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+* Copy, modify, distribute, sublicense, or sell any portion of this code
+* Use this code or derivative works for commercial or non-commercial purposes
+* Deploy, host, or reproduce this project or its components
+
+without **explicit written permission** from Jonathan McEwen.
+
+### Reservation of Rights
+
+All rights not expressly granted are fully reserved by the owner.
+
+---
+
+## Legal Notice
+
+This repository is provided for private development, evaluation, and demonstration purposes only by the owner. Unauthorized use may result in legal action.
+
+---
+
+## Contact
+
+**Jonathan McEwen**
+Creator & Owner, Vaulta
+
+For licensing inquiries or permissions, contact the owner directly.
+
+---
+
+*This README does not constitute a public license or an offer to license.*
