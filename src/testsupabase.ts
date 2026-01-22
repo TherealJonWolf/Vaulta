@@ -1,5 +1,4 @@
-// Adjust import to match your folder structure
-import { supabase } from "../integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 async function testProfile() {
   try {

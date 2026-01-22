@@ -26,16 +26,38 @@ export const Footer = () => {
               LEGAL
             </h4>
             <ul className="space-y-3">
-              {["Privacy Policy", "Terms of Service", "Security", "Compliance"].map((link) => (
-                <li key={link}>
-                  <Link
-                    to="#"
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors font-rajdhani"
-                  >
-                    {link}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <Link
+                  to="/privacy"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors font-rajdhani"
+                >
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/terms"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors font-rajdhani"
+                >
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/privacy#security"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors font-rajdhani"
+                >
+                  Security
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/privacy#compliance"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors font-rajdhani"
+                >
+                  Compliance
+                </Link>
+              </li>
             </ul>
           </div>
 
