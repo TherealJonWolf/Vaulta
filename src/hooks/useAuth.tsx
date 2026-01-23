@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 import { User, Session, AuthenticatorAssuranceLevels } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { logLoginAttempt, logSecurityEvent, createSession } from "@/lib/securityLogger";
 
 interface AuthContextType {
   user: User | null;
@@ -87,12 +88,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     
-    if (!error) {
+    if (!error && data.user) {
+      // Log successful login
+      await logLoginAttempt(data.user.id, true, false);
+      await logSecurityEvent(data.user.id, 'login_success', 'Successful login');
+      
+      // Create session tracking
+      if (data.session) {
+        await createSession(data.user.id, data.session.access_token.substring(0, 32));
+      }
+      
       const needsMFA = await checkMFAStatus();
       return { error: null, mfaRequired: needsMFA };
     }
@@ -101,6 +111,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
+    if (user) {
+      await logSecurityEvent(user.id, 'logout', 'User logged out');
+    }
     await supabase.auth.signOut();
   };
 

@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      active_sessions: {
+        Row: {
+          created_at: string
+          device_info: string | null
+          id: string
+          ip_address: string | null
+          is_current: boolean | null
+          last_active_at: string
+          location: string | null
+          session_token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_info?: string | null
+          id?: string
+          ip_address?: string | null
+          is_current?: boolean | null
+          last_active_at?: string
+          location?: string | null
+          session_token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_info?: string | null
+          id?: string
+          ip_address?: string | null
+          is_current?: boolean | null
+          last_active_at?: string
+          location?: string | null
+          session_token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           content: string
@@ -83,6 +119,42 @@ export type Database = {
         }
         Relationships: []
       }
+      login_history: {
+        Row: {
+          failure_reason: string | null
+          id: string
+          ip_address: string | null
+          location: string | null
+          login_at: string
+          mfa_used: boolean | null
+          success: boolean
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          failure_reason?: string | null
+          id?: string
+          ip_address?: string | null
+          location?: string | null
+          login_at?: string
+          mfa_used?: boolean | null
+          success?: boolean
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          failure_reason?: string | null
+          id?: string
+          ip_address?: string | null
+          location?: string | null
+          login_at?: string
+          mfa_used?: boolean | null
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       mfa_recovery_codes: {
         Row: {
           code_hash: string
@@ -136,6 +208,39 @@ export type Database = {
           id?: string
           mfa_enabled?: boolean | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      security_events: {
+        Row: {
+          created_at: string
+          event_description: string
+          event_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_description: string
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_description?: string
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
           user_id?: string
         }
         Relationships: []

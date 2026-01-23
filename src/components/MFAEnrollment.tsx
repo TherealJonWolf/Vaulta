@@ -14,6 +14,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { generateRecoveryCodes, hashRecoveryCode } from "@/lib/crypto";
+import { logSecurityEvent } from "@/lib/securityLogger";
 import RecoveryCodesDisplay from "./RecoveryCodesDisplay";
 
 interface MFAEnrollmentProps {
@@ -115,6 +116,9 @@ const MFAEnrollment = ({ isOpen, onClose, onEnrollmentComplete }: MFAEnrollmentP
           .from("profiles")
           .update({ mfa_enabled: true })
           .eq("user_id", user.id);
+
+        // Log security event
+        await logSecurityEvent(user.id, 'mfa_enabled', 'Two-factor authentication was enabled');
       }
 
       toast({

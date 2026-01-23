@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { hashRecoveryCode } from "@/lib/crypto";
+import { logSecurityEvent, logLoginAttempt } from "@/lib/securityLogger";
 
 interface MFAVerificationProps {
   onVerified: () => void;
@@ -66,6 +67,13 @@ const MFAVerification = ({ onVerified, onCancel }: MFAVerificationProps) => {
 
       if (verifyError) throw verifyError;
 
+      // Log successful MFA verification
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await logSecurityEvent(user.id, 'mfa_verified', 'MFA verification successful');
+        await logLoginAttempt(user.id, true, true);
+      }
+
       onVerified();
     } catch (error: any) {
       toast({
@@ -106,6 +114,9 @@ const MFAVerification = ({ onVerified, onCancel }: MFAVerificationProps) => {
       if (error) throw error;
 
       if (data) {
+        // Log recovery code usage
+        await logSecurityEvent(user.id, 'recovery_code_used', 'Recovery code was used for authentication');
+        
         toast({
           title: "Recovery Code Accepted",
           description: "One-time code used. Consider regenerating your recovery codes.",
