@@ -1,14 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
-// This looks in EVERY possible pocket for the keys
-const supabaseUrl = process.env.SUPABASE_URL || import.meta.env?.VITE_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_PUBLISHABLE_KEY || import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY;
+// Try the Railway name, then try the Vite name as a backup
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-// If they are missing, we print a loud message so we know WHICH one is gone
-if (!supabaseUrl) console.error("ERROR: SUPABASE_URL is missing!");
-if (!supabaseKey) console.error("ERROR: SUPABASE_PUBLISHABLE_KEY is missing!");
+// This will stop the app from crashing blindly and tell you EXACTLY what is missing
+if (!supabaseUrl || !supabaseKey) {
+  console.error("Missing Env Vars - URL:", !!supabaseUrl, "Key:", !!supabaseKey);
+}
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl || '', supabaseKey || '');
 }
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
