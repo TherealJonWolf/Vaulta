@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import MFAEnrollment from "./MFAEnrollment";
 import RecoveryCodesDisplay from "./RecoveryCodesDisplay";
 import { generateRecoveryCodes, hashRecoveryCode } from "@/lib/crypto";
+import { logSecurityEvent } from "@/lib/securityLogger";
 
 interface MFASettingsProps {
   isOpen: boolean;
@@ -102,6 +103,9 @@ const MFASettings = ({ isOpen, onClose }: MFASettingsProps) => {
             .from("mfa_recovery_codes")
             .delete()
             .eq("user_id", user.id);
+          
+          // Log security event
+          await logSecurityEvent(user.id, 'mfa_disabled', 'Two-factor authentication was disabled');
         }
 
         setMfaEnabled(false);
@@ -147,6 +151,9 @@ const MFASettings = ({ isOpen, onClose }: MFASettingsProps) => {
       );
 
       await supabase.from("mfa_recovery_codes").insert(hashedCodes);
+
+      // Log security event
+      await logSecurityEvent(user.id, 'recovery_codes_regenerated', 'Recovery codes were regenerated');
 
       setNewRecoveryCodes(codes);
       setShowRecoveryCodes(true);

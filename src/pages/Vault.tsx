@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings } from "lucide-react";
+import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,6 +9,7 @@ import DocumentUpload from "@/components/DocumentUpload";
 import DocumentList from "@/components/DocumentList";
 import InstitutionConnect from "@/components/InstitutionConnect";
 import MFASettings from "@/components/MFASettings";
+import { SecurityDashboard } from "@/components/SecurityDashboard";
 
 const Vault = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const Vault = () => {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [institutionOpen, setInstitutionOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [securityOpen, setSecurityOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
@@ -54,7 +56,10 @@ const Vault = () => {
             <span className="font-display text-xl font-bold gradient-text">SOVEREIGN SECTOR</span>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => setSettingsOpen(true)} className="text-muted-foreground">
+            <Button variant="ghost" onClick={() => setSecurityOpen(true)} className="text-muted-foreground" title="Security Dashboard">
+              <ShieldCheck size={18} />
+            </Button>
+            <Button variant="ghost" onClick={() => setSettingsOpen(true)} className="text-muted-foreground" title="Settings">
               <Settings size={18} />
             </Button>
             <Button variant="ghost" onClick={handleSignOut} className="text-muted-foreground">
@@ -112,6 +117,7 @@ const Vault = () => {
       <DocumentUpload isOpen={uploadOpen} onClose={() => setUploadOpen(false)} onUploadComplete={() => setRefreshTrigger((p) => p + 1)} />
       <InstitutionConnect isOpen={institutionOpen} onClose={() => setInstitutionOpen(false)} />
       <MFASettings isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SecurityDashboard open={securityOpen} onOpenChange={setSecurityOpen} />
     </div>
   );
 };
