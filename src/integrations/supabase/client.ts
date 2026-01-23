@@ -10,10 +10,9 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    // Note: localStorage only exists in the browser. 
-    // If this runs on Railway (Node), it will crash here.
+    // This tells the code: "Only use localStorage if we are in a browser"
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    persistSession: true,
+    persistSession: typeof window !== 'undefined', // Only save login info on the web
     autoRefreshToken: true,
   }
 });
