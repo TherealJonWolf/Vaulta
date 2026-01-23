@@ -1,3 +1,4 @@
+import { createClient } from '@supabase/supabase-js';
 // Check for Vite environment (Frontend/Netlify) 
 // or Node environment (Backend/Railway)
 const SUPABASE_URL = import.meta.env?.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
