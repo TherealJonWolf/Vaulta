@@ -19,5 +19,9 @@ if (!url || !key) {
     },
   });
 }
+console.log("LOCAL ENV CHECK", {
+  url: import.meta.env.VITE_SUPABASE_URL,
+  key: import.meta.env.VITE_SUPABASE_ANON_KEY,
+});
 
 export { supabase };
