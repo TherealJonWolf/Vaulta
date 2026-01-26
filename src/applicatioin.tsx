@@ -1,67 +1,24 @@
-import React, { useEffect, useState } from "react";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { supabase } from './integrations/supabase/client';
 
-// Load env variables (Vite requires VITE_ prefix)
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-let supabase: SupabaseClient | null = null;
-
-// Initialize Supabase safely
-try {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    throw new Error("Supabase URL or ANON KEY is missing!");
-  }
-  supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} catch (err) {
-  console.error("Supabase initialization error:", err);
-}
-
-const Application: React.FC = () => {
-  const [userCount, setUserCount] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!supabase) {
-      setError("Supabase is not initialized. Check your keys!");
-      return;
-    }
-
-    const fetchUsers = async () => {
-      try {
-        const { data, error } = await supabase.from("profiles").select("*");
-        if (error) throw error;
-        setUserCount(data.length);
-      } catch (err: any) {
-        console.error("Error fetching data:", err);
-        setError(err.message || "Unknown error fetching data.");
-      }
-    };
-
-    fetchUsers();
-  }, []);
-
-  if (error) {
+export default function Application() {
+  if (!supabase) {
     return (
-      <div style={{ padding: "2rem", color: "red" }}>
-        <h1>⚠️ Supabase Error</h1>
-        <p>{error}</p>
-        <p>URL found: {!!SUPABASE_URL ? "✅" : "❌"} </p>
-        <p>Key found: {!!SUPABASE_ANON_KEY ? "✅" : "❌"} </p>
+      <div style={{ padding: 24, color: 'red' }}>
+        <h1>Supabase not initialized</h1>
+        <p>
+          Check Netlify / Railway environment variables:
+        </p>
+        <ul>
+          <li>VITE_SUPABASE_URL</li>
+          <li>VITE_SUPABASE_ANON_KEY</li>
+        </ul>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <h1>Supabase Connected!</h1>
-      {userCount !== null ? (
-        <p>Number of users: {userCount}</p>
-      ) : (
-        <p>Loading user data...</p>
-      )}
+    <div style={{ padding: 24 }}>
+      <h1>App loaded successfully ✅</h1>
     </div>
   );
-};
-
-export default Application;
+}
