@@ -1,17 +1,23 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Ensure these environment variables are loaded
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const url = import.meta.env.VITE_SUPABASE_URL;
+const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-console.log("Supabase URL:", supabaseUrl);
-console.log("Supabase Key length:", supabaseAnonKey?.length);
+let supabase: SupabaseClient | null = null;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
+if (!url || !key) {
+  console.error(
+    '❌ Missing Supabase Keys',
+    { urlFound: !!url, keyFound: !!key }
+  );
+} else {
+  supabase = createClient(url, key, {
+    auth: {
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      persistSession: typeof window !== 'undefined',
+      autoRefreshToken: true,
+    },
+  });
 }
 
-export const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey
-);
+export { supabase };
