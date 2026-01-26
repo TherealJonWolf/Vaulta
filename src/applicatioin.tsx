@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-// Load environment variables (Vite uses VITE_ prefix)
+// Load env variables (Vite requires VITE_ prefix)
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 let supabase: SupabaseClient | null = null;
 
-// Try to initialize Supabase, catch missing/invalid keys
+// Initialize Supabase safely
 try {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new Error("Supabase URL or ANON KEY is missing!");
@@ -17,7 +17,7 @@ try {
   console.error("Supabase initialization error:", err);
 }
 
-const App: React.FC = () => {
+const Application: React.FC = () => {
   const [userCount, setUserCount] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +27,6 @@ const App: React.FC = () => {
       return;
     }
 
-    // Example: fetch number of users from "profiles" table
     const fetchUsers = async () => {
       try {
         const { data, error } = await supabase.from("profiles").select("*");
@@ -47,6 +46,8 @@ const App: React.FC = () => {
       <div style={{ padding: "2rem", color: "red" }}>
         <h1>⚠️ Supabase Error</h1>
         <p>{error}</p>
+        <p>URL found: {!!SUPABASE_URL ? "✅" : "❌"} </p>
+        <p>Key found: {!!SUPABASE_ANON_KEY ? "✅" : "❌"} </p>
       </div>
     );
   }
@@ -63,4 +64,4 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+export default Application;
