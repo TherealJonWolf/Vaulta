@@ -6,6 +6,21 @@ import { HeroSection } from "@/components/HeroSection";
 import { FeaturesSection } from "@/components/FeaturesSection";
 import { SecuritySection } from "@/components/SecuritySection";
 import { Footer } from "@/components/Footer";
+import { supabase } from "@/integrations/supabase/client";
+
+if (!supabase) {
+  return (
+    <div className="min-h-screen flex items-center justify-center text-red-500">
+      <div>
+        <h1 className="text-2xl font-bold">Supabase not configured</h1>
+        <p>
+          Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY
+        </p>
+      </div>
+    </div>
+  );
+}
+
 
 const Index = () => {
   const [isInitialized, setIsInitialized] = useState(false);
