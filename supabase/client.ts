@@ -5,23 +5,38 @@ const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 let supabase: SupabaseClient | null = null;
 
+// 🚨 HARD FAIL IF KEYS ARE MISSING
 if (!url || !key) {
-  console.error(
-    '❌ Missing Supabase Keys',
-    { urlFound: !!url, keyFound: !!key }
-  );
+  console.error('❌ Missing Supabase Keys', {
+    urlFound: !!url,
+    keyFound: !!key,
+  });
 } else {
   supabase = createClient(url, key, {
     auth: {
-      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-      persistSession: typeof window !== 'undefined',
-      autoRefreshToken: true,
+      // ✅ Prevent bad tokens from auto-firing on load
+      persistSession: true,
+      autoRefreshToken: false,
+
+      // ✅ Only use storage in the browser
+      storage:
+        typeof window !== 'undefined'
+          ? window.localStorage
+          : undefined,
+    },
+    global: {
+      headers: {
+        // ✅ Forces API key header on EVERY request
+        apikey: key,
+      },
     },
   });
 }
-console.log("LOCAL ENV CHECK", {
-  url: import.meta.env.VITE_SUPABASE_URL,
-  key: import.meta.env.VITE_SUPABASE_ANON_KEY,
+
+// 🔍 Debug once locally (safe to remove later)
+console.log('LOCAL ENV CHECK', {
+  url: !!url,
+  keyStartsWithEyJ: key?.startsWith('eyJ'),
 });
 
 export { supabase };
