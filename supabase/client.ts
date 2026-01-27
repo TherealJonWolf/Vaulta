@@ -17,11 +17,6 @@ if (!url || !key) {
       autoRefreshToken: true,
       storage: typeof window !== "undefined" ? window.localStorage : undefined,
     },
-    global: {
-      headers: {
-        apikey: key,
-      },
-    },
   });
 }
 
