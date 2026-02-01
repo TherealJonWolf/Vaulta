@@ -54,17 +54,25 @@ export const useSubscription = () => {
     }
   }, [user, session]);
 
-  const fetchDocumentCount = useCallback(async () => {
-    if (!user) return;
+  const fetchDocumentCount = useCallback(async (): Promise<number> => {
+    if (!user) return 0;
 
     const { count, error } = await supabase
       .from("documents")
       .select("*", { count: "exact", head: true });
 
-    if (!error && count !== null) {
-      setDocumentCount(count);
-    }
+    const docCount = (!error && count !== null) ? count : 0;
+    setDocumentCount(docCount);
+    return docCount;
   }, [user]);
+
+  // Check upload eligibility with fresh data
+  const checkCanUpload = useCallback(async (): Promise<boolean> => {
+    if (status.isPremium) return true;
+    
+    const count = await fetchDocumentCount();
+    return count < FREE_DOCUMENT_LIMIT;
+  }, [status.isPremium, fetchDocumentCount]);
 
   const createCheckout = async () => {
     try {
@@ -123,6 +131,7 @@ export const useSubscription = () => {
     freeLimit: FREE_DOCUMENT_LIMIT,
     checkSubscription,
     fetchDocumentCount,
+    checkCanUpload,
     createCheckout,
     openCustomerPortal,
   };
