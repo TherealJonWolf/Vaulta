@@ -6,14 +6,16 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscription } from "@/hooks/useSubscription";
 
 interface DocumentUploadProps {
   isOpen: boolean;
   onClose: () => void;
   onUploadComplete: () => void;
+  onUpgradeRequired: () => void;
 }
 
-const DocumentUpload = ({ isOpen, onClose, onUploadComplete }: DocumentUploadProps) => {
+const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired }: DocumentUploadProps) => {
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -21,6 +23,7 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete }: DocumentUploadPro
   const inputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { canUpload, fetchDocumentCount } = useSubscription();
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -55,6 +58,13 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete }: DocumentUploadPro
         title: "Authentication Required",
         description: "Please log in to upload documents.",
       });
+      return;
+    }
+
+    // Check if user can upload (has subscription or is under free limit)
+    if (!canUpload) {
+      onClose();
+      onUpgradeRequired();
       return;
     }
 
@@ -124,6 +134,9 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete }: DocumentUploadPro
         title: "Document Secured",
         description: `${file.name} has been encrypted and stored in your Sovereign Sector.`,
       });
+
+      // Refresh document count after upload
+      fetchDocumentCount();
 
       setTimeout(() => {
         onUploadComplete();
