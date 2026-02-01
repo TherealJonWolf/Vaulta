@@ -2,23 +2,31 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import AIOracle from "@/components/AIOracle";
 import DocumentUpload from "@/components/DocumentUpload";
 import DocumentList from "@/components/DocumentList";
 import InstitutionConnect from "@/components/InstitutionConnect";
 import MFASettings from "@/components/MFASettings";
 import { SecurityDashboard } from "@/components/SecurityDashboard";
+import SubscriptionBadge from "@/components/SubscriptionBadge";
+import UpgradePrompt from "@/components/UpgradePrompt";
+import { useSubscription } from "@/hooks/useSubscription";
 
 const Vault = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, loading, mfaRequired, signOut } = useAuth();
+  const { checkSubscription, fetchDocumentCount } = useSubscription();
+  const { toast } = useToast();
   const [oracleOpen, setOracleOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [institutionOpen, setInstitutionOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [securityOpen, setSecurityOpen] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
@@ -30,6 +38,25 @@ const Vault = () => {
       navigate("/auth");
     }
   }, [user, loading, mfaRequired, navigate]);
+
+  // Handle subscription success/cancel from Stripe redirect
+  useEffect(() => {
+    const subscription = searchParams.get("subscription");
+    if (subscription === "success") {
+      toast({
+        title: "Subscription Activated!",
+        description: "Welcome to Premium Vault. You now have unlimited document storage.",
+      });
+      checkSubscription();
+      fetchDocumentCount();
+    } else if (subscription === "canceled") {
+      toast({
+        variant: "destructive",
+        title: "Subscription Canceled",
+        description: "Your subscription was not completed.",
+      });
+    }
+  }, [searchParams, toast, checkSubscription, fetchDocumentCount]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -55,17 +82,20 @@ const Vault = () => {
             <Shield className="text-primary" size={28} />
             <span className="font-display text-xl font-bold gradient-text">SOVEREIGN SECTOR</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => setSecurityOpen(true)} className="text-muted-foreground" title="Security Dashboard">
-              <ShieldCheck size={18} />
-            </Button>
-            <Button variant="ghost" onClick={() => setSettingsOpen(true)} className="text-muted-foreground" title="Settings">
-              <Settings size={18} />
-            </Button>
-            <Button variant="ghost" onClick={handleSignOut} className="text-muted-foreground">
-              <LogOut size={18} className="mr-2" />
-              Exit Vault
-            </Button>
+          <div className="flex items-center gap-4">
+            <SubscriptionBadge />
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" onClick={() => setSecurityOpen(true)} className="text-muted-foreground" title="Security Dashboard">
+                <ShieldCheck size={18} />
+              </Button>
+              <Button variant="ghost" onClick={() => setSettingsOpen(true)} className="text-muted-foreground" title="Settings">
+                <Settings size={18} />
+              </Button>
+              <Button variant="ghost" onClick={handleSignOut} className="text-muted-foreground">
+                <LogOut size={18} className="mr-2" />
+                Exit Vault
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -114,10 +144,16 @@ const Vault = () => {
       </main>
 
       <AIOracle isOpen={oracleOpen} onClose={() => setOracleOpen(false)} />
-      <DocumentUpload isOpen={uploadOpen} onClose={() => setUploadOpen(false)} onUploadComplete={() => setRefreshTrigger((p) => p + 1)} />
+      <DocumentUpload 
+        isOpen={uploadOpen} 
+        onClose={() => setUploadOpen(false)} 
+        onUploadComplete={() => setRefreshTrigger((p) => p + 1)} 
+        onUpgradeRequired={() => setUpgradeOpen(true)}
+      />
       <InstitutionConnect isOpen={institutionOpen} onClose={() => setInstitutionOpen(false)} />
       <MFASettings isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <SecurityDashboard open={securityOpen} onOpenChange={setSecurityOpen} />
+      <UpgradePrompt isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
     </div>
   );
 };
