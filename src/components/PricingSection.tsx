@@ -1,17 +1,21 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Crown, Shield, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
 
 const PricingSection = () => {
   const navigate = useNavigate();
+  const [isAnnual, setIsAnnual] = useState(false);
 
   const plans = [
     {
       name: "Free",
-      price: "$0",
+      monthlyPrice: "$0",
+      annualPrice: "$0",
       period: "forever",
       description: "Get started with secure document storage",
       icon: Shield,
@@ -26,8 +30,11 @@ const PricingSection = () => {
     },
     {
       name: "Premium",
-      price: "$9.99",
-      period: "/month",
+      monthlyPrice: "$9.99",
+      annualPrice: "$99",
+      monthlyPeriod: "/month",
+      annualPeriod: "/year",
+      savings: "Save 17%",
       description: "Unlimited storage for power users",
       icon: Crown,
       features: [
@@ -54,7 +61,7 @@ const PricingSection = () => {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-12"
         >
           <Badge className="mb-4 bg-primary/10 text-primary border-primary/30 font-mono">
             <Sparkles size={12} className="mr-1" />
@@ -67,6 +74,31 @@ const PricingSection = () => {
           <p className="text-muted-foreground font-rajdhani text-lg max-w-2xl mx-auto">
             Start free with essential security. Upgrade for unlimited storage and premium features.
           </p>
+        </motion.div>
+
+        {/* Billing Toggle */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="flex items-center justify-center gap-4 mb-12"
+        >
+          <span className={`font-rajdhani text-sm ${!isAnnual ? "text-foreground" : "text-muted-foreground"}`}>
+            Monthly
+          </span>
+          <Switch
+            checked={isAnnual}
+            onCheckedChange={setIsAnnual}
+            className="data-[state=checked]:bg-primary"
+          />
+          <span className={`font-rajdhani text-sm ${isAnnual ? "text-foreground" : "text-muted-foreground"}`}>
+            Annual
+          </span>
+          {isAnnual && (
+            <Badge className="bg-accent/20 text-accent border-accent/30 font-mono text-xs">
+              Save 17%
+            </Badge>
+          )}
         </motion.div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -110,10 +142,21 @@ const PricingSection = () => {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="text-center">
-                    <span className="text-4xl font-bold gradient-text">{plan.price}</span>
-                    <span className="text-muted-foreground font-mono text-sm ml-1">
-                      {plan.period}
+                    <span className="text-4xl font-bold gradient-text">
+                      {isAnnual ? plan.annualPrice : plan.monthlyPrice}
                     </span>
+                    <span className="text-muted-foreground font-mono text-sm ml-1">
+                      {plan.name === "Free" 
+                        ? plan.period 
+                        : isAnnual 
+                          ? plan.annualPeriod 
+                          : plan.monthlyPeriod}
+                    </span>
+                    {plan.popular && isAnnual && (
+                      <p className="text-xs text-accent font-mono mt-1">
+                        That's just $8.25/month!
+                      </p>
+                    )}
                   </div>
 
                   <ul className="space-y-3">

@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Crown, Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useToast } from "@/hooks/use-toast";
 
@@ -13,16 +16,21 @@ interface UpgradePromptProps {
 const UpgradePrompt = ({ isOpen, onClose }: UpgradePromptProps) => {
   const { createCheckout, documentsRemaining, freeLimit, isPremium } = useSubscription();
   const { toast } = useToast();
+  const [isAnnual, setIsAnnual] = useState(true); // Default to annual for better value
+  const [loading, setLoading] = useState(false);
 
   const handleUpgrade = async () => {
+    setLoading(true);
     try {
-      await createCheckout();
+      await createCheckout(isAnnual ? "annual" : "monthly");
     } catch {
       toast({
         variant: "destructive",
         title: "Error",
         description: "Unable to start checkout. Please try again.",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -55,12 +63,41 @@ const UpgradePrompt = ({ isOpen, onClose }: UpgradePromptProps) => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Billing Toggle */}
+            <div className="flex items-center justify-center gap-3 p-3 rounded-xl bg-muted/30 border border-border">
+              <span className={`font-rajdhani text-sm ${!isAnnual ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                Monthly
+              </span>
+              <Switch
+                checked={isAnnual}
+                onCheckedChange={setIsAnnual}
+                className="data-[state=checked]:bg-primary"
+              />
+              <span className={`font-rajdhani text-sm ${isAnnual ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                Annual
+              </span>
+              {isAnnual && (
+                <Badge className="bg-accent/20 text-accent border-accent/30 font-mono text-xs">
+                  Save 17%
+                </Badge>
+              )}
+            </div>
+
             <div className="p-4 rounded-xl bg-muted/30 border border-border">
               <div className="flex items-center justify-between mb-4">
                 <span className="font-display font-bold text-lg">Premium Vault</span>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-bold gradient-text">$9.99</span>
-                  <span className="text-muted-foreground font-mono text-sm">/mo</span>
+                <div className="text-right">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold gradient-text">
+                      {isAnnual ? "$99" : "$9.99"}
+                    </span>
+                    <span className="text-muted-foreground font-mono text-sm">
+                      {isAnnual ? "/year" : "/mo"}
+                    </span>
+                  </div>
+                  {isAnnual && (
+                    <p className="text-xs text-accent font-mono">$8.25/month</p>
+                  )}
                 </div>
               </div>
               <ul className="space-y-3">
@@ -84,10 +121,11 @@ const UpgradePrompt = ({ isOpen, onClose }: UpgradePromptProps) => {
               </Button>
               <Button
                 onClick={handleUpgrade}
+                disabled={loading}
                 className="flex-1 btn-gradient font-rajdhani font-bold"
               >
                 <Sparkles size={16} className="mr-2" />
-                Upgrade Now
+                {loading ? "Loading..." : "Upgrade Now"}
               </Button>
             </div>
 

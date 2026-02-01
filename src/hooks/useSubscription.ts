@@ -74,9 +74,11 @@ export const useSubscription = () => {
     return count < FREE_DOCUMENT_LIMIT;
   }, [status.isPremium, fetchDocumentCount]);
 
-  const createCheckout = async () => {
+  const createCheckout = async (interval: "monthly" | "annual" = "monthly") => {
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout");
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { interval },
+      });
 
       if (error) throw error;
 

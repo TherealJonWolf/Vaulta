@@ -7,7 +7,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const PREMIUM_VAULT_PRICE_ID = "price_1Sw3SxBiUC82xaiIb6FYqn0L";
+// Price IDs for Premium Vault
+const PRICES = {
+  monthly: "price_1Sw3SxBiUC82xaiIb6FYqn0L",
+  annual: "price_1Sw3cBBiUC82xaiIYwzaNLEL",
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -20,6 +24,11 @@ serve(async (req) => {
   );
 
   try {
+    // Parse request body for billing interval
+    const body = await req.json().catch(() => ({}));
+    const interval = body.interval === "annual" ? "annual" : "monthly";
+    const priceId = PRICES[interval];
+
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
@@ -42,7 +51,7 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: PREMIUM_VAULT_PRICE_ID,
+          price: priceId,
           quantity: 1,
         },
       ],
