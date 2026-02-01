@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, X, FileText, Lock, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,10 +20,25 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired }
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<"idle" | "encrypting" | "uploading" | "success" | "error">("idle");
+  const [checking, setChecking] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { canUpload, fetchDocumentCount } = useSubscription();
+  const { fetchDocumentCount, checkCanUpload } = useSubscription();
+
+  // Check eligibility when modal opens
+  useEffect(() => {
+    if (isOpen && user) {
+      setChecking(true);
+      checkCanUpload().then((allowed) => {
+        setChecking(false);
+        if (!allowed) {
+          onClose();
+          onUpgradeRequired();
+        }
+      });
+    }
+  }, [isOpen, user, checkCanUpload, onClose, onUpgradeRequired]);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -62,7 +77,8 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired }
     }
 
     // Check if user can upload (has subscription or is under free limit)
-    if (!canUpload) {
+    const allowed = await checkCanUpload();
+    if (!allowed) {
       onClose();
       onUpgradeRequired();
       return;
