@@ -5,6 +5,7 @@ import { Navbar } from "@/components/Navbar";
 import { HeroSection } from "@/components/HeroSection";
 import { FeaturesSection } from "@/components/FeaturesSection";
 import { SecuritySection } from "@/components/SecuritySection";
+import { TestimonialsSection } from "@/components/TestimonialsSection";
 import PricingSection from "@/components/PricingSection";
 import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +55,7 @@ export default function Index() {
             <HeroSection />
             <FeaturesSection />
             <SecuritySection />
+            <TestimonialsSection />
             <PricingSection />
           </main>
           <Footer />
