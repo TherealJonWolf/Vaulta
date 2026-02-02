@@ -9,6 +9,10 @@ import Auth from "./pages/Auth";
 import Vault from "./pages/Vault";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import Documentation from "./pages/Documentation";
+import ApiReference from "./pages/ApiReference";
+import Support from "./pages/Support";
+import Roadmap from "./pages/Roadmap";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +30,10 @@ const App = () => (
             <Route path="/vault" element={<Vault />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/documentation" element={<Documentation />} />
+            <Route path="/api-reference" element={<ApiReference />} />
+            <Route path="/support" element={<Support />} />
+            <Route path="/roadmap" element={<Roadmap />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

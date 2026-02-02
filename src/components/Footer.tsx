@@ -67,16 +67,38 @@ export const Footer = () => {
               RESOURCES
             </h4>
             <ul className="space-y-3">
-              {["Documentation", "API Reference", "Support", "Roadmap"].map((link) => (
-                <li key={link}>
-                  <Link
-                    to="#"
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors font-rajdhani"
-                  >
-                    {link}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <Link
+                  to="/documentation"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors font-rajdhani"
+                >
+                  Documentation
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/api-reference"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors font-rajdhani"
+                >
+                  API Reference
+                </Link>
+              </li>
+              <li>
+                <a
+                  href="mailto:help@tryvaulta.com"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors font-rajdhani"
+                >
+                  Support
+                </a>
+              </li>
+              <li>
+                <Link
+                  to="/roadmap"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors font-rajdhani"
+                >
+                  Roadmap
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
