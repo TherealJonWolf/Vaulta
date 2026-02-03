@@ -245,6 +245,42 @@ export type Database = {
         }
         Relationships: []
       }
+      testimonials: {
+        Row: {
+          approved: boolean
+          author_name: string
+          company: string
+          created_at: string
+          id: string
+          quote: string
+          rating: number
+          role: string
+          user_id: string | null
+        }
+        Insert: {
+          approved?: boolean
+          author_name: string
+          company: string
+          created_at?: string
+          id?: string
+          quote: string
+          rating?: number
+          role: string
+          user_id?: string | null
+        }
+        Update: {
+          approved?: boolean
+          author_name?: string
+          company?: string
+          created_at?: string
+          id?: string
+          quote?: string
+          rating?: number
+          role?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
