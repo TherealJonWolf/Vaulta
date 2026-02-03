@@ -26,16 +26,7 @@ export default function Index() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [showInit, setShowInit] = useState(true);
 
-  useEffect(() => {
-    const initialized = sessionStorage.getItem("vaulta_initialized");
-    if (initialized) {
-      setShowInit(false);
-      setIsInitialized(true);
-    }
-  }, []);
-
   const handleInitComplete = () => {
-    sessionStorage.setItem("vaulta_initialized", "true");
     setIsInitialized(true);
     setTimeout(() => setShowInit(false), 300);
   };
