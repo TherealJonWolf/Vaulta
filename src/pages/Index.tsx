@@ -8,7 +8,7 @@ import { SecuritySection } from "@/components/SecuritySection";
 import { TestimonialsSection } from "@/components/TestimonialsSection";
 import PricingSection from "@/components/PricingSection";
 import { Footer } from "@/components/Footer";
-import { supabase } from "@/integrations/supabase/client";
+import { getsupabase } from "@/integrations/supabase/client";
 
 export default function Index() {
   // ✅ Guard INSIDE component (legal + safe)
