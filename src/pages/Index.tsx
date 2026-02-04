@@ -8,21 +8,9 @@ import { SecuritySection } from "@/components/SecuritySection";
 import { TestimonialsSection } from "@/components/TestimonialsSection";
 import PricingSection from "@/components/PricingSection";
 import { Footer } from "@/components/Footer";
-import { getsupabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Index() {
-  // ✅ Guard INSIDE component (legal + safe)
-  if (!supabase) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-red-500">
-        <div>
-          <h1 className="text-xl font-bold">Supabase not configured</h1>
-          <p>Missing environment variables</p>
-        </div>
-      </div>
-    );
-  }
-
   const [isInitialized, setIsInitialized] = useState(false);
   const [showInit, setShowInit] = useState(true);
 
@@ -30,6 +18,18 @@ export default function Index() {
     setIsInitialized(true);
     setTimeout(() => setShowInit(false), 300);
   };
+
+  // Guard after hooks
+  if (!supabase) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-destructive">
+        <div>
+          <h1 className="text-xl font-bold">Backend not configured</h1>
+          <p>Missing environment variables</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
