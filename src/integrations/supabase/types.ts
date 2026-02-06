@@ -281,6 +281,48 @@ export type Database = {
         }
         Relationships: []
       }
+      trust_scores: {
+        Row: {
+          calculated_at: string
+          confidence: string
+          created_at: string
+          explanation: string
+          id: string
+          negative_factors: Json
+          positive_factors: Json
+          recommendations: Json
+          trust_level: Database["public"]["Enums"]["trust_level"]
+          trust_score: number
+          user_id: string
+        }
+        Insert: {
+          calculated_at?: string
+          confidence: string
+          created_at?: string
+          explanation: string
+          id?: string
+          negative_factors?: Json
+          positive_factors?: Json
+          recommendations?: Json
+          trust_level: Database["public"]["Enums"]["trust_level"]
+          trust_score: number
+          user_id: string
+        }
+        Update: {
+          calculated_at?: string
+          confidence?: string
+          created_at?: string
+          explanation?: string
+          id?: string
+          negative_factors?: Json
+          positive_factors?: Json
+          recommendations?: Json
+          trust_level?: Database["public"]["Enums"]["trust_level"]
+          trust_score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -292,7 +334,12 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      trust_level:
+        | "restricted"
+        | "low_trust"
+        | "neutral"
+        | "trusted"
+        | "highly_trusted"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -419,6 +466,14 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      trust_level: [
+        "restricted",
+        "low_trust",
+        "neutral",
+        "trusted",
+        "highly_trusted",
+      ],
+    },
   },
 } as const
