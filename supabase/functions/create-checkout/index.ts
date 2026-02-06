@@ -29,23 +29,49 @@ serve(async (req) => {
     const interval = body.interval === "annual" ? "annual" : "monthly";
     const priceId = PRICES[interval];
 
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
+    console.log("[CREATE-CHECKOUT] Starting checkout session", { interval, priceId });
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("No authorization header provided");
+    }
+    
+    const token = authHeader.replace("Bearer ", "");
+    const { data, error: userError } = await supabaseClient.auth.getUser(token);
+    
+    if (userError) {
+      console.error("[CREATE-CHECKOUT] Auth error:", userError.message);
+      throw new Error(`Authentication error: ${userError.message}`);
+    }
+    
+    const user = data.user;
+    if (!user?.email) {
+      throw new Error("User not authenticated or email not available");
+    }
+    
+    console.log("[CREATE-CHECKOUT] User authenticated", { userId: user.id, email: user.email });
+
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      throw new Error("STRIPE_SECRET_KEY is not configured");
+    }
+    
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2025-08-27.basil",
     });
 
     // Check if customer exists
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId;
+    let customerId: string | undefined;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
+      console.log("[CREATE-CHECKOUT] Found existing customer", { customerId });
+    } else {
+      console.log("[CREATE-CHECKOUT] No existing customer, will create new");
     }
 
+    const origin = req.headers.get("origin") || "https://id-preview--8ea75ce5-47ad-4138-9d41-6f8f252a04d4.lovable.app";
+    
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -56,9 +82,12 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${req.headers.get("origin")}/vault?subscription=success`,
-      cancel_url: `${req.headers.get("origin")}/vault?subscription=canceled`,
+      success_url: `${origin}/vault?subscription=success`,
+      cancel_url: `${origin}/vault?subscription=canceled`,
+      allow_promotion_codes: true,
     });
+    
+    console.log("[CREATE-CHECKOUT] Session created", { sessionId: session.id, url: session.url });
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

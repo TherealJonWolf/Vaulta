@@ -6,10 +6,51 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useToast } from "@/hooks/use-toast";
 
 const PricingSection = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { createCheckout, isPremium } = useSubscription();
+  const { toast } = useToast();
   const [isAnnual, setIsAnnual] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handlePlanClick = async (planName: string) => {
+    if (planName === "Free") {
+      navigate("/auth");
+      return;
+    }
+    
+    // Premium plan
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    
+    if (isPremium) {
+      toast({
+        title: "Already Premium",
+        description: "You already have an active Premium subscription!",
+      });
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      await createCheckout(isAnnual ? "annual" : "monthly");
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Unable to start checkout. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const plans = [
     {
@@ -171,14 +212,15 @@ const PricingSection = () => {
                   </ul>
 
                   <Button
-                    onClick={() => navigate("/auth")}
+                    onClick={() => handlePlanClick(plan.name)}
+                    disabled={loading && plan.popular}
                     className={`w-full font-rajdhani font-bold ${
                       plan.popular
                         ? "btn-gradient text-primary-foreground"
                         : "bg-muted hover:bg-muted/80 text-foreground"
                     }`}
                   >
-                    {plan.cta}
+                    {loading && plan.popular ? "Loading..." : plan.cta}
                   </Button>
                 </CardContent>
               </Card>
