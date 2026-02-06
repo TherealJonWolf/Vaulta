@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck, ClipboardCheck } from "lucide-react";
+import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck, ClipboardCheck, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,6 +12,7 @@ import InstitutionConnect from "@/components/InstitutionConnect";
 import MFASettings from "@/components/MFASettings";
 import { SecurityDashboard } from "@/components/SecurityDashboard";
 import { ComplianceDashboard } from "@/components/ComplianceDashboard";
+import { TrustScoreDashboard } from "@/components/TrustScoreDashboard";
 import SubscriptionBadge from "@/components/SubscriptionBadge";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -28,6 +29,7 @@ const Vault = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [securityOpen, setSecurityOpen] = useState(false);
   const [complianceOpen, setComplianceOpen] = useState(false);
+  const [trustScoreOpen, setTrustScoreOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -87,6 +89,9 @@ const Vault = () => {
           <div className="flex items-center gap-4">
             <SubscriptionBadge />
             <div className="flex items-center gap-2">
+              <Button variant="ghost" onClick={() => setTrustScoreOpen(true)} className="text-muted-foreground" title="Trust Score">
+                <TrendingUp size={18} />
+              </Button>
               <Button variant="ghost" onClick={() => setComplianceOpen(true)} className="text-muted-foreground" title="Compliance Check">
                 <ClipboardCheck size={18} />
               </Button>
@@ -159,6 +164,7 @@ const Vault = () => {
       <MFASettings isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <SecurityDashboard open={securityOpen} onOpenChange={setSecurityOpen} />
       <ComplianceDashboard open={complianceOpen} onOpenChange={setComplianceOpen} />
+      <TrustScoreDashboard open={trustScoreOpen} onOpenChange={setTrustScoreOpen} />
       <UpgradePrompt isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
     </div>
   );
