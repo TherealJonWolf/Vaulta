@@ -21,7 +21,7 @@ const Vault = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, loading, mfaRequired, signOut } = useAuth();
-  const { checkSubscription, fetchDocumentCount } = useSubscription();
+  const { checkSubscription, fetchDocumentCount, isPremium } = useSubscription();
   const { toast } = useToast();
   const [oracleOpen, setOracleOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -160,7 +160,7 @@ const Vault = () => {
         onUploadComplete={() => setRefreshTrigger((p) => p + 1)} 
         onUpgradeRequired={() => setUpgradeOpen(true)}
       />
-      <InstitutionConnect isOpen={institutionOpen} onClose={() => setInstitutionOpen(false)} />
+      <InstitutionConnect isOpen={institutionOpen} onClose={() => setInstitutionOpen(false)} isPremium={isPremium} onUpgradeRequired={() => setUpgradeOpen(true)} />
       <MFASettings isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <SecurityDashboard open={securityOpen} onOpenChange={setSecurityOpen} />
       <ComplianceDashboard open={complianceOpen} onOpenChange={setComplianceOpen} />

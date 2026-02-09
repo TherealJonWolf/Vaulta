@@ -60,9 +60,11 @@ const institutions: Institution[] = [
 interface InstitutionConnectProps {
   isOpen: boolean;
   onClose: () => void;
+  isPremium?: boolean;
+  onUpgradeRequired?: () => void;
 }
 
-const InstitutionConnect = ({ isOpen, onClose }: InstitutionConnectProps) => {
+const InstitutionConnect = ({ isOpen, onClose, isPremium = false, onUpgradeRequired }: InstitutionConnectProps) => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredInstitutions = institutions.filter(
@@ -72,6 +74,11 @@ const InstitutionConnect = ({ isOpen, onClose }: InstitutionConnectProps) => {
   );
 
   const handleConnect = (institution: Institution) => {
+    if (!isPremium) {
+      onClose();
+      onUpgradeRequired?.();
+      return;
+    }
     window.open(institution.url, "_blank", "noopener,noreferrer");
   };
 
@@ -166,11 +173,18 @@ const InstitutionConnect = ({ isOpen, onClose }: InstitutionConnectProps) => {
             <div className="flex items-start gap-3">
               <Lock className="text-primary mt-0.5" size={16} />
               <div>
-                <p className="text-sm text-muted-foreground font-rajdhani">
-                  <strong className="text-foreground">Secure Ingestion:</strong> After navigating to the institution, 
-                  download your documents and upload them to your Sovereign Sector. All files are encrypted 
-                  with 256-bit AES before storage.
-                </p>
+                {!isPremium ? (
+                  <p className="text-sm text-muted-foreground font-rajdhani">
+                    <strong className="text-accent">Premium Feature:</strong> Institution connections require a Premium Vault subscription. 
+                    Upgrade to securely ingest documents from government sources.
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground font-rajdhani">
+                    <strong className="text-foreground">Secure Ingestion:</strong> After navigating to the institution, 
+                    download your documents and upload them to your Sovereign Sector. All files are encrypted 
+                    with 256-bit AES before storage.
+                  </p>
+                )}
               </div>
             </div>
           </div>
