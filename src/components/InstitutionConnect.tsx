@@ -55,6 +55,42 @@ const institutions: Institution[] = [
     url: "https://www.va.gov/records/",
     description: "Military service and benefits records",
   },
+  // 🇲🇽 Mexican Government Institutions
+  {
+    id: "sat",
+    name: "SAT (Servicio de Administración Tributaria)",
+    type: "Government - Mexico",
+    url: "https://www.sat.gob.mx/",
+    description: "Tax records, RFC, and fiscal documents",
+  },
+  {
+    id: "imss",
+    name: "IMSS (Instituto Mexicano del Seguro Social)",
+    type: "Government - Mexico",
+    url: "https://www.imss.gob.mx/",
+    description: "Social security records and benefits",
+  },
+  {
+    id: "ine",
+    name: "INE (Instituto Nacional Electoral)",
+    type: "Government - Mexico",
+    url: "https://www.ine.mx/",
+    description: "Voter ID and electoral records",
+  },
+  {
+    id: "sre",
+    name: "SRE (Secretaría de Relaciones Exteriores)",
+    type: "Government - Mexico",
+    url: "https://www.gob.mx/sre",
+    description: "Passport and consular documents",
+  },
+  {
+    id: "curp",
+    name: "CURP (Clave Única de Registro de Población)",
+    type: "Government - Mexico",
+    url: "https://www.gob.mx/curp/",
+    description: "Unique population registry code",
+  },
 ];
 
 interface InstitutionConnectProps {
