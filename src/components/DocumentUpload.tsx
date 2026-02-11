@@ -66,6 +66,25 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired }
     }
   };
 
+  const ALLOWED_TYPES: Record<string, number[][]> = {
+    "application/pdf": [[0x25, 0x50, 0x44, 0x46]], // %PDF
+    "image/jpeg": [[0xFF, 0xD8, 0xFF]],
+    "image/png": [[0x89, 0x50, 0x4E, 0x47]],
+    "image/webp": [[0x52, 0x49, 0x46, 0x46]], // RIFF
+    "application/msword": [[0xD0, 0xCF, 0x11, 0xE0]],
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [[0x50, 0x4B, 0x03, 0x04]], // PK zip
+  };
+
+  const SUSPICIOUS_PATTERNS = /\.(exe|bat|cmd|sh|ps1|vbs|js|msi|scr|com|pif|hta|wsf)$/i;
+
+  const verifyFileSignature = async (file: File): Promise<boolean> => {
+    const signatures = ALLOWED_TYPES[file.type];
+    if (!signatures) return false;
+    const buffer = await file.slice(0, 8).arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    return signatures.some(sig => sig.every((b, i) => bytes[i] === b));
+  };
+
   const handleFiles = async (files: FileList) => {
     if (!user) {
       toast({
@@ -76,7 +95,6 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired }
       return;
     }
 
-    // Check if user can upload (has subscription or is under free limit)
     const allowed = await checkCanUpload();
     if (!allowed) {
       onClose();
@@ -85,14 +103,35 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired }
     }
 
     const file = files[0];
-    const maxSize = 50 * 1024 * 1024; // 50MB
+    const maxSize = 50 * 1024 * 1024;
+
+    // Reject empty files
+    if (file.size === 0) {
+      toast({ variant: "destructive", title: "Invalid Document", description: "The file is empty and cannot be accepted." });
+      return;
+    }
 
     if (file.size > maxSize) {
-      toast({
-        variant: "destructive",
-        title: "File Too Large",
-        description: "Maximum file size is 50MB.",
-      });
+      toast({ variant: "destructive", title: "File Too Large", description: "Maximum file size is 50MB." });
+      return;
+    }
+
+    // Reject suspicious filenames
+    if (SUSPICIOUS_PATTERNS.test(file.name)) {
+      toast({ variant: "destructive", title: "Blocked — Suspicious File", description: "Executable and script files are not permitted." });
+      return;
+    }
+
+    // Reject disallowed MIME types
+    if (!ALLOWED_TYPES[file.type]) {
+      toast({ variant: "destructive", title: "Unsupported File Type", description: "Only PDF, image (JPG/PNG/WebP), and Word documents are accepted." });
+      return;
+    }
+
+    // Verify magic-byte signature matches declared MIME type
+    const signatureValid = await verifyFileSignature(file);
+    if (!signatureValid) {
+      toast({ variant: "destructive", title: "Document Integrity Failed", description: "File contents do not match the declared type. This document may have been tampered with." });
       return;
     }
 
