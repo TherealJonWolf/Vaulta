@@ -21,7 +21,7 @@ interface Testimonial {
 const stats = [
   { value: "256-BIT", label: "AES Encryption" },
   { value: "99.99%", label: "Uptime SLA" },
-  { value: "SOC 2", label: "Type II Certified" },
+  { value: "SOC 2", label: "Type II Compliant" },
   { value: "NIST", label: "800-53 Compliant" },
 ];
 

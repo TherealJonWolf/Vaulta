@@ -83,10 +83,11 @@ export const HeroSection = () => {
             transition={{ duration: 0.6, delay: 0.5 }}
           >
             {[
-              "NIST-800-53 COMPLIANT",
+              "SOC 2 COMPLIANT",
+              "NIST-800-53 VERIFIED",
+              "GDPR COMPLIANT",
+              "ISO 27001 ALIGNED",
               "256-BIT AES ENCRYPTION",
-              "ZERO-KNOWLEDGE PROOF",
-              "MILITARY GRADE SECURITY",
             ].map((badge) => (
               <div
                 key={badge}

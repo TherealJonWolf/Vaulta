@@ -108,7 +108,7 @@ Our security team monitors for threats 24/7 and employs automated detection syst
       icon: Globe,
       title: "6. Data Storage & Transfers",
       content: `**Storage Location:**
-- Primary data centers located in secure, SOC 2 Type II certified facilities
+- Primary data centers located in secure, SOC 2 Type II compliant facilities
 - Geographic redundancy for disaster recovery
 
 **International Transfers:**
