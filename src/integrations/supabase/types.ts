@@ -134,6 +134,39 @@ export type Database = {
         }
         Relationships: []
       }
+      document_hashes: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size: number
+          flag_reason: string | null
+          id: string
+          is_flagged: boolean
+          sha256_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size: number
+          flag_reason?: string | null
+          id?: string
+          is_flagged?: boolean
+          sha256_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size?: number
+          flag_reason?: string | null
+          id?: string
+          is_flagged?: boolean
+          sha256_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           created_at: string
@@ -385,6 +418,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_document_hash: {
+        Args: { p_hash: string }
+        Returns: {
+          duplicate_count: number
+          flag_reason: string
+          is_flagged: boolean
+        }[]
+      }
+      flag_document_hash: {
+        Args: { p_hash: string; p_reason: string }
+        Returns: undefined
+      }
       is_email_blacklisted: { Args: { check_email: string }; Returns: boolean }
       verify_recovery_code: {
         Args: { p_code_hash: string; p_user_id: string }
