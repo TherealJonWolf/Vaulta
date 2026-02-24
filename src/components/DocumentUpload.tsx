@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, X, FileText, Lock, CheckCircle2, AlertCircle } from "lucide-react";
+import { Upload, X, FileText, Lock, CheckCircle2, AlertCircle, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscription } from "@/hooks/useSubscription";
+import DOMPurify from "dompurify";
 
 interface DocumentUploadProps {
   isOpen: boolean;
@@ -85,6 +86,73 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired }
     return signatures.some(sig => sig.every((b, i) => bytes[i] === b));
   };
 
+  // Sanitize filename to prevent XSS / path traversal
+  const sanitizeFilename = (name: string): string => {
+    const cleaned = DOMPurify.sanitize(name, { ALLOWED_TAGS: [] });
+    return cleaned.replace(/[^a-zA-Z0-9._\-\s]/g, '_').substring(0, 255);
+  };
+
+  // Deep content scan for embedded scripts/payloads
+  const scanForMaliciousContent = async (file: File): Promise<{ safe: boolean; reason?: string }> => {
+    // For text-based files, scan content
+    if (file.type === 'application/pdf') {
+      const buffer = await file.slice(0, Math.min(file.size, 65536)).arrayBuffer();
+      const text = new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(buffer));
+      const maliciousPatterns = [
+        /\/JavaScript\s/i,
+        /\/JS\s/i,
+        /<script/i,
+        /eval\s*\(/i,
+        /document\.cookie/i,
+        /window\.location/i,
+        /onclick\s*=/i,
+        /onerror\s*=/i,
+        /onload\s*=/i,
+        /fromCharCode/i,
+        /SELECT\s+.*\s+FROM/i,
+        /INSERT\s+INTO/i,
+        /DROP\s+TABLE/i,
+        /UNION\s+SELECT/i,
+        /--\s*$/m,
+      ];
+      for (const pattern of maliciousPatterns) {
+        if (pattern.test(text)) {
+          return { safe: false, reason: `Embedded script or SQL injection pattern detected` };
+        }
+      }
+    }
+    return { safe: true };
+  };
+
+  // Flag account as suspended and blacklist email
+  const flagAccountAsFraudulent = async (reason: string, fileName: string) => {
+    if (!user) return;
+    try {
+      // Insert account flag
+      await supabase.from('account_flags').insert({
+        user_id: user.id,
+        flag_type: 'suspended',
+        reason,
+        flagged_document_name: fileName,
+      });
+
+      // Log security event
+      await supabase.from('security_events').insert({
+        user_id: user.id,
+        event_type: 'fraud_detected',
+        event_description: `Fraudulent document upload blocked: ${reason}. File: ${fileName}`,
+        metadata: { fileName, reason, action: 'account_suspended' },
+      });
+
+      // Blacklist email via edge function (uses service role)
+      await supabase.functions.invoke('flag-fraudulent-account', {
+        body: { userId: user.id, reason, fileName },
+      });
+    } catch (err) {
+      console.error('Error flagging account:', err);
+    }
+  };
+
   const handleFiles = async (files: FileList) => {
     if (!user) {
       toast({
@@ -116,6 +184,9 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired }
       return;
     }
 
+    // Sanitize and check filename
+    const safeName = sanitizeFilename(file.name);
+
     // Reject suspicious filenames
     if (SUSPICIOUS_PATTERNS.test(file.name)) {
       toast({ variant: "destructive", title: "Blocked — Suspicious File", description: "Executable and script files are not permitted." });
@@ -131,7 +202,33 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired }
     // Verify magic-byte signature matches declared MIME type
     const signatureValid = await verifyFileSignature(file);
     if (!signatureValid) {
-      toast({ variant: "destructive", title: "Document Integrity Failed", description: "File contents do not match the declared type. This document may have been tampered with." });
+      // This is a fraud signal — flag account
+      await flagAccountAsFraudulent(
+        'File signature mismatch: contents do not match declared MIME type (possible forgery)',
+        file.name
+      );
+      toast({
+        variant: "destructive",
+        title: "⚠️ Document Rejected — Account Flagged",
+        description: "This file appears to be tampered with. Your account has been flagged for review.",
+      });
+      onClose();
+      return;
+    }
+
+    // Deep content scan for embedded malicious payloads
+    const scanResult = await scanForMaliciousContent(file);
+    if (!scanResult.safe) {
+      await flagAccountAsFraudulent(
+        `Malicious content detected: ${scanResult.reason}`,
+        file.name
+      );
+      toast({
+        variant: "destructive",
+        title: "⚠️ Malicious Document Blocked — Account Suspended",
+        description: "This document contains embedded scripts or injection patterns. Your account has been suspended pending review.",
+      });
+      onClose();
       return;
     }
 

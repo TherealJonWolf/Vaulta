@@ -103,9 +103,9 @@ export const SecuritySection = () => {
           <div className="flex flex-wrap justify-center gap-8">
             {[
               { label: "NIST-800-53", status: "VERIFIED" },
-              { label: "SOC 2 TYPE II", status: "AUDITED" },
+              { label: "SOC 2 TYPE II", status: "COMPLIANT" },
               { label: "GDPR", status: "COMPLIANT" },
-              { label: "HIPAA", status: "READY" },
+              { label: "ISO 27001", status: "COMPLIANT" },
             ].map((cert) => (
               <div
                 key={cert.label}

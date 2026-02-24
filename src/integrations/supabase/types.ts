@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_flags: {
+        Row: {
+          created_at: string
+          flag_type: string
+          flagged_document_name: string | null
+          id: string
+          reason: string
+          resolved_at: string | null
+          resolved_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          flag_type?: string
+          flagged_document_name?: string | null
+          id?: string
+          reason: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          flag_type?: string
+          flagged_document_name?: string | null
+          id?: string
+          reason?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       active_sessions: {
         Row: {
           created_at: string
@@ -47,6 +80,30 @@ export type Database = {
           location?: string | null
           session_token?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      blacklisted_emails: {
+        Row: {
+          associated_user_id: string | null
+          blacklisted_at: string
+          email: string
+          id: string
+          reason: string
+        }
+        Insert: {
+          associated_user_id?: string | null
+          blacklisted_at?: string
+          email: string
+          id?: string
+          reason: string
+        }
+        Update: {
+          associated_user_id?: string | null
+          blacklisted_at?: string
+          email?: string
+          id?: string
+          reason?: string
         }
         Relationships: []
       }
@@ -328,6 +385,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      is_email_blacklisted: { Args: { check_email: string }; Returns: boolean }
       verify_recovery_code: {
         Args: { p_code_hash: string; p_user_id: string }
         Returns: boolean

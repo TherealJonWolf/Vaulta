@@ -91,6 +91,63 @@ const institutions: Institution[] = [
     url: "https://www.gob.mx/curp/",
     description: "Unique population registry code",
   },
+  {
+    id: "mx-background",
+    name: "Antecedentes No Penales (Mexico)",
+    type: "Government - Mexico",
+    url: "https://www.gob.mx/tramites/ficha/expedicion-de-constancia-de-antecedentes-no-penales/SEGOB795",
+    description: "Request official criminal background check certificate",
+  },
+  // 🇨🇦 Canadian Government Institutions
+  {
+    id: "cra",
+    name: "Canada Revenue Agency (CRA)",
+    type: "Government - Canada",
+    url: "https://www.canada.ca/en/revenue-agency.html",
+    description: "Tax records, T4s, notices of assessment",
+  },
+  {
+    id: "service-canada",
+    name: "Service Canada",
+    type: "Government - Canada",
+    url: "https://www.canada.ca/en/employment-social-development/corporate/portfolio/service-canada.html",
+    description: "SIN, EI, CPP, and OAS records",
+  },
+  {
+    id: "ircc",
+    name: "IRCC (Immigration, Refugees and Citizenship)",
+    type: "Government - Canada",
+    url: "https://www.canada.ca/en/immigration-refugees-citizenship.html",
+    description: "Immigration documents, PR cards, citizenship certificates",
+  },
+  {
+    id: "vital-stats-on",
+    name: "Ontario Vital Statistics",
+    type: "Government - Canada",
+    url: "https://www.ontario.ca/page/serviceontario",
+    description: "Birth, marriage, and death certificates (Ontario)",
+  },
+  {
+    id: "vital-stats-bc",
+    name: "BC Vital Statistics",
+    type: "Government - Canada",
+    url: "https://www2.gov.bc.ca/gov/content/life-events",
+    description: "Birth, marriage, and death certificates (British Columbia)",
+  },
+  {
+    id: "vital-stats-ab",
+    name: "Alberta Vital Statistics",
+    type: "Government - Canada",
+    url: "https://www.alberta.ca/vital-statistics.aspx",
+    description: "Birth, marriage, and death certificates (Alberta)",
+  },
+  {
+    id: "rcmp",
+    name: "RCMP Criminal Record Check",
+    type: "Government - Canada",
+    url: "https://www.rcmp-grc.gc.ca/en/criminal-record-checks",
+    description: "Canadian criminal background checks",
+  },
 ];
 
 interface InstitutionConnectProps {

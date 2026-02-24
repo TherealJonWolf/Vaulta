@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck, ClipboardCheck, TrendingUp } from "lucide-react";
+import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck, ClipboardCheck, TrendingUp, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,6 +13,7 @@ import MFASettings from "@/components/MFASettings";
 import { SecurityDashboard } from "@/components/SecurityDashboard";
 import { ComplianceDashboard } from "@/components/ComplianceDashboard";
 import { TrustScoreDashboard } from "@/components/TrustScoreDashboard";
+import { ThreatSimulation } from "@/components/ThreatSimulation";
 import SubscriptionBadge from "@/components/SubscriptionBadge";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -30,6 +31,7 @@ const Vault = () => {
   const [securityOpen, setSecurityOpen] = useState(false);
   const [complianceOpen, setComplianceOpen] = useState(false);
   const [trustScoreOpen, setTrustScoreOpen] = useState(false);
+  const [threatSimOpen, setThreatSimOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -92,6 +94,9 @@ const Vault = () => {
               <Button variant="ghost" onClick={() => setTrustScoreOpen(true)} className="text-muted-foreground" title="Trust Score">
                 <TrendingUp size={18} />
               </Button>
+              <Button variant="ghost" onClick={() => setThreatSimOpen(true)} className="text-muted-foreground" title="Threat Simulation">
+                <Zap size={18} />
+              </Button>
               <Button variant="ghost" onClick={() => setComplianceOpen(true)} className="text-muted-foreground" title="Compliance Check">
                 <ClipboardCheck size={18} />
               </Button>
@@ -111,9 +116,34 @@ const Vault = () => {
       </header>
 
       <main className="container mx-auto px-6 py-12">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
           <h1 className="font-display text-4xl font-bold gradient-text mb-2">Welcome to Your Sovereign Sector</h1>
           <p className="text-muted-foreground font-rajdhani">Your encrypted document vault with AI-powered assistance</p>
+        </motion.div>
+
+        {/* Compliance Trust Badges */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="flex flex-wrap justify-center gap-3 mb-12"
+        >
+          {[
+            { label: "SOC 2", detail: "Compliant" },
+            { label: "NIST 800-53", detail: "Verified" },
+            { label: "GDPR", detail: "Compliant" },
+            { label: "ISO 27001", detail: "Aligned" },
+          ].map((badge) => (
+            <div
+              key={badge.label}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-card/50 backdrop-blur"
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-secure-green animate-pulse" />
+              <span className="text-xs font-mono text-muted-foreground">
+                {badge.label} <span className="text-primary">{badge.detail}</span>
+              </span>
+            </div>
+          ))}
         </motion.div>
 
         <div className="grid md:grid-cols-4 gap-6 max-w-5xl mx-auto mb-12">
@@ -165,6 +195,7 @@ const Vault = () => {
       <SecurityDashboard open={securityOpen} onOpenChange={setSecurityOpen} />
       <ComplianceDashboard open={complianceOpen} onOpenChange={setComplianceOpen} />
       <TrustScoreDashboard open={trustScoreOpen} onOpenChange={setTrustScoreOpen} />
+      <ThreatSimulation open={threatSimOpen} onOpenChange={setThreatSimOpen} />
       <UpgradePrompt isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
     </div>
   );
