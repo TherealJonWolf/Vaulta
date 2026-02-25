@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck, ClipboardCheck, TrendingUp, Zap } from "lucide-react";
+import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck, ClipboardCheck, TrendingUp, Zap, Fingerprint } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,6 +16,7 @@ import { TrustScoreDashboard } from "@/components/TrustScoreDashboard";
 import { ThreatSimulation } from "@/components/ThreatSimulation";
 import SubscriptionBadge from "@/components/SubscriptionBadge";
 import UpgradePrompt from "@/components/UpgradePrompt";
+import VeriffVerification from "@/components/VeriffVerification";
 import { useSubscription } from "@/hooks/useSubscription";
 
 const Vault = () => {
@@ -33,6 +34,7 @@ const Vault = () => {
   const [trustScoreOpen, setTrustScoreOpen] = useState(false);
   const [threatSimOpen, setThreatSimOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [veriffOpen, setVeriffOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
@@ -146,13 +148,21 @@ const Vault = () => {
           ))}
         </motion.div>
 
-        <div className="grid md:grid-cols-4 gap-6 max-w-5xl mx-auto mb-12">
+        <div className="grid md:grid-cols-5 gap-6 max-w-6xl mx-auto mb-12">
           <motion.div className="cyber-border rounded-xl p-6 text-center card-hover cursor-pointer" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} onClick={() => setUploadOpen(true)}>
             <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center">
               <Upload className="text-primary" size={24} />
             </div>
             <h3 className="font-display font-bold text-primary mb-1">Upload</h3>
             <p className="text-xs text-muted-foreground font-rajdhani">Secure documents</p>
+          </motion.div>
+
+          <motion.div className="cyber-border rounded-xl p-6 text-center card-hover cursor-pointer" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.13 }} onClick={() => setVeriffOpen(true)}>
+            <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-secure-green/10 border border-secure-green/30 flex items-center justify-center">
+              <Fingerprint className="text-secure-green" size={24} />
+            </div>
+            <h3 className="font-display font-bold text-secure-green mb-1">Verify ID</h3>
+            <p className="text-xs text-muted-foreground font-rajdhani">Gov ID + Liveness</p>
           </motion.div>
 
           <motion.div className="cyber-border rounded-xl p-6 text-center card-hover cursor-pointer" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} onClick={() => setInstitutionOpen(true)}>
@@ -197,6 +207,7 @@ const Vault = () => {
       <TrustScoreDashboard open={trustScoreOpen} onOpenChange={setTrustScoreOpen} />
       <ThreatSimulation open={threatSimOpen} onOpenChange={setThreatSimOpen} />
       <UpgradePrompt isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
+      <VeriffVerification open={veriffOpen} onOpenChange={setVeriffOpen} />
     </div>
   );
 };

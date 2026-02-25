@@ -413,6 +413,45 @@ export type Database = {
         }
         Relationships: []
       }
+      veriff_sessions: {
+        Row: {
+          created_at: string
+          decision: string | null
+          id: string
+          reason_code: string | null
+          session_id: string
+          status: string
+          updated_at: string
+          user_id: string
+          vendor_data: string | null
+          verification_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          decision?: string | null
+          id?: string
+          reason_code?: string | null
+          session_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          vendor_data?: string | null
+          verification_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          decision?: string | null
+          id?: string
+          reason_code?: string | null
+          session_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          vendor_data?: string | null
+          verification_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
