@@ -4,8 +4,9 @@ import { VaultaLogo } from "./VaultaLogo";
 import { Button } from "./ui/button";
 
 const navLinks = [
-  { label: "SECURITY", href: "#security" },
-  { label: "MISSION", href: "#mission" },
+  { label: "SECURITY", href: "#security", isRoute: false },
+  { label: "MISSION", href: "#mission", isRoute: false },
+  { label: "BRAND", href: "/brand", isRoute: true },
 ];
 
 export const Navbar = () => {
@@ -25,15 +26,25 @@ export const Navbar = () => {
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className="font-rajdhani text-sm font-medium text-muted-foreground hover:text-primary transition-colors tracking-wider"
-              >
-                {link.label}
-              </a>
-            ))}
+            {navLinks.map((link) =>
+              link.isRoute ? (
+                <Link
+                  key={link.label}
+                  to={link.href}
+                  className="font-rajdhani text-sm font-medium text-muted-foreground hover:text-primary transition-colors tracking-wider"
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  className="font-rajdhani text-sm font-medium text-muted-foreground hover:text-primary transition-colors tracking-wider"
+                >
+                  {link.label}
+                </a>
+              )
+            )}
           </div>
 
           <div className="flex items-center gap-4">

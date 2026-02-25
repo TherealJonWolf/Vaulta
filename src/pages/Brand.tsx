@@ -1,0 +1,263 @@
+import { motion } from "framer-motion";
+import { Shield, Eye, Globe, Lock, Fingerprint, Zap, ArrowRight } from "lucide-react";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+import { VaultaLogo } from "@/components/VaultaLogo";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.7, delay: i * 0.15, ease: "easeOut" as const },
+  }),
+};
+
+const values = [
+  {
+    icon: Shield,
+    title: "Sovereignty First",
+    description:
+      "Every individual deserves absolute ownership of their digital identity. No government, corporation, or third party should hold the keys to who you are.",
+  },
+  {
+    icon: Eye,
+    title: "Radical Transparency",
+    description:
+      "Our security protocols, compliance standards, and data handling practices are built in the open. Trust is earned through visibility, not promises.",
+  },
+  {
+    icon: Globe,
+    title: "Borderless by Design",
+    description:
+      "Identity doesn't stop at borders. Vaulta™ is built for immigrants, global citizens, and anyone who refuses to let geography define their access.",
+  },
+  {
+    icon: Lock,
+    title: "Zero-Knowledge Architecture",
+    description:
+      "We can't see your data. We can't access your documents. Your vault is yours alone — encrypted end-to-end with keys only you control.",
+  },
+  {
+    icon: Fingerprint,
+    title: "Trust, Verified",
+    description:
+      "Through government ID verification, biometric liveness checks, and AI-powered fraud detection, we don't assume trust — we prove it.",
+  },
+  {
+    icon: Zap,
+    title: "Relentless Innovation",
+    description:
+      "The threats evolve daily. So do we. From threat simulation to AI oracles, Vaulta™ stays ahead of the curve so you never fall behind.",
+  },
+];
+
+const timeline = [
+  { year: "THE VISION", text: "A world where digital identity is a human right — not a privilege granted by institutions." },
+  { year: "THE PROBLEM", text: "Billions of people lack secure, portable, verifiable identity. Documents get lost. Systems get breached. People get left behind." },
+  { year: "THE ANSWER", text: "Vaulta™ — a sovereign digital vault that puts military-grade security in the hands of everyday people." },
+  { year: "THE FUTURE", text: "A decentralized trust layer where your identity, documents, and credentials travel with you — everywhere, always." },
+];
+
+export default function Brand() {
+  const navigate = useNavigate();
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+
+      {/* Hero */}
+      <section className="relative pt-32 pb-24 overflow-hidden">
+        <div className="absolute inset-0 grid-bg opacity-40" />
+        <div className="absolute inset-0" style={{ background: "var(--gradient-glow)" }} />
+
+        <div className="container mx-auto px-6 relative z-10 text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8 }}
+            className="flex justify-center mb-8"
+          >
+            <VaultaLogo size="lg" />
+          </motion.div>
+
+          <motion.h1
+            className="font-display text-4xl md:text-6xl lg:text-7xl font-bold mb-6 gradient-text"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.3 }}
+          >
+            THE BRAND BEHIND
+            <br />
+            THE SHIELD
+          </motion.h1>
+
+          <motion.p
+            className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-rajdhani"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.5 }}
+          >
+            Vaulta™ isn't just a product. It's a declaration that your identity
+            belongs to you — and no one else.
+          </motion.p>
+        </div>
+      </section>
+
+      {/* Origin Story / Timeline */}
+      <section className="py-24 relative">
+        <div className="container mx-auto px-6 max-w-4xl">
+          <motion.h2
+            className="font-display text-3xl md:text-4xl font-bold text-center mb-16 gradient-text"
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            custom={0}
+          >
+            OUR ORIGIN
+          </motion.h2>
+
+          <div className="relative">
+            {/* Vertical line */}
+            <div className="absolute left-6 md:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-primary via-accent to-transparent" />
+
+            {timeline.map((item, i) => (
+              <motion.div
+                key={item.year}
+                className={`relative flex items-start gap-6 mb-16 ${
+                  i % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"
+                }`}
+                variants={fadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+              >
+                {/* Dot */}
+                <div className="absolute left-6 md:left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary glow-cyan z-10" />
+
+                {/* Content */}
+                <div
+                  className={`ml-16 md:ml-0 md:w-1/2 ${
+                    i % 2 === 0 ? "md:pr-16 md:text-right" : "md:pl-16"
+                  }`}
+                >
+                  <span className="font-display text-sm text-primary tracking-widest">
+                    {item.year}
+                  </span>
+                  <p className="text-foreground/80 mt-2 text-lg font-rajdhani leading-relaxed">
+                    {item.text}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Mission Statement */}
+      <section className="py-24 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
+        <div className="container mx-auto px-6 relative z-10">
+          <motion.div
+            className="max-w-3xl mx-auto text-center"
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            custom={0}
+          >
+            <h2 className="font-display text-3xl md:text-4xl font-bold mb-8 gradient-text">
+              OUR MISSION
+            </h2>
+            <div className="cyber-border rounded-xl p-8 md:p-12">
+              <p className="text-xl md:text-2xl text-foreground/90 font-rajdhani leading-relaxed italic">
+                "To empower every person on Earth with sovereign control over
+                their digital identity — making security accessible,
+                verification trustworthy, and personal data truly personal."
+              </p>
+              <div className="mt-6 flex items-center justify-center gap-2">
+                <div className="status-dot active" />
+                <span className="text-sm text-muted-foreground font-rajdhani tracking-widest uppercase">
+                  Active Mission
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Values */}
+      <section className="py-24">
+        <div className="container mx-auto px-6">
+          <motion.h2
+            className="font-display text-3xl md:text-4xl font-bold text-center mb-16 gradient-text"
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            custom={0}
+          >
+            WHAT WE STAND FOR
+          </motion.h2>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            {values.map((v, i) => (
+              <motion.div
+                key={v.title}
+                className="cyber-border rounded-xl p-6 card-hover"
+                variants={fadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+              >
+                <div className="w-12 h-12 rounded-lg border border-primary/30 bg-primary/10 flex items-center justify-center mb-4">
+                  <v.icon size={24} className="text-primary" />
+                </div>
+                <h3 className="font-display text-lg font-semibold text-foreground mb-2">
+                  {v.title}
+                </h3>
+                <p className="text-muted-foreground font-rajdhani leading-relaxed">
+                  {v.description}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-24 relative">
+        <div className="absolute inset-0" style={{ background: "var(--gradient-glow)" }} />
+        <div className="container mx-auto px-6 relative z-10 text-center">
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            custom={0}
+          >
+            <h2 className="font-display text-3xl md:text-5xl font-bold mb-4 gradient-text">
+              YOUR WORLD, SECURED.
+            </h2>
+            <p className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto font-rajdhani">
+              Join the movement toward sovereign digital identity.
+            </p>
+            <Button
+              className="btn-gradient font-rajdhani font-semibold tracking-wider text-primary-foreground text-lg px-8 py-6"
+              onClick={() => navigate("/auth?mode=signup")}
+            >
+              INITIALIZE YOUR VAULT <ArrowRight className="ml-2" size={20} />
+            </Button>
+          </motion.div>
+        </div>
+      </section>
+
+      <Footer />
+    </div>
+  );
+}

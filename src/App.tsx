@@ -13,6 +13,7 @@ import Documentation from "./pages/Documentation";
 import ApiReference from "./pages/ApiReference";
 import Support from "./pages/Support";
 import Roadmap from "./pages/Roadmap";
+import Brand from "./pages/Brand";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/api-reference" element={<ApiReference />} />
             <Route path="/support" element={<Support />} />
             <Route path="/roadmap" element={<Roadmap />} />
+            <Route path="/brand" element={<Brand />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
