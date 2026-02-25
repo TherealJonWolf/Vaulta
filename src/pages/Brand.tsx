@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Shield, Eye, Globe, Lock, Fingerprint, Zap, ArrowRight } from "lucide-react";
+import { Shield, Eye, Globe, Lock, Fingerprint, Zap, ArrowRight, FileSearch, Bug, Hash, Database, FileText, Users, Brain } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { VaultaLogo } from "@/components/VaultaLogo";
@@ -224,6 +224,66 @@ export default function Brand() {
                 <p className="text-muted-foreground font-rajdhani leading-relaxed">
                   {v.description}
                 </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 7 Layers of Protection */}
+      <section className="py-24 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
+        <div className="container mx-auto px-6 relative z-10">
+          <motion.h2
+            className="font-display text-3xl md:text-4xl font-bold text-center mb-4 gradient-text"
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            custom={0}
+          >
+            7 LAYERS OF PROTECTION
+          </motion.h2>
+          <motion.p
+            className="text-muted-foreground text-center max-w-2xl mx-auto mb-16 font-rajdhani text-lg"
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            custom={1}
+          >
+            Every document uploaded to Vaulta™ passes through our proprietary 7-layer fraud detection pipeline before it ever touches your vault.
+          </motion.p>
+
+          <div className="max-w-4xl mx-auto space-y-4">
+            {[
+              { icon: FileSearch, layer: "01", title: "Magic-Byte Signature Verification", description: "We verify the true file type at the binary level — no disguised executables or spoofed formats get through." },
+              { icon: Bug, layer: "02", title: "Malicious Content Scanning", description: "Every file is scanned for embedded XSS, SQL injection, and other attack vectors before processing." },
+              { icon: Hash, layer: "03", title: "SHA-256 Fingerprinting", description: "Each document receives a unique cryptographic fingerprint, creating an immutable record of authenticity." },
+              { icon: Database, layer: "04", title: "EXIF & Metadata Analysis", description: "We analyze embedded metadata to detect tampering, editing history, and suspicious modifications." },
+              { icon: FileText, layer: "05", title: "PDF Structural Validation", description: "Document structure is validated against known standards to catch manipulated or reconstructed files." },
+              { icon: Users, layer: "06", title: "Cross-User Duplicate Detection", description: "Forgery attempts are flagged when the same document appears across multiple accounts." },
+              { icon: Brain, layer: "07", title: "AI Authenticity Analysis", description: "Our AI engine examines visual inconsistencies, font anomalies, and seal irregularities that humans miss." },
+            ].map((item, i) => (
+              <motion.div
+                key={item.layer}
+                className="cyber-border rounded-xl p-5 flex items-start gap-5 card-hover"
+                variants={fadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+              >
+                <div className="flex-shrink-0 w-14 h-14 rounded-lg border border-primary/30 bg-primary/10 flex items-center justify-center">
+                  <item.icon size={24} className="text-primary" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-1">
+                    <span className="font-display text-xs text-primary tracking-widest">LAYER {item.layer}</span>
+                  </div>
+                  <h3 className="font-display text-lg font-semibold text-foreground mb-1">{item.title}</h3>
+                  <p className="text-muted-foreground font-rajdhani leading-relaxed">{item.description}</p>
+                </div>
               </motion.div>
             ))}
           </div>
