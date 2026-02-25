@@ -128,7 +128,11 @@ export default function Install() {
                 <ol className="space-y-3 text-sm text-muted-foreground font-rajdhani">
                   <li className="flex items-start gap-2">
                     <span className="text-primary font-bold">1.</span>
-                    Tap the <strong className="text-foreground">Share</strong> button in Safari
+                    <span>
+                      Tap the <strong className="text-foreground">Share</strong> button{" "}
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline w-4 h-4 text-primary align-text-bottom"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>{" "}
+                      at the <strong className="text-foreground">bottom</strong> of Safari (or top on iPad)
+                    </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-primary font-bold">2.</span>
