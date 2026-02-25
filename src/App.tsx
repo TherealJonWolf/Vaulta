@@ -14,6 +14,7 @@ import ApiReference from "./pages/ApiReference";
 import Support from "./pages/Support";
 import Roadmap from "./pages/Roadmap";
 import Brand from "./pages/Brand";
+import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/support" element={<Support />} />
             <Route path="/roadmap" element={<Roadmap />} />
             <Route path="/brand" element={<Brand />} />
+            <Route path="/install" element={<Install />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
