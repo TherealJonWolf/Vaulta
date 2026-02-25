@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Shield, Eye, Globe, Lock, Fingerprint, Zap, ArrowRight, FileSearch, Bug, Hash, Database, FileText, Users, Brain } from "lucide-react";
+import { Shield, Eye, Globe, Lock, Fingerprint, Zap, ArrowRight, FileSearch, Bug, Hash, Database, FileText, Users, Brain, ShieldBan, Bell } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { VaultaLogo } from "@/components/VaultaLogo";
@@ -242,7 +242,7 @@ export default function Brand() {
             viewport={{ once: true }}
             custom={0}
           >
-            7 LAYERS OF PROTECTION
+            9 LAYERS OF PROTECTION
           </motion.h2>
           <motion.p
             className="text-muted-foreground text-center max-w-2xl mx-auto mb-16 font-rajdhani text-lg"
@@ -252,13 +252,13 @@ export default function Brand() {
             viewport={{ once: true }}
             custom={1}
           >
-            Every document uploaded to Vaulta™ passes through our proprietary 7-layer fraud detection pipeline before it ever touches your vault.
+            Every document uploaded to Vaulta™ passes through our proprietary 9-layer fraud detection pipeline before it ever touches your vault.
           </motion.p>
 
           <div className="max-w-4xl mx-auto flex gap-6 md:gap-8">
             {/* Vertical progress rail */}
             <div className="hidden md:flex flex-col items-center pt-2">
-              {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+              {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <div key={i} className="flex flex-col items-center">
                   <motion.div
                     className="w-10 h-10 rounded-full border-2 border-primary/40 bg-primary/10 flex items-center justify-center font-display text-sm font-bold text-primary relative"
@@ -276,7 +276,7 @@ export default function Brand() {
                       transition={{ duration: 0.8, delay: i * 0.12 + 0.2 }}
                     />
                   </motion.div>
-                  {i < 6 && (
+                  {i < 8 && (
                     <motion.div
                       className="w-px h-12 bg-gradient-to-b from-primary/60 to-primary/20 origin-top"
                       initial={{ scaleY: 0 }}
@@ -298,7 +298,9 @@ export default function Brand() {
                 { icon: Database, layer: "04", title: "EXIF & Metadata Analysis", description: "We analyze embedded metadata to detect tampering, editing history, and suspicious modifications." },
                 { icon: FileText, layer: "05", title: "PDF Structural Validation", description: "Document structure is validated against known standards to catch manipulated or reconstructed files." },
                 { icon: Users, layer: "06", title: "Cross-User Duplicate Detection", description: "Forgery attempts are flagged when the same document appears across multiple accounts." },
-                { icon: Brain, layer: "07", title: "AI Authenticity Analysis", description: "Our AI engine examines visual inconsistencies, font anomalies, and seal irregularities that humans miss." },
+                 { icon: Brain, layer: "07", title: "AI Authenticity Analysis", description: "Our AI engine examines visual inconsistencies, font anomalies, and seal irregularities that humans miss." },
+                { icon: ShieldBan, layer: "08", title: "Account Suspension & Blacklisting", description: "Detected fraud triggers automated lockdown — the upload is blocked, the account suspended, and the email blacklisted." },
+                { icon: Bell, layer: "09", title: "Admin Alert & Incident Logging", description: "Real-time admin notifications and a full audit trail are generated for every flagged event, ensuring total accountability." },
               ].map((item, i) => (
                 <motion.div
                   key={item.layer}
