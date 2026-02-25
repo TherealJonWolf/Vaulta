@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Shield, Eye, Globe, Lock, Fingerprint, Zap, ArrowRight, FileSearch, Bug, Hash, Database, FileText, Users, Brain, ShieldBan, Bell } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
@@ -63,6 +64,7 @@ const timeline = [
 
 export default function Brand() {
   const navigate = useNavigate();
+  const [hoveredLayer, setHoveredLayer] = useState<number | null>(null);
 
   return (
     <div className="min-h-screen bg-background">
@@ -273,7 +275,11 @@ export default function Brand() {
                     {/* Progress rail number - aligned to card */}
                     <div className="hidden md:flex flex-col items-center flex-shrink-0">
                       <motion.div
-                        className="w-10 h-10 rounded-full border-2 border-primary/40 bg-primary/10 flex items-center justify-center font-display text-sm font-bold text-primary relative"
+                        className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-display text-sm font-bold relative transition-all duration-300 ${
+                          hoveredLayer === i
+                            ? "border-primary bg-primary text-primary-foreground scale-110 shadow-[0_0_20px_hsl(var(--primary)/0.6)]"
+                            : "border-primary/40 bg-primary/10 text-primary"
+                        }`}
                         initial={{ scale: 0, opacity: 0 }}
                         whileInView={{ scale: 1, opacity: 1 }}
                         viewport={{ once: true }}
@@ -292,12 +298,14 @@ export default function Brand() {
 
                     {/* Layer card */}
                     <motion.div
-                      className="flex-1 cyber-border rounded-xl p-5 flex items-start gap-5 card-hover"
+                      className="flex-1 cyber-border rounded-xl p-5 flex items-start gap-5 card-hover cursor-pointer"
                       variants={fadeUp}
                       initial="hidden"
                       whileInView="visible"
                       viewport={{ once: true }}
                       custom={i}
+                      onMouseEnter={() => setHoveredLayer(i)}
+                      onMouseLeave={() => setHoveredLayer(null)}
                     >
                       {/* Mobile layer number */}
                       <div className="md:hidden flex-shrink-0 w-10 h-10 rounded-full border-2 border-primary/40 bg-primary/10 flex items-center justify-center font-display text-sm font-bold text-primary">
