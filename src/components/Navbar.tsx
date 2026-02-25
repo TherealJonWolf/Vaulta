@@ -7,6 +7,7 @@ const navLinks = [
   { label: "SECURITY", href: "#security", isRoute: false },
   { label: "MISSION", href: "#mission", isRoute: false },
   { label: "BRAND", href: "/brand", isRoute: true },
+  { label: "GET APP", href: "/install", isRoute: true },
 ];
 
 export const Navbar = () => {
