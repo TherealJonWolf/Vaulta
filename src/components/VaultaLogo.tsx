@@ -33,7 +33,7 @@ export const VaultaLogo = ({ size = "md", showText = true }: VaultaLogoProps) =>
       {showText && (
         <div className="flex flex-col">
           <span className={`font-display font-bold ${sizes[size].text} gradient-text tracking-wider`}>
-            VAULTA
+            VAULTA<sup className="text-[0.5em] align-super ml-0.5 font-normal">™</sup>
           </span>
           <span className="text-xs text-muted-foreground font-rajdhani tracking-widest uppercase">
             Your world, secured
