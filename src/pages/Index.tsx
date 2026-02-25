@@ -7,6 +7,7 @@ import { FeaturesSection } from "@/components/FeaturesSection";
 import { SecuritySection } from "@/components/SecuritySection";
 import { TestimonialsSection } from "@/components/TestimonialsSection";
 import PricingSection from "@/components/PricingSection";
+import { InstallBanner } from "@/components/InstallBanner";
 import { Footer } from "@/components/Footer";
 import { isSupabaseConfigured } from "@/integrations/supabase/client";
 
@@ -54,6 +55,7 @@ export default function Index() {
             <SecuritySection />
             <TestimonialsSection />
             <PricingSection />
+            <InstallBanner />
           </main>
           <Footer />
         </>
