@@ -255,37 +255,98 @@ export default function Brand() {
             Every document uploaded to Vaulta™ passes through our proprietary 7-layer fraud detection pipeline before it ever touches your vault.
           </motion.p>
 
-          <div className="max-w-4xl mx-auto space-y-4">
-            {[
-              { icon: FileSearch, layer: "01", title: "Magic-Byte Signature Verification", description: "We verify the true file type at the binary level — no disguised executables or spoofed formats get through." },
-              { icon: Bug, layer: "02", title: "Malicious Content Scanning", description: "Every file is scanned for embedded XSS, SQL injection, and other attack vectors before processing." },
-              { icon: Hash, layer: "03", title: "SHA-256 Fingerprinting", description: "Each document receives a unique cryptographic fingerprint, creating an immutable record of authenticity." },
-              { icon: Database, layer: "04", title: "EXIF & Metadata Analysis", description: "We analyze embedded metadata to detect tampering, editing history, and suspicious modifications." },
-              { icon: FileText, layer: "05", title: "PDF Structural Validation", description: "Document structure is validated against known standards to catch manipulated or reconstructed files." },
-              { icon: Users, layer: "06", title: "Cross-User Duplicate Detection", description: "Forgery attempts are flagged when the same document appears across multiple accounts." },
-              { icon: Brain, layer: "07", title: "AI Authenticity Analysis", description: "Our AI engine examines visual inconsistencies, font anomalies, and seal irregularities that humans miss." },
-            ].map((item, i) => (
-              <motion.div
-                key={item.layer}
-                className="cyber-border rounded-xl p-5 flex items-start gap-5 card-hover"
-                variants={fadeUp}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                custom={i}
-              >
-                <div className="flex-shrink-0 w-14 h-14 rounded-lg border border-primary/30 bg-primary/10 flex items-center justify-center">
-                  <item.icon size={24} className="text-primary" />
+          <div className="max-w-4xl mx-auto flex gap-6 md:gap-8">
+            {/* Vertical progress rail */}
+            <div className="hidden md:flex flex-col items-center pt-2">
+              {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="flex flex-col items-center">
+                  <motion.div
+                    className="w-10 h-10 rounded-full border-2 border-primary/40 bg-primary/10 flex items-center justify-center font-display text-sm font-bold text-primary relative"
+                    initial={{ scale: 0, opacity: 0 }}
+                    whileInView={{ scale: 1, opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: i * 0.12 }}
+                  >
+                    {i + 1}
+                    <motion.div
+                      className="absolute inset-0 rounded-full border-2 border-primary/60"
+                      initial={{ scale: 1, opacity: 0.6 }}
+                      whileInView={{ scale: 1.5, opacity: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.8, delay: i * 0.12 + 0.2 }}
+                    />
+                  </motion.div>
+                  {i < 6 && (
+                    <motion.div
+                      className="w-px h-12 bg-gradient-to-b from-primary/60 to-primary/20 origin-top"
+                      initial={{ scaleY: 0 }}
+                      whileInView={{ scaleY: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.4, delay: i * 0.12 + 0.15, ease: "easeOut" }}
+                    />
+                  )}
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <span className="font-display text-xs text-primary tracking-widest">LAYER {item.layer}</span>
+              ))}
+            </div>
+
+            {/* Layer cards */}
+            <div className="flex-1 space-y-4">
+              {[
+                { icon: FileSearch, layer: "01", title: "Magic-Byte Signature Verification", description: "We verify the true file type at the binary level — no disguised executables or spoofed formats get through." },
+                { icon: Bug, layer: "02", title: "Malicious Content Scanning", description: "Every file is scanned for embedded XSS, SQL injection, and other attack vectors before processing." },
+                { icon: Hash, layer: "03", title: "SHA-256 Fingerprinting", description: "Each document receives a unique cryptographic fingerprint, creating an immutable record of authenticity." },
+                { icon: Database, layer: "04", title: "EXIF & Metadata Analysis", description: "We analyze embedded metadata to detect tampering, editing history, and suspicious modifications." },
+                { icon: FileText, layer: "05", title: "PDF Structural Validation", description: "Document structure is validated against known standards to catch manipulated or reconstructed files." },
+                { icon: Users, layer: "06", title: "Cross-User Duplicate Detection", description: "Forgery attempts are flagged when the same document appears across multiple accounts." },
+                { icon: Brain, layer: "07", title: "AI Authenticity Analysis", description: "Our AI engine examines visual inconsistencies, font anomalies, and seal irregularities that humans miss." },
+              ].map((item, i) => (
+                <motion.div
+                  key={item.layer}
+                  className="cyber-border rounded-xl p-5 flex items-start gap-5 card-hover"
+                  variants={fadeUp}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  custom={i}
+                >
+                  {/* Mobile layer number */}
+                  <div className="md:hidden flex-shrink-0 w-10 h-10 rounded-full border-2 border-primary/40 bg-primary/10 flex items-center justify-center font-display text-sm font-bold text-primary">
+                    {i + 1}
                   </div>
-                  <h3 className="font-display text-lg font-semibold text-foreground mb-1">{item.title}</h3>
-                  <p className="text-muted-foreground font-rajdhani leading-relaxed">{item.description}</p>
-                </div>
+                  <div className="hidden md:flex flex-shrink-0 w-14 h-14 rounded-lg border border-primary/30 bg-primary/10 items-center justify-center">
+                    <item.icon size={24} className="text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="font-display text-xs text-primary tracking-widest">LAYER {item.layer}</span>
+                      <motion.div
+                        className="h-px flex-1 bg-gradient-to-r from-primary/40 to-transparent"
+                        initial={{ scaleX: 0 }}
+                        whileInView={{ scaleX: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6, delay: i * 0.1 + 0.3 }}
+                        style={{ transformOrigin: "left" }}
+                      />
+                    </div>
+                    <h3 className="font-display text-lg font-semibold text-foreground mb-1">{item.title}</h3>
+                    <p className="text-muted-foreground font-rajdhani leading-relaxed">{item.description}</p>
+                  </div>
+                </motion.div>
+              ))}
+
+              {/* Completion badge */}
+              <motion.div
+                className="flex items-center justify-center gap-3 pt-4"
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 1 }}
+              >
+                <div className="status-dot active" />
+                <span className="font-display text-sm text-primary tracking-widest">ALL LAYERS ACTIVE</span>
+                <div className="status-dot active" />
               </motion.div>
-            ))}
+            </div>
           </div>
         </div>
       </section>
