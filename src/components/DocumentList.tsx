@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Download, Trash2, Eye, Lock, Building2, Upload as UploadIcon, ExternalLink } from "lucide-react";
+import { FileText, Download, Trash2, Eye, Lock, Building2, Upload as UploadIcon, ExternalLink, Languages, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,6 +29,8 @@ const DocumentList = ({ refreshTrigger }: DocumentListProps) => {
   const [loading, setLoading] = useState(true);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewName, setPreviewName] = useState<string>("");
+  const [translating, setTranslating] = useState<string | null>(null);
+  const [translationResult, setTranslationResult] = useState<{ text: string; docName: string; lang: string } | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -146,6 +150,37 @@ const DocumentList = ({ refreshTrigger }: DocumentListProps) => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const handleTranslate = async (doc: Document, targetLanguage: string) => {
+    setTranslating(doc.id);
+    try {
+      // Download the document to get its text content
+      const { data: fileData, error: fileError } = await supabase.storage
+        .from("documents")
+        .download(doc.file_path);
+      if (fileError) throw fileError;
+
+      const text = await fileData.text();
+      if (!text || text.length < 5) {
+        toast({ variant: "destructive", title: "Cannot Translate", description: "Document content could not be extracted as text." });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("translate-document", {
+        body: { text: text.substring(0, 10000), targetLanguage },
+      });
+
+      if (error) throw error;
+
+      const langLabels: Record<string, string> = { en: "English", "fr-CA": "French Canadian", es: "Spanish" };
+      setTranslationResult({ text: data.translatedText, docName: doc.file_name, lang: langLabels[targetLanguage] || targetLanguage });
+    } catch (error) {
+      console.error("Translation error:", error);
+      toast({ variant: "destructive", title: "Translation Failed", description: "Unable to translate this document." });
+    } finally {
+      setTranslating(null);
+    }
+  };
+
   const getSourceIcon = (source: string) => {
     switch (source) {
       case "institution":
@@ -232,17 +267,36 @@ const DocumentList = ({ refreshTrigger }: DocumentListProps) => {
                 <span>{format(new Date(doc.created_at), "MMM d, yyyy")}</span>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {getSourceIcon(doc.source)}
-                  <span className="text-xs text-muted-foreground capitalize">
-                    {doc.institution_name || doc.source}
-                  </span>
+              <div className="mt-3 pt-3 border-t border-border">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    {getSourceIcon(doc.source)}
+                    <span className="text-xs text-muted-foreground capitalize">
+                      {doc.institution_name || doc.source}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-primary font-mono">
+                    <Lock size={10} />
+                    Encrypted
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-primary font-mono">
-                  <Lock size={10} />
-                  Encrypted
-                </div>
+                <Select
+                  onValueChange={(lang) => handleTranslate(doc, lang)}
+                  disabled={translating === doc.id}
+                >
+                  <SelectTrigger className="h-8 text-xs w-full">
+                    {translating === doc.id ? (
+                      <span className="flex items-center gap-2"><Loader2 size={12} className="animate-spin" /> Translating...</span>
+                    ) : (
+                      <span className="flex items-center gap-2"><Languages size={12} /> Translate</span>
+                    )}
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="fr-CA">French Canadian</SelectItem>
+                    <SelectItem value="es">Spanish</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </motion.div>
           ))}
@@ -297,6 +351,36 @@ const DocumentList = ({ refreshTrigger }: DocumentListProps) => {
           </motion.div>
         )}
       </AnimatePresence>
+      {/* Translation Result Dialog */}
+      <Dialog open={!!translationResult} onOpenChange={() => setTranslationResult(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Languages size={18} className="text-primary" />
+              {translationResult?.docName} — {translationResult?.lang}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-auto max-h-[60vh] p-4 rounded-lg bg-muted/50 border border-border">
+            <pre className="whitespace-pre-wrap text-sm text-foreground font-mono leading-relaxed">
+              {translationResult?.text}
+            </pre>
+          </div>
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (translationResult) {
+                  navigator.clipboard.writeText(translationResult.text);
+                  toast({ title: "Copied", description: "Translation copied to clipboard." });
+                }
+              }}
+            >
+              Copy Translation
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
