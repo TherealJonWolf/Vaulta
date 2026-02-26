@@ -170,6 +170,7 @@ export type Database = {
       documents: {
         Row: {
           created_at: string
+          encrypted_iv: string | null
           encryption_key_hash: string | null
           file_name: string
           file_path: string
@@ -183,6 +184,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          encrypted_iv?: string | null
           encryption_key_hash?: string | null
           file_name: string
           file_path: string
@@ -196,6 +198,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          encrypted_iv?: string | null
           encryption_key_hash?: string | null
           file_name?: string
           file_path?: string
@@ -410,6 +413,33 @@ export type Database = {
           trust_level?: Database["public"]["Enums"]["trust_level"]
           trust_score?: number
           user_id?: string
+        }
+        Relationships: []
+      }
+      vault_passphrases: {
+        Row: {
+          created_at: string
+          id: string
+          salt: string
+          updated_at: string
+          user_id: string
+          verification_hash: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          salt: string
+          updated_at?: string
+          user_id: string
+          verification_hash: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          salt?: string
+          updated_at?: string
+          user_id?: string
+          verification_hash?: string
         }
         Relationships: []
       }

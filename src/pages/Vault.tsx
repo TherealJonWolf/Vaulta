@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck, ClipboardCheck, TrendingUp, Zap, Fingerprint } from "lucide-react";
+import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck, ClipboardCheck, TrendingUp, Zap, Fingerprint, LockOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useVaultEncryption } from "@/hooks/useVaultEncryption";
 import AIOracle from "@/components/AIOracle";
 import DocumentUpload from "@/components/DocumentUpload";
 import DocumentList from "@/components/DocumentList";
@@ -17,6 +18,7 @@ import { ThreatSimulation } from "@/components/ThreatSimulation";
 import SubscriptionBadge from "@/components/SubscriptionBadge";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import VeriffVerification from "@/components/VeriffVerification";
+import VaultPassphraseGate from "@/components/VaultPassphraseGate";
 import { useSubscription } from "@/hooks/useSubscription";
 
 const Vault = () => {
@@ -36,16 +38,35 @@ const Vault = () => {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [veriffOpen, setVeriffOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [passphraseLoading, setPassphraseLoading] = useState(true);
+
+  const {
+    isUnlocked,
+    hasPassphrase,
+    checkPassphraseExists,
+    createPassphrase,
+    unlockVault,
+    encryptFile,
+    decryptFile,
+    lockVault,
+  } = useVaultEncryption(user?.id);
 
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
     }
-    // Redirect to auth if MFA is required but not verified
     if (!loading && user && mfaRequired) {
       navigate("/auth");
     }
   }, [user, loading, mfaRequired, navigate]);
+
+  // Check if user has a passphrase set
+  useEffect(() => {
+    if (user && !loading) {
+      setPassphraseLoading(true);
+      checkPassphraseExists().finally(() => setPassphraseLoading(false));
+    }
+  }, [user, loading, checkPassphraseExists]);
 
   // Handle subscription success/cancel from Stripe redirect
   useEffect(() => {
@@ -67,6 +88,7 @@ const Vault = () => {
   }, [searchParams, toast, checkSubscription, fetchDocumentCount]);
 
   const handleSignOut = async () => {
+    lockVault();
     await signOut();
     navigate("/");
   };
@@ -78,6 +100,32 @@ const Vault = () => {
           <Shield className="mx-auto text-primary animate-pulse" size={48} />
           <p className="mt-4 text-muted-foreground font-mono">Decrypting vault...</p>
         </div>
+      </div>
+    );
+  }
+
+  // Show passphrase gate if vault is not unlocked
+  if (!isUnlocked) {
+    return (
+      <div className="min-h-screen bg-background grid-bg">
+        <header className="border-b border-border bg-card/50 backdrop-blur sticky top-0 z-40">
+          <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Shield className="text-primary" size={28} />
+              <span className="font-display text-xl font-bold gradient-text">SOVEREIGN SECTOR</span>
+            </div>
+            <Button variant="ghost" onClick={handleSignOut} className="text-muted-foreground">
+              <LogOut size={18} className="mr-2" />
+              Exit
+            </Button>
+          </div>
+        </header>
+        <VaultPassphraseGate
+          hasPassphrase={hasPassphrase}
+          onCreatePassphrase={createPassphrase}
+          onUnlock={unlockVault}
+          loading={passphraseLoading}
+        />
       </div>
     );
   }
@@ -108,6 +156,9 @@ const Vault = () => {
               <Button variant="ghost" onClick={() => setSettingsOpen(true)} className="text-muted-foreground" title="Settings">
                 <Settings size={18} />
               </Button>
+              <Button variant="ghost" onClick={() => { lockVault(); }} className="text-muted-foreground" title="Lock Vault">
+                <LockOpen size={18} />
+              </Button>
               <Button variant="ghost" onClick={handleSignOut} className="text-muted-foreground">
                 <LogOut size={18} className="mr-2" />
                 Exit Vault
@@ -120,7 +171,7 @@ const Vault = () => {
       <main className="container mx-auto px-6 py-12">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
           <h1 className="font-display text-4xl font-bold gradient-text mb-2">Welcome to Your Sovereign Sector</h1>
-          <p className="text-muted-foreground font-rajdhani">Your encrypted document vault with AI-powered assistance</p>
+          <p className="text-muted-foreground font-rajdhani">Your end-to-end encrypted document vault with AI-powered assistance</p>
         </motion.div>
 
         {/* Compliance Trust Badges */}
@@ -131,6 +182,7 @@ const Vault = () => {
           className="flex flex-wrap justify-center gap-3 mb-12"
         >
           {[
+            { label: "E2E Encrypted", detail: "Active" },
             { label: "SOC 2", detail: "Compliant" },
             { label: "NIST 800-53", detail: "Verified" },
             { label: "GDPR", detail: "Compliant" },
@@ -190,7 +242,7 @@ const Vault = () => {
           </motion.div>
         </div>
 
-        <DocumentList refreshTrigger={refreshTrigger} />
+        <DocumentList refreshTrigger={refreshTrigger} encryptFile={encryptFile} decryptFile={decryptFile} />
       </main>
 
       <AIOracle isOpen={oracleOpen} onClose={() => setOracleOpen(false)} />
@@ -199,6 +251,7 @@ const Vault = () => {
         onClose={() => setUploadOpen(false)} 
         onUploadComplete={() => setRefreshTrigger((p) => p + 1)} 
         onUpgradeRequired={() => setUpgradeOpen(true)}
+        encryptFile={encryptFile}
       />
       <InstitutionConnect isOpen={institutionOpen} onClose={() => setInstitutionOpen(false)} isPremium={isPremium} onUpgradeRequired={() => setUpgradeOpen(true)} />
       <MFASettings isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />

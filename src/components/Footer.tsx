@@ -11,7 +11,7 @@ export const Footer = () => {
           <div className="md:col-span-2">
             <VaultaLogo size="md" />
             <p className="mt-4 text-muted-foreground font-rajdhani max-w-md">
-              Vaulta provides military-grade security for your most sensitive documents. 
+              Vaulta provides end-to-end encrypted security for your most sensitive documents. 
               Take sovereign control of your digital identity with end-to-end encryption 
               and NIST-800-53 compliant infrastructure.
             </p>

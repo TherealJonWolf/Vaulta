@@ -18,13 +18,16 @@ interface Document {
   source: string;
   institution_name: string | null;
   created_at: string;
+  encrypted_iv: string | null;
 }
 
 interface DocumentListProps {
   refreshTrigger: number;
+  encryptFile: (fileBuffer: ArrayBuffer) => Promise<{ encrypted: ArrayBuffer; iv: string }>;
+  decryptFile: (encryptedBuffer: ArrayBuffer, ivHex: string) => Promise<ArrayBuffer>;
 }
 
-const DocumentList = ({ refreshTrigger }: DocumentListProps) => {
+const DocumentList = ({ refreshTrigger, encryptFile, decryptFile }: DocumentListProps) => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -69,7 +72,16 @@ const DocumentList = ({ refreshTrigger }: DocumentListProps) => {
 
       if (error) throw error;
 
-      const url = URL.createObjectURL(data);
+      let blob: Blob;
+      if (doc.encrypted_iv) {
+        const encryptedBuffer = await data.arrayBuffer();
+        const decryptedBuffer = await decryptFile(encryptedBuffer, doc.encrypted_iv);
+        blob = new Blob([decryptedBuffer], { type: doc.mime_type });
+      } else {
+        blob = data;
+      }
+
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = doc.file_name;
@@ -96,11 +108,21 @@ const DocumentList = ({ refreshTrigger }: DocumentListProps) => {
     try {
       const { data, error } = await supabase.storage
         .from("documents")
-        .createSignedUrl(doc.file_path, 60);
+        .download(doc.file_path);
 
       if (error) throw error;
 
-      setPreviewUrl(data.signedUrl);
+      let blob: Blob;
+      if (doc.encrypted_iv) {
+        const encryptedBuffer = await data.arrayBuffer();
+        const decryptedBuffer = await decryptFile(encryptedBuffer, doc.encrypted_iv);
+        blob = new Blob([decryptedBuffer], { type: doc.mime_type });
+      } else {
+        blob = data;
+      }
+
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
       setPreviewName(doc.file_name);
     } catch (error) {
       console.error("Preview error:", error);
@@ -153,20 +175,28 @@ const DocumentList = ({ refreshTrigger }: DocumentListProps) => {
   const handleTranslate = async (doc: Document, targetLanguage: string) => {
     setTranslating(doc.id);
     try {
-      // Download the document to get its text content
+      // Download and decrypt the document
       const { data: fileData, error: fileError } = await supabase.storage
         .from("documents")
         .download(doc.file_path);
       if (fileError) throw fileError;
 
-      const text = await fileData.text();
-      if (!text || text.length < 5) {
+      let textContent: string;
+      if (doc.encrypted_iv) {
+        const encryptedBuffer = await fileData.arrayBuffer();
+        const decryptedBuffer = await decryptFile(encryptedBuffer, doc.encrypted_iv);
+        textContent = new TextDecoder().decode(decryptedBuffer);
+      } else {
+        textContent = await fileData.text();
+      }
+
+      if (!textContent || textContent.length < 5) {
         toast({ variant: "destructive", title: "Cannot Translate", description: "Document content could not be extracted as text." });
         return;
       }
 
       const { data, error } = await supabase.functions.invoke("translate-document", {
-        body: { text: text.substring(0, 10000), targetLanguage },
+        body: { text: textContent.substring(0, 10000), targetLanguage },
       });
 
       if (error) throw error;
