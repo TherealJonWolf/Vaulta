@@ -5,7 +5,7 @@ const securityFeatures = [
   {
     icon: Lock,
     title: "256-Bit AES Encryption",
-    description: "Military-grade encryption protects your data at rest and in transit.",
+    description: "End-to-end encryption protects your data at rest and in transit.",
   },
   {
     icon: Fingerprint,

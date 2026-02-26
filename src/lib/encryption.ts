@@ -1,5 +1,5 @@
 /**
- * Military-Grade Encryption Utilities
+ * End-to-End Encryption Utilities
  * Implements AES-256-GCM encryption as per NIST 800-53 SC-13 requirements
  * 
  * Security Features:
@@ -14,7 +14,7 @@ export const generateEncryptionKey = async (): Promise<CryptoKey> => {
   return await crypto.subtle.generateKey(
     {
       name: 'AES-GCM',
-      length: 256, // Military-grade 256-bit key
+      length: 256, // 256-bit key for end-to-end encryption
     },
     true, // Extractable for export
     ['encrypt', 'decrypt']

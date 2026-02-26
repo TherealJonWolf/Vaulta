@@ -14,6 +14,7 @@ interface DocumentUploadProps {
   onClose: () => void;
   onUploadComplete: () => void;
   onUpgradeRequired: () => void;
+  encryptFile: (fileBuffer: ArrayBuffer) => Promise<{ encrypted: ArrayBuffer; iv: string }>;
 }
 
 type VerificationStep = {
@@ -23,7 +24,7 @@ type VerificationStep = {
   detail?: string;
 };
 
-const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired }: DocumentUploadProps) => {
+const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, encryptFile }: DocumentUploadProps) => {
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -476,9 +477,14 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired }
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
+      // E2E Encrypt the file client-side before upload
+      const fileBuffer = await file.arrayBuffer();
+      const { encrypted, iv } = await encryptFile(fileBuffer);
+      const encryptedBlob = new Blob([encrypted], { type: "application/octet-stream" });
+
       const { error: uploadError } = await supabase.storage
         .from("documents")
-        .upload(filePath, file);
+        .upload(filePath, encryptedBlob);
 
       if (uploadError) throw uploadError;
 
@@ -494,6 +500,7 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired }
         file_size: file.size,
         mime_type: file.type,
         source: "upload",
+        encrypted_iv: iv,
       });
 
       if (dbError) throw dbError;

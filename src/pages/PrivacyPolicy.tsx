@@ -30,7 +30,7 @@ All collected data is encrypted using AES-256 encryption and stored in complianc
     {
       icon: Lock,
       title: "2. How We Protect Your Data",
-      content: `Vaulta implements military-grade security measures in accordance with NIST 800-53 Rev. 5:
+      content: `Vaulta implements end-to-end encryption security measures in accordance with NIST 800-53 Rev. 5:
 
 **Encryption:**
 - All data encrypted at rest using AES-256
@@ -181,7 +181,7 @@ For a complete compliance matrix, contact compliance@vaulta.io`
             
             <p className="text-xl text-muted-foreground font-rajdhani">
               Your privacy is fundamental to our mission. This policy explains how Vaulta 
-              protects your data with military-grade security.
+              protects your data with end-to-end encryption.
             </p>
             
             <p className="mt-4 text-sm text-muted-foreground font-mono">

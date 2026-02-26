@@ -58,7 +58,7 @@ const values = [
 const timeline = [
   { year: "THE VISION", text: "A world where digital identity is a human right — not a privilege granted by institutions." },
   { year: "THE PROBLEM", text: "Billions of people lack secure, portable, verifiable identity. Documents get lost. Systems get breached. People get left behind." },
-  { year: "THE ANSWER", text: "Vaulta™ — a sovereign digital vault that puts military-grade security in the hands of everyday people." },
+  { year: "THE ANSWER", text: "Vaulta™ — a sovereign digital vault that puts end-to-end encrypted security in the hands of everyday people." },
   { year: "THE FUTURE", text: "A decentralized trust layer where your identity, documents, and credentials travel with you — everywhere, always." },
 ];
 

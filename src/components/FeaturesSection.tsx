@@ -45,7 +45,7 @@ export const FeaturesSection = () => {
             YOUR DIGITAL FORTRESS
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto font-rajdhani text-lg">
-            Military-grade protection for your most sensitive documents with end-to-end encryption
+            End-to-end encrypted protection for your most sensitive documents
           </p>
         </motion.div>
 

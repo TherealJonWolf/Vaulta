@@ -25,7 +25,7 @@ These Terms constitute a legally binding agreement between you and Vaulta.`
     {
       icon: Shield,
       title: "2. Service Description & Security",
-      content: `Vaulta provides a secure document management platform with military-grade encryption and NIST 800-53 compliance.
+      content: `Vaulta provides a secure document management platform with end-to-end encryption and NIST 800-53 compliance.
 
 **Core Services:**
 - Encrypted document storage and retrieval
@@ -234,7 +234,7 @@ For compliance inquiries: compliance@vaulta.io`
               <h3 className="font-display font-bold text-foreground mb-2">Quick Summary</h3>
               <p className="text-sm text-muted-foreground font-rajdhani">
                 By using Vaulta, you agree to use the service lawfully, maintain account security, 
-                and not store prohibited content. We provide military-grade security but the service 
+                and not store prohibited content. We provide end-to-end encrypted security but the service 
                 is provided "as-is." You retain ownership of your documents. These terms may be 
                 updated with notice.
               </p>
