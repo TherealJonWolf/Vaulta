@@ -12,7 +12,8 @@ export type SecurityEventType =
   | 'password_changed'
   | 'session_revoked'
   | 'document_uploaded'
-  | 'document_deleted';
+  | 'document_deleted'
+  | 'data_consistency_check';
 
 const getDeviceInfo = (): string => {
   const ua = navigator.userAgent;

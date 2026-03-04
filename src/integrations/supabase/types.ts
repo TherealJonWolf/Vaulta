@@ -134,6 +134,57 @@ export type Database = {
         }
         Relationships: []
       }
+      consistency_findings: {
+        Row: {
+          audit_log_entry: string
+          confidence_impact: number
+          created_at: string
+          description: string
+          follow_up_action: string
+          id: string
+          metadata: Json | null
+          resolved: boolean
+          resolved_at: string | null
+          rule_category: string
+          rule_id: string
+          rule_name: string
+          severity: string
+          user_id: string
+        }
+        Insert: {
+          audit_log_entry: string
+          confidence_impact?: number
+          created_at?: string
+          description: string
+          follow_up_action?: string
+          id?: string
+          metadata?: Json | null
+          resolved?: boolean
+          resolved_at?: string | null
+          rule_category: string
+          rule_id: string
+          rule_name: string
+          severity?: string
+          user_id: string
+        }
+        Update: {
+          audit_log_entry?: string
+          confidence_impact?: number
+          created_at?: string
+          description?: string
+          follow_up_action?: string
+          id?: string
+          metadata?: Json | null
+          resolved?: boolean
+          resolved_at?: string | null
+          rule_category?: string
+          rule_id?: string
+          rule_name?: string
+          severity?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       document_hashes: {
         Row: {
           created_at: string

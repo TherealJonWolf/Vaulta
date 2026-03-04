@@ -23,6 +23,12 @@ interface UserMetrics {
   suspiciousEvents: number;
   lastActiveDate: Date | null;
   hasRecoveryCodes: boolean;
+  // Data consistency integration
+  unresolvedFindings: Array<{
+    severity: string;
+    confidence_impact: number;
+    follow_up_action: string;
+  }>;
 }
 
 // Weight constants for scoring dimensions
@@ -85,6 +91,13 @@ async function fetchUserMetrics(userId: string): Promise<UserMetrics> {
     .eq("user_id", userId)
     .eq("used", false);
 
+  // Fetch unresolved consistency findings for trust degradation integration
+  const { data: consistencyFindings } = await (supabase
+    .from("consistency_findings") as any)
+    .select("severity, confidence_impact, follow_up_action, resolved")
+    .eq("user_id", userId)
+    .eq("resolved", false);
+
   // Calculate metrics
   const accountCreated = profile?.created_at ? new Date(profile.created_at) : now;
   const accountAgeDays = Math.floor((now.getTime() - accountCreated.getTime()) / (1000 * 60 * 60 * 24));
@@ -122,6 +135,11 @@ async function fetchUserMetrics(userId: string): Promise<UserMetrics> {
     suspiciousEvents,
     lastActiveDate: lastSession ? new Date(lastSession.last_active_at) : null,
     hasRecoveryCodes: (recoveryCodeCount || 0) > 0,
+    unresolvedFindings: (consistencyFindings || []).map((f: any) => ({
+      severity: f.severity,
+      confidence_impact: f.confidence_impact,
+      follow_up_action: f.follow_up_action,
+    })),
   };
 }
 
@@ -320,7 +338,48 @@ function calculateRiskScore(metrics: UserMetrics): { score: number; riskCap: num
     negative.push("Account lacks MFA protection");
   }
 
-  if (score >= 80) {
+  // ── Data Consistency Integration ──
+  if (metrics.unresolvedFindings.length > 0) {
+    const highFindings = metrics.unresolvedFindings.filter(f => f.severity === 'high');
+    const medFindings = metrics.unresolvedFindings.filter(f => f.severity === 'medium');
+    const hardReviews = metrics.unresolvedFindings.filter(f => f.follow_up_action === 'hard_review');
+
+    // Apply aggregate confidence impact (capped at -50 to prevent total zeroing)
+    const totalImpact = Math.max(-50,
+      metrics.unresolvedFindings.reduce((sum, f) => sum + f.confidence_impact, 0)
+    );
+    score += totalImpact; // impacts are negative
+
+    if (highFindings.length >= 2) {
+      riskCap = Math.min(riskCap ?? 100, 55);
+      negative.push(`CRITICAL: ${highFindings.length} high-severity data inconsistencies detected`);
+    } else if (highFindings.length === 1) {
+      negative.push("High-severity data inconsistency detected");
+    }
+
+    if (medFindings.length + highFindings.length >= 3) {
+      riskCap = Math.min(riskCap ?? 100, 65);
+      negative.push("Compound data anomalies — trust ceiling applied");
+    }
+
+    if (hardReviews.length > 0) {
+      riskCap = Math.min(riskCap ?? 100, 70);
+      negative.push(`${hardReviews.length} finding(s) require manual review`);
+    }
+
+    if (metrics.unresolvedFindings.length > 5) {
+      riskCap = Math.min(riskCap ?? 100, 60);
+      negative.push("Excessive unresolved consistency findings");
+    }
+
+    if (metrics.unresolvedFindings.length > 0 && highFindings.length === 0) {
+      negative.push(`${metrics.unresolvedFindings.length} data consistency finding(s) pending resolution`);
+    }
+  } else {
+    positive.push("No data consistency anomalies detected");
+  }
+
+  if (score >= 80 && metrics.unresolvedFindings.length === 0) {
     positive.push("No high-risk events detected");
   }
 
