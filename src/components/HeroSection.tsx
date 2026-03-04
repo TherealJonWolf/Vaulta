@@ -83,14 +83,6 @@ export const HeroSection = () => {
               SECURE YOUR VAULT & BUILD YOUR TRUST PROFILE
               <ArrowRight className="ml-2" size={20} />
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="font-rajdhani font-bold tracking-widest text-lg px-12 py-6 border-primary/40 text-primary hover:bg-primary/10"
-              onClick={() => navigate("/auth?mode=signup")}
-            >
-              START YOUR TRUST PROFILE
-            </Button>
           </motion.div>
 
           {/* Trust Badges */}
