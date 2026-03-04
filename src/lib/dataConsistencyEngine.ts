@@ -1,8 +1,29 @@
 /**
- * Data Consistency & Trust Degradation Engine
+ * Data Consistency & Trust Degradation Engine (Client-Side)
  * 
- * Evaluates structured financial and identity data for internal consistency,
- * temporal logic, behavioral patterns, and cross-field reconciliation.
+ * WEAKNESS 3 MITIGATION: This client-side engine provides UX-grade feedback only.
+ * It is NOT the authoritative evaluation — the server-side edge function
+ * (data-consistency-check) performs the real evaluation with:
+ *   - Probabilistic tolerance bands (jittered thresholds)
+ *   - Boundary-hugging detection
+ *   - Cross-account correlation
+ *   - Longitudinal trust memory
+ * 
+ * CLIENT-SERVER RESPONSIBILITY MATRIX:
+ * ┌─────────────────────┬──────────┬──────────┐
+ * │ Capability          │ Client   │ Server   │
+ * ├─────────────────────┼──────────┼──────────┤
+ * │ Rule evaluation     │ Indicative│ Authoritative│
+ * │ Trust scoring       │ Display  │ Canonical │
+ * │ Rule IDs            │ Hidden   │ Stored    │
+ * │ Thresholds          │ Fixed*   │ Jittered  │
+ * │ Findings storage    │ No       │ Yes       │
+ * │ Cross-account       │ No       │ Yes       │
+ * │ Boundary detection  │ No       │ Yes       │
+ * │ User feedback       │ Vague    │ Precise   │
+ * └─────────────────────┴──────────┴──────────┘
+ * * Client thresholds are intentionally different from server thresholds
+ *   so adversaries cannot use client-side behavior to reverse-engineer server rules.
  * 
  * Philosophy: The system never asks "is this fake?" —
  * it asks "does this data remain coherent under scrutiny over time?"
@@ -27,19 +48,29 @@ export interface RuleFinding {
   description: string;
   triggerCondition: string;
   severity: Severity;
-  confidenceImpact: number; // positive = boost, negative = degrade
+  confidenceImpact: number;
   followUpAction: FollowUpAction;
   auditLogEntry: string;
   metadata: Record<string, unknown>;
 }
 
+// Client-side obfuscated finding (Weakness 3: no rule IDs, no thresholds)
+export interface ObfuscatedFinding {
+  category: string;
+  severity: Severity;
+  description: string; // Intentionally vague
+  requiresAttention: boolean;
+}
+
 export interface ConsistencyReport {
   userId: string;
   findings: RuleFinding[];
+  obfuscatedFindings: ObfuscatedFinding[];
   aggregateConfidenceAdjustment: number;
-  trustCeiling: number | null; // null = no cap imposed
+  trustCeiling: number | null;
   compoundAnomalyCount: number;
   evaluatedAt: string;
+  isAuthoritativeEvaluation: false;
 }
 
 // ─── Data Models (inputs to the engine) ──────────────────────────────────────
@@ -763,12 +794,49 @@ export function evaluateDataConsistency(input: DataConsistencyInput): Consistenc
 
   const compoundAnomalyCount = findings.filter(f => f.severity === 'high' || f.severity === 'medium').length;
 
+  // Weakness 3: Generate obfuscated findings for client-side display
+  const obfuscatedFindings: ObfuscatedFinding[] = findings.map(f => ({
+    category: obfuscateCategory(f.ruleCategory),
+    severity: f.severity,
+    description: obfuscateDescription(f.description),
+    requiresAttention: f.followUpAction !== 'none',
+  }));
+
   return {
     userId: input.userId,
     findings,
+    obfuscatedFindings,
     aggregateConfidenceAdjustment: aggregateImpact,
     trustCeiling,
     compoundAnomalyCount,
     evaluatedAt: new Date().toISOString(),
+    isAuthoritativeEvaluation: false as const,
   };
+}
+
+// ── Weakness 3: Signal obfuscation helpers ───────────────────────────────────
+
+function obfuscateCategory(category: RuleCategory): string {
+  const categoryMap: Record<RuleCategory, string> = {
+    arithmetic_reconciliation: 'Data Verification',
+    temporal_logic: 'Timeline Review',
+    behavioral_sequence: 'Pattern Analysis',
+    cross_field_consistency: 'Cross-Reference Check',
+    entropy_pattern: 'Structure Analysis',
+    trust_degradation: 'Confidence Assessment',
+  };
+  return categoryMap[category] || 'General Review';
+}
+
+function obfuscateDescription(desc: string): string {
+  // Strip specific numbers, thresholds, and percentages
+  return desc
+    .replace(/\d+\.\d+%/g, 'an unusual level')
+    .replace(/\$[\d,.]+/g, 'a value')
+    .replace(/Δ[\d,.]+/g, 'a discrepancy')
+    .replace(/\d+ transaction/g, 'some transactions')
+    .replace(/\d+\.\d+ days/g, 'a short period')
+    .replace(/CV[:\s]+[\d.]+%/g, 'unusual variability')
+    .replace(/\(\d+\/\d+\)/g, '')
+    .replace(/\d+\s*periods?/g, 'multiple periods');
 }

@@ -185,6 +185,45 @@ export type Database = {
         }
         Relationships: []
       }
+      cross_account_signals: {
+        Row: {
+          account_count: number
+          confidence_score: number
+          created_at: string
+          fingerprint_hash: string
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          metadata: Json | null
+          severity: string
+          signal_type: string
+        }
+        Insert: {
+          account_count?: number
+          confidence_score?: number
+          created_at?: string
+          fingerprint_hash: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          metadata?: Json | null
+          severity?: string
+          signal_type: string
+        }
+        Update: {
+          account_count?: number
+          confidence_score?: number
+          created_at?: string
+          fingerprint_hash?: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          metadata?: Json | null
+          severity?: string
+          signal_type?: string
+        }
+        Relationships: []
+      }
       document_hashes: {
         Row: {
           created_at: string
@@ -258,6 +297,45 @@ export type Database = {
           institution_name?: string | null
           mime_type?: string
           source?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      evaluation_metadata: {
+        Row: {
+          boundary_events: number
+          boundary_hugging_score: number
+          created_at: string
+          id: string
+          jitter_epoch: number
+          jitter_seed: number
+          last_random_audit_at: string | null
+          metadata: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          boundary_events?: number
+          boundary_hugging_score?: number
+          created_at?: string
+          id?: string
+          jitter_epoch?: number
+          jitter_seed: number
+          last_random_audit_at?: string | null
+          metadata?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          boundary_events?: number
+          boundary_hugging_score?: number
+          created_at?: string
+          id?: string
+          jitter_epoch?: number
+          jitter_seed?: number
+          last_random_audit_at?: string | null
+          metadata?: Json | null
           updated_at?: string
           user_id?: string
         }
@@ -422,6 +500,48 @@ export type Database = {
           rating?: number
           role?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      trust_history: {
+        Row: {
+          created_at: string
+          decay_applied: number | null
+          event_type: string
+          id: string
+          inertia_factor: number | null
+          metadata: Json | null
+          rules_satisfied: string[] | null
+          rules_violated: string[] | null
+          trust_delta: number
+          trust_score_at_time: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decay_applied?: number | null
+          event_type: string
+          id?: string
+          inertia_factor?: number | null
+          metadata?: Json | null
+          rules_satisfied?: string[] | null
+          rules_violated?: string[] | null
+          trust_delta?: number
+          trust_score_at_time: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decay_applied?: number | null
+          event_type?: string
+          id?: string
+          inertia_factor?: number | null
+          metadata?: Json | null
+          rules_satisfied?: string[] | null
+          rules_violated?: string[] | null
+          trust_delta?: number
+          trust_score_at_time?: number
+          user_id?: string
         }
         Relationships: []
       }

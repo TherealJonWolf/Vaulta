@@ -29,6 +29,13 @@ interface UserMetrics {
     confidence_impact: number;
     follow_up_action: string;
   }>;
+  // Weakness 2: Longitudinal trust memory
+  trustHistory: {
+    recentContradictions: number;
+    daysSinceLastContradiction: number;
+    totalDecayApplied: number;
+    consistencyStreak: number; // consecutive clean evaluations
+  };
 }
 
 // Weight constants for scoring dimensions
@@ -98,6 +105,34 @@ async function fetchUserMetrics(userId: string): Promise<UserMetrics> {
     .eq("user_id", userId)
     .eq("resolved", false);
 
+  // Weakness 2: Fetch trust history for longitudinal memory
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: trustHistoryData } = await (supabase
+    .from("trust_history") as any)
+    .select("event_type, trust_delta, decay_applied, created_at")
+    .eq("user_id", userId)
+    .gte("created_at", thirtyDaysAgo)
+    .order("created_at", { ascending: false });
+
+  const recentContradictions = (trustHistoryData || []).filter(
+    (h: any) => h.event_type === "contradiction"
+  ).length;
+  const lastContradiction = (trustHistoryData || []).find(
+    (h: any) => h.event_type === "contradiction"
+  );
+  const daysSinceLastContradiction = lastContradiction
+    ? (Date.now() - new Date(lastContradiction.created_at).getTime()) / (1000 * 60 * 60 * 24)
+    : 999;
+  const totalDecayApplied = (trustHistoryData || []).reduce(
+    (sum: number, h: any) => sum + (h.decay_applied || 0), 0
+  );
+  // Count consecutive reinforcements from the top
+  let consistencyStreak = 0;
+  for (const h of (trustHistoryData || [])) {
+    if (h.event_type === "reinforcement") consistencyStreak++;
+    else break;
+  }
+
   // Calculate metrics
   const accountCreated = profile?.created_at ? new Date(profile.created_at) : now;
   const accountAgeDays = Math.floor((now.getTime() - accountCreated.getTime()) / (1000 * 60 * 60 * 24));
@@ -105,19 +140,14 @@ async function fetchUserMetrics(userId: string): Promise<UserMetrics> {
   const successfulLogins = loginHistory?.filter(l => l.success).length || 0;
   const failedLogins = loginHistory?.filter(l => !l.success).length || 0;
   
-  // Unique devices from user agents
   const uniqueDevices = new Set(loginHistory?.map(l => l.user_agent).filter(Boolean)).size;
-  
-  // Unique locations
   const uniqueLocations = new Set(sessions?.map(s => s.location).filter(Boolean)).size;
   
-  // Suspicious events (failed logins, recovery code usage, etc.)
   const suspiciousEventTypes = ['login_failed', 'recovery_code_used', 'session_revoked'];
   const suspiciousEvents = securityEvents?.filter(e => 
     suspiciousEventTypes.includes(e.event_type)
   ).length || 0;
 
-  // Last activity
   const lastSession = sessions?.sort((a, b) => 
     new Date(b.last_active_at).getTime() - new Date(a.last_active_at).getTime()
   )[0];
@@ -140,6 +170,12 @@ async function fetchUserMetrics(userId: string): Promise<UserMetrics> {
       confidence_impact: f.confidence_impact,
       follow_up_action: f.follow_up_action,
     })),
+    trustHistory: {
+      recentContradictions,
+      daysSinceLastContradiction,
+      totalDecayApplied,
+      consistencyStreak,
+    },
   };
 }
 
@@ -379,7 +415,39 @@ function calculateRiskScore(metrics: UserMetrics): { score: number; riskCap: num
     positive.push("No data consistency anomalies detected");
   }
 
-  if (score >= 80 && metrics.unresolvedFindings.length === 0) {
+  // ── Weakness 2: Longitudinal Trust Memory Integration ──
+  const th = metrics.trustHistory;
+
+  // Trust decay penalty for unreinforced trust
+  if (th.totalDecayApplied > 0) {
+    score -= Math.min(15, th.totalDecayApplied);
+    negative.push("Trust decay applied due to inactivity");
+  }
+
+  // Recent contradictions compound risk
+  if (th.recentContradictions >= 3) {
+    riskCap = Math.min(riskCap ?? 100, 55);
+    negative.push("Multiple recent contradictions in trust history");
+  } else if (th.recentContradictions >= 1) {
+    negative.push("Recent contradiction(s) in trust history");
+  }
+
+  // Consistency streak bonus (slow trust build)
+  if (th.consistencyStreak >= 10) {
+    score += 5;
+    positive.push("Strong consistency streak in evaluations");
+  } else if (th.consistencyStreak >= 5) {
+    score += 2;
+    positive.push("Building consistency streak");
+  }
+
+  // Snap-down: if contradiction was very recent, hard cap
+  if (th.daysSinceLastContradiction < 3 && th.recentContradictions >= 2) {
+    riskCap = Math.min(riskCap ?? 100, 50);
+    negative.push("Trust snap-down: rapid contradictions detected");
+  }
+
+  if (score >= 80 && metrics.unresolvedFindings.length === 0 && th.recentContradictions === 0) {
     positive.push("No high-risk events detected");
   }
 
