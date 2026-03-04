@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Shield, Lock, KeyRound, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,25 @@ interface VaultPassphraseGateProps {
   loading?: boolean;
 }
 
+const getPassphraseStrength = (passphrase: string) => {
+  if (!passphrase) return { score: 0, label: "", color: "" };
+  let score = 0;
+  if (passphrase.length >= 8) score++;
+  if (passphrase.length >= 12) score++;
+  if (passphrase.length >= 16) score++;
+  if (/[a-z]/.test(passphrase) && /[A-Z]/.test(passphrase)) score++;
+  if (/\d/.test(passphrase)) score++;
+  if (/[^a-zA-Z0-9]/.test(passphrase)) score++;
+  if (/\s/.test(passphrase) && passphrase.split(/\s+/).length >= 3) score++;
+
+  if (score <= 2) return { score, label: "Weak", color: "hsl(var(--destructive))" };
+  if (score <= 4) return { score, label: "Fair", color: "hsl(var(--warning-amber))" };
+  if (score <= 5) return { score, label: "Strong", color: "hsl(var(--secure-green))" };
+  return { score, label: "Excellent", color: "hsl(var(--primary))" };
+};
+
+const MAX_SCORE = 7;
+
 const VaultPassphraseGate = ({ hasPassphrase, onCreatePassphrase, onUnlock, loading }: VaultPassphraseGateProps) => {
   const [passphrase, setPassphrase] = useState("");
   const [confirmPassphrase, setConfirmPassphrase] = useState("");
@@ -19,6 +38,8 @@ const VaultPassphraseGate = ({ hasPassphrase, onCreatePassphrase, onUnlock, load
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const { toast } = useToast();
+
+  const strength = useMemo(() => getPassphraseStrength(passphrase), [passphrase]);
 
   const handleCreate = async () => {
     if (passphrase.length < 8) {
@@ -123,6 +144,50 @@ const VaultPassphraseGate = ({ hasPassphrase, onCreatePassphrase, onUnlock, load
                 {showPassphrase ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+
+            {/* Strength Meter — only during creation */}
+            {!hasPassphrase && passphrase.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="space-y-1.5"
+              >
+                <div className="flex gap-1 h-1.5">
+                  {[...Array(4)].map((_, i) => {
+                    const segmentThreshold = ((i + 1) / 4) * MAX_SCORE;
+                    const filled = strength.score >= segmentThreshold;
+                    return (
+                      <motion.div
+                        key={i}
+                        className="flex-1 rounded-full"
+                        initial={{ scaleX: 0 }}
+                        animate={{
+                          scaleX: 1,
+                          backgroundColor: filled ? strength.color : "hsl(var(--muted))",
+                        }}
+                        transition={{ delay: i * 0.05, duration: 0.2 }}
+                        style={{ originX: 0 }}
+                      />
+                    );
+                  })}
+                </div>
+                <div className="flex justify-between items-center">
+                  <span
+                    className="text-xs font-mono font-semibold"
+                    style={{ color: strength.color }}
+                  >
+                    {strength.label}
+                  </span>
+                  <span className="text-xs text-muted-foreground font-mono">
+                    {passphrase.length < 8
+                      ? `${8 - passphrase.length} more chars needed`
+                      : passphrase.length < 16
+                        ? "Try 16+ chars or a multi-word phrase"
+                        : "Great length!"}
+                  </span>
+                </div>
+              </motion.div>
+            )}
 
             {!hasPassphrase && (
               <div className="relative">
