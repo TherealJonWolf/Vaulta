@@ -9,8 +9,8 @@ const supportChannels = [
     icon: Mail,
     title: "Email Support",
     description: "Direct email support for all security and technical inquiries",
-    action: "help@tryvaulta.com",
-    href: "mailto:help@tryvaulta.com",
+    action: "hello@tryvaulta.com",
+    href: "mailto:hello@tryvaulta.com",
     response: "24-48 hour response"
   },
   {

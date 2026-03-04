@@ -7,21 +7,21 @@ const features = [
     icon: Shield,
     title: "Sovereign Identity Vault",
     description:
-      "Store passports, birth certificates, SSN cards, green cards, and all vital documents. Selectively share with landlords, banks, and institutions while maintaining complete control.",
+      "Securely store passport records, visa enrollment, income documentation, and housing history in an encrypted vault. Every document and record added to Vaulta is automatically timestamped with an immutable audit marker that cannot be altered, ensuring continuity and integrity over time.",
     color: "primary",
   },
   {
     icon: Cpu,
-    title: "The AI Oracle",
+    title: "AI Oracle",
     description:
-      "24/7 AI-powered guidance for navigating immigration offices, credit unions, and institutional systems. Never face bureaucratic complexity alone.",
+      "AI-powered guidance that helps users prepare documentation for housing and financial services. Vaulta analyzes patterns of consistency across records without exposing raw documents or sensitive personal data.",
     color: "accent",
   },
   {
     icon: Globe,
-    title: "Borderless Infrastructure",
+    title: "Cross-Border Trust Engine",
     description:
-      "When you cross borders, your credibility shouldn't reset. Ingest credentials from any institution and build portable trust that travels with you.",
+      "Vaulta performs automated integrity and consistency checks across ingested documentation to generate trust signals that support housing and service qualification without requiring guarantors or excessive deposits.",
     color: "primary",
   },
 ];
@@ -114,7 +114,7 @@ export const FeaturesSection = () => {
             onClick={() => navigate("/auth?mode=signup")}
             className="btn-gradient font-rajdhani font-bold tracking-widest text-lg px-12 py-4 rounded-lg text-primary-foreground"
           >
-            INITIALIZE YOUR VAULT
+            START YOUR TRUST PROFILE
           </button>
         </motion.div>
       </div>

@@ -4,6 +4,7 @@ import { InitializingScreen } from "@/components/InitializingScreen";
 import { Navbar } from "@/components/Navbar";
 import { HeroSection } from "@/components/HeroSection";
 import { FeaturesSection } from "@/components/FeaturesSection";
+import { HousingQualificationSection } from "@/components/HousingQualificationSection";
 import { SecuritySection } from "@/components/SecuritySection";
 import { TestimonialsSection } from "@/components/TestimonialsSection";
 import PricingSection from "@/components/PricingSection";
@@ -52,6 +53,7 @@ export default function Index() {
           <main>
             <HeroSection />
             <FeaturesSection />
+            <HousingQualificationSection />
             <SecuritySection />
             <TestimonialsSection />
             <PricingSection />

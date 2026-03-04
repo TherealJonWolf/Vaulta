@@ -47,20 +47,30 @@ export const HeroSection = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
-            Empowering immigrants and global citizens with sovereign control over their digital identity
+            Empowering Global Citizens with Reusable Trust Profiles
+          </motion.p>
+
+          <motion.p
+            className="text-lg text-muted-foreground font-rajdhani mb-4 max-w-2xl mx-auto"
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.35 }}
+          >
+            Vaulta helps individuals document and demonstrate consistent identity, income, and housing history — building trust that travels across borders.
           </motion.p>
 
           <motion.p
             className="text-lg text-primary font-display tracking-widest mb-8"
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.35 }}
+            transition={{ duration: 0.6, delay: 0.38 }}
           >
             Vaulta. Your world, secured.
           </motion.p>
 
-          {/* CTA Button */}
+          {/* CTA Buttons */}
           <motion.div
+            className="flex flex-wrap justify-center gap-4"
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.4 }}
@@ -70,8 +80,16 @@ export const HeroSection = () => {
               className="btn-gradient font-rajdhani font-bold tracking-widest text-lg px-12 py-6 text-primary-foreground"
               onClick={() => navigate("/auth?mode=signup")}
             >
-              INITIALIZE YOUR VAULT
+              SECURE YOUR VAULT & BUILD YOUR TRUST PROFILE
               <ArrowRight className="ml-2" size={20} />
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="font-rajdhani font-bold tracking-widest text-lg px-12 py-6 border-primary/40 text-primary hover:bg-primary/10"
+              onClick={() => navigate("/auth?mode=signup")}
+            >
+              START YOUR TRUST PROFILE
             </Button>
           </motion.div>
 
@@ -83,11 +101,10 @@ export const HeroSection = () => {
             transition={{ duration: 0.6, delay: 0.5 }}
           >
             {[
-              "SOC 2 COMPLIANT",
-              "NIST-800-53 VERIFIED",
-              "GDPR COMPLIANT",
-              "ISO 27001 ALIGNED",
-              "256-BIT AES ENCRYPTION",
+              "END-TO-END ENCRYPTION",
+              "ZERO-KNOWLEDGE ARCHITECTURE",
+              "USER-CONTROLLED DATA ACCESS",
+              "GDPR, NIST 800-53 & GLOBAL PRIVACY ALIGNED",
             ].map((badge) => (
               <div
                 key={badge}
