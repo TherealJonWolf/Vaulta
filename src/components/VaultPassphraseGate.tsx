@@ -144,8 +144,8 @@ const VaultPassphraseGate = ({ hasPassphrase, onCreatePassphrase, onUnlock, load
 
             <Button
               onClick={hasPassphrase ? handleUnlock : handleCreate}
-              disabled={submitting || !passphrase}
-              className="w-full"
+              disabled={submitting || !passphrase || (!hasPassphrase && !confirmPassphrase)}
+              className="w-full btn-gradient font-rajdhani font-bold tracking-wider text-primary-foreground hover:opacity-90 transition-opacity"
             >
               {submitting ? "Processing..." : hasPassphrase ? "Unlock Vault" : "Set Passphrase & Enter Vault"}
             </Button>

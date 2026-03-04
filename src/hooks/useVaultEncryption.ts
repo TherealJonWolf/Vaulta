@@ -32,7 +32,9 @@ export const useVaultEncryption = (userId: string | undefined) => {
     const verificationString = "VAULTA_E2E_VERIFY";
     const encoder = new TextEncoder();
     const verificationData = encoder.encode(verificationString);
-    const { ciphertext, iv } = await encryptData(verificationData.buffer, key);
+    // Use slice() to get a clean ArrayBuffer (avoid shared buffer issues)
+    const verificationBuffer = verificationData.buffer.slice(verificationData.byteOffset, verificationData.byteOffset + verificationData.byteLength);
+    const { ciphertext, iv } = await encryptData(verificationBuffer, key);
 
     // Store salt, IV + ciphertext as verification hash
     const ivHex = Array.from(iv).map(b => b.toString(16).padStart(2, "0")).join("");
