@@ -15,6 +15,7 @@ import Support from "./pages/Support";
 import Roadmap from "./pages/Roadmap";
 import Brand from "./pages/Brand";
 import Install from "./pages/Install";
+import WhatVaultaIs from "./pages/WhatVaultaIs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/roadmap" element={<Roadmap />} />
             <Route path="/brand" element={<Brand />} />
             <Route path="/install" element={<Install />} />
+            <Route path="/what-vaulta-is" element={<WhatVaultaIs />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

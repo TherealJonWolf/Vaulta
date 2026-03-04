@@ -11,9 +11,7 @@ export const Footer = () => {
           <div className="md:col-span-2">
             <VaultaLogo size="md" />
             <p className="mt-4 text-muted-foreground font-rajdhani max-w-md">
-              Vaulta provides end-to-end encrypted security for your most sensitive documents. 
-              Take sovereign control of your digital identity with end-to-end encryption 
-              and NIST-800-53 compliant infrastructure.
+              Vaulta helps individuals document and demonstrate consistent identity, income, and housing history — building trust that travels across borders with end-to-end encryption and zero-knowledge architecture.
             </p>
             <p className="mt-4 text-sm text-muted-foreground font-mono">
               © 2026 Jonathan McEwen. All rights reserved.
@@ -58,6 +56,14 @@ export const Footer = () => {
                   Compliance
                 </Link>
               </li>
+              <li>
+                <Link
+                  to="/what-vaulta-is"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors font-rajdhani"
+                >
+                  What Vaulta Is / Is Not
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -85,7 +91,7 @@ export const Footer = () => {
               </li>
               <li>
                 <a
-                  href="mailto:help@tryvaulta.com"
+                  href="mailto:hello@tryvaulta.com"
                   className="text-sm text-muted-foreground hover:text-primary transition-colors font-rajdhani"
                 >
                   Support
@@ -111,10 +117,10 @@ export const Footer = () => {
           viewport={{ once: true }}
         >
           {[
-            { label: "ENCRYPTED", status: "256-BIT" },
+            { label: "ENCRYPTED", status: "E2E" },
             { label: "UPTIME", status: "99.99%" },
-            { label: "COMPLIANCE", status: "NIST-800-53" },
-            { label: "SUPPORT", status: "24/7" },
+            { label: "COMPLIANCE", status: "NIST 800-53" },
+            { label: "CONTACT", status: "hello@tryvaulta.com" },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-2 text-xs">
               <div className="w-2 h-2 rounded-full bg-secure-green animate-pulse" />

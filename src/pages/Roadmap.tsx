@@ -190,10 +190,10 @@ export default function Roadmap() {
                   Share your requirements with us.
                 </p>
                 <a
-                  href="mailto:help@tryvaulta.com?subject=Feature Request"
+                  href="mailto:hello@tryvaulta.com?subject=Feature Request"
                   className="inline-flex items-center gap-2 font-mono text-primary hover:underline"
                 >
-                  help@tryvaulta.com
+                  hello@tryvaulta.com
                 </a>
               </div>
             </section>
