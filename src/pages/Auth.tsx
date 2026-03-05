@@ -18,6 +18,9 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showMFAVerification, setShowMFAVerification] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, mfaRequired, currentLevel, signIn, signUp, checkMFAStatus } = useAuth();
@@ -103,8 +106,58 @@ const Auth = () => {
     await signOut();
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) return;
+    setForgotLoading(true);
+    const { error } = await (await import("@/integrations/supabase/client")).supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      toast({ variant: "destructive", title: "Error", description: error.message });
+    } else {
+      toast({ title: "Reset Link Sent", description: "Check your email for the password reset link." });
+      setShowForgotPassword(false);
+    }
+    setForgotLoading(false);
+  };
+
   if (showMFAVerification) {
     return <MFAVerification onVerified={handleMFAVerified} onCancel={handleMFACancel} />;
+  }
+
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen bg-background grid-bg flex flex-col">
+        <div className="p-6">
+          <button onClick={() => setShowForgotPassword(false)} className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors font-mono text-sm">
+            <ArrowLeft size={16} />
+            Back to login
+          </button>
+        </div>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <motion.div className="w-full max-w-md cyber-border rounded-2xl p-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="flex justify-center mb-8">
+              <div className="p-4 rounded-xl border border-primary/30 bg-primary/10">
+                <Shield size={40} className="text-primary" />
+              </div>
+            </div>
+            <h1 className="font-display text-3xl font-bold text-center gradient-text mb-2">RESET ACCESS</h1>
+            <p className="text-center text-muted-foreground font-mono text-sm mb-8">// ENTER YOUR EMAIL TO RECEIVE A RESET LINK //</p>
+            <form onSubmit={handleForgotPassword} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="forgot-email" className="font-rajdhani">Email Address</Label>
+                <Input id="forgot-email" type="email" placeholder="your@email.com" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} className="bg-card/50 border-border focus:border-primary" required />
+              </div>
+              <Button type="submit" className="w-full btn-gradient font-rajdhani font-bold tracking-wider text-primary-foreground" disabled={forgotLoading}>
+                <Lock size={18} className="mr-2" />
+                {forgotLoading ? "SENDING..." : "SEND RESET LINK"}
+              </Button>
+            </form>
+          </motion.div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -153,7 +206,15 @@ const Auth = () => {
             </Button>
           </form>
 
-          <p className="text-center mt-6 text-muted-foreground font-rajdhani">
+          {mode === "login" && (
+            <p className="text-center mt-4">
+              <button onClick={() => setShowForgotPassword(true)} className="text-muted-foreground hover:text-primary font-rajdhani text-sm transition-colors">
+                Forgot your password?
+              </button>
+            </p>
+          )}
+
+          <p className="text-center mt-4 text-muted-foreground font-rajdhani">
             {mode === "login" ? "No vault yet?" : "Already have a vault?"}{" "}
             <button onClick={() => setMode(mode === "login" ? "signup" : "login")} className="text-primary hover:text-primary/80 font-semibold">
               {mode === "login" ? "Initialize Sovereign Identity" : "Access Vault"}
