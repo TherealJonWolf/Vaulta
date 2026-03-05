@@ -10,7 +10,7 @@ interface AuthContextType {
   mfaRequired: boolean;
   currentLevel: AuthenticatorAssuranceLevels | null;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null; mfaRequired?: boolean }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null; mfaRequired?: boolean; accountLocked?: boolean }>;
   signOut: () => Promise<void>;
   checkMFAStatus: () => Promise<boolean>;
 }
@@ -94,12 +94,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string) => {
+    // NIST 800-53 AC-7: Check if account is locked before attempting login
+    const { data: lockedData } = await supabase.rpc('check_account_locked', { p_email: email });
+    if (lockedData === true) {
+      return {
+        error: new Error('Your account has been locked due to too many failed login attempts. Please reset your password to regain access.') as Error,
+        mfaRequired: false,
+        accountLocked: true,
+      };
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     
     if (!error && data.user) {
+      // Reset failed login counter on success
+      await supabase.rpc('reset_failed_login', { p_user_id: data.user.id });
+
       // Log successful login
       await logLoginAttempt(data.user.id, true, false);
       await logSecurityEvent(data.user.id, 'login_success', 'Successful login');
@@ -110,10 +123,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       const needsMFA = await checkMFAStatus();
-      return { error: null, mfaRequired: needsMFA };
+      return { error: null, mfaRequired: needsMFA, accountLocked: false };
+    }
+
+    // Increment failed login attempts
+    if (error) {
+      const { data: failData } = await supabase.rpc('increment_failed_login', { p_email: email });
+      const result = failData as { attempts: number; locked: boolean } | null;
+      if (result?.locked) {
+        return {
+          error: new Error('Your account has been locked after 6 failed login attempts. Please reset your password to regain access.') as Error,
+          mfaRequired: false,
+          accountLocked: true,
+        };
+      }
+      const remaining = 6 - (result?.attempts ?? 0);
+      if (remaining > 0 && remaining <= 3) {
+        return {
+          error: new Error(`Invalid login credentials. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining before account lockout.`) as Error,
+          mfaRequired: false,
+          accountLocked: false,
+        };
+      }
     }
     
-    return { error: error as Error | null, mfaRequired: false };
+    return { error: error as Error | null, mfaRequired: false, accountLocked: false };
   };
 
   const signOut = async () => {

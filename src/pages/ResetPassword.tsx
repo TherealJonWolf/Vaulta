@@ -67,6 +67,11 @@ const ResetPassword = () => {
     if (error) {
       toast({ variant: "destructive", title: "Error", description: error.message });
     } else {
+      // Unlock account on successful password reset (NIST 800-53 AC-7)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await supabase.rpc('reset_failed_login', { p_user_id: session.user.id });
+      }
       toast({ title: "Password Updated", description: "Your vault access credentials have been reset." });
       navigate("/vault");
     }
