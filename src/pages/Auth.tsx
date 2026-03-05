@@ -40,9 +40,16 @@ const Auth = () => {
     
     try {
       if (mode === "login") {
-        const { error, mfaRequired } = await signIn(email, password);
+        const { error, mfaRequired, accountLocked } = await signIn(email, password);
         
-        if (error) {
+        if (accountLocked) {
+          setShowForgotPassword(true);
+          toast({
+            variant: "destructive",
+            title: "Account Locked",
+            description: "Too many failed attempts. Please reset your password.",
+          });
+        } else if (error) {
           toast({
             variant: "destructive",
             title: "Access Denied",

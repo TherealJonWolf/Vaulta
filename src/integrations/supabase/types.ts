@@ -406,8 +406,10 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_locked_at: string | null
           created_at: string
           email: string
+          failed_login_attempts: number
           full_name: string | null
           id: string
           mfa_enabled: boolean | null
@@ -415,8 +417,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_locked_at?: string | null
           created_at?: string
           email: string
+          failed_login_attempts?: number
           full_name?: string | null
           id?: string
           mfa_enabled?: boolean | null
@@ -424,8 +428,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_locked_at?: string | null
           created_at?: string
           email?: string
+          failed_login_attempts?: number
           full_name?: string | null
           id?: string
           mfa_enabled?: boolean | null
@@ -676,6 +682,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_account_locked: { Args: { p_email: string }; Returns: boolean }
       check_document_hash: {
         Args: { p_hash: string }
         Returns: {
@@ -695,7 +702,9 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_failed_login: { Args: { p_email: string }; Returns: Json }
       is_email_blacklisted: { Args: { check_email: string }; Returns: boolean }
+      reset_failed_login: { Args: { p_user_id: string }; Returns: undefined }
       verify_recovery_code: {
         Args: { p_code_hash: string; p_user_id: string }
         Returns: boolean
