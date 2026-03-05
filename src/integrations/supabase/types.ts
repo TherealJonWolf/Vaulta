@@ -587,6 +587,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       vault_passphrases: {
         Row: {
           created_at: string
@@ -670,6 +688,13 @@ export type Database = {
         Args: { p_hash: string; p_reason: string }
         Returns: undefined
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_email_blacklisted: { Args: { check_email: string }; Returns: boolean }
       verify_recovery_code: {
         Args: { p_code_hash: string; p_user_id: string }
@@ -677,6 +702,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "user"
       trust_level:
         | "restricted"
         | "low_trust"
@@ -810,6 +836,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "user"],
       trust_level: [
         "restricted",
         "low_trust",
