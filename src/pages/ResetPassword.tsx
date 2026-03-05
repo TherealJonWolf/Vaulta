@@ -14,20 +14,36 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isRecovery, setIsRecovery] = useState(false);
+  const [checking, setChecking] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check for recovery token in URL hash
+    // Check URL hash for recovery token
     const hash = window.location.hash;
-    if (hash.includes("type=recovery")) {
+    const params = new URLSearchParams(hash.replace("#", ""));
+    if (params.get("type") === "recovery" || hash.includes("type=recovery")) {
       setIsRecovery(true);
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    // Listen for PASSWORD_RECOVERY event from Supabase
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY") {
         setIsRecovery(true);
+        setChecking(false);
+      } else if (event === "SIGNED_IN" && session) {
+        // User arrived via recovery link and was auto-signed in
+        setIsRecovery(true);
+        setChecking(false);
       }
+    });
+
+    // Also check if there's already an active session (user may have already been signed in by the recovery link)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setIsRecovery(true);
+      }
+      setChecking(false);
     });
 
     return () => subscription.unsubscribe();
@@ -57,13 +73,25 @@ const ResetPassword = () => {
     setLoading(false);
   };
 
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-background grid-bg flex flex-col items-center justify-center p-6">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
+          <KeyRound size={48} className="text-primary mx-auto mb-4 animate-pulse" />
+          <h1 className="font-display text-2xl font-bold gradient-text mb-2">VERIFYING RECOVERY TOKEN</h1>
+          <p className="text-muted-foreground font-mono text-sm">Please wait...</p>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (!isRecovery) {
     return (
       <div className="min-h-screen bg-background grid-bg flex flex-col items-center justify-center p-6">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
           <KeyRound size={48} className="text-primary mx-auto mb-4" />
-          <h1 className="font-display text-2xl font-bold gradient-text mb-2">VERIFYING RECOVERY TOKEN</h1>
-          <p className="text-muted-foreground font-mono text-sm mb-6">Check your email for the reset link.</p>
+          <h1 className="font-display text-2xl font-bold gradient-text mb-2">NO RECOVERY TOKEN FOUND</h1>
+          <p className="text-muted-foreground font-mono text-sm mb-6">Please request a new password reset link from the login page.</p>
           <Link to="/auth" className="text-primary hover:text-primary/80 font-rajdhani font-semibold">
             ← Return to login
           </Link>
