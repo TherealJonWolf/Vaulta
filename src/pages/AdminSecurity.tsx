@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Shield, ArrowLeft, Users, Activity, AlertTriangle, TrendingDown, Eye, RefreshCw } from "lucide-react";
+import { Shield, ArrowLeft, Users, Activity, AlertTriangle, TrendingDown, Eye, RefreshCw, Lock, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -53,6 +53,8 @@ interface ProfileInfo {
   user_id: string;
   email: string;
   full_name: string | null;
+  failed_login_attempts: number;
+  account_locked_at: string | null;
 }
 
 const AdminSecurity = () => {
@@ -84,7 +86,7 @@ const AdminSecurity = () => {
       (supabase.from("cross_account_signals") as any).select("*").order("last_seen_at", { ascending: false }).limit(50),
       (supabase.from("trust_history") as any).select("*").order("created_at", { ascending: false }).limit(100),
       (supabase.from("evaluation_metadata") as any).select("*").order("boundary_hugging_score", { ascending: false }),
-      (supabase.from("profiles") as any).select("user_id, email, full_name"),
+      (supabase.from("profiles") as any).select("user_id, email, full_name, failed_login_attempts, account_locked_at"),
     ]);
 
     if (signalsRes.data) setCrossSignals(signalsRes.data);
@@ -108,10 +110,25 @@ const AdminSecurity = () => {
   };
 
   // Stats
+  const lockedAccounts = profiles.filter((p) => p.account_locked_at !== null);
   const highSeverityClusters = crossSignals.filter((s) => s.severity === "high").length;
   const boundaryHuggers = evalMeta.filter((e) => e.boundary_hugging_score > 50).length;
   const recentViolations = trustHistory.filter((h) => (h.rules_violated?.length ?? 0) > 0).length;
   const uniqueUsersTracked = new Set(evalMeta.map((e) => e.user_id)).size;
+
+  const handleUnlock = async (targetUserId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("admin-unlock-account", {
+        body: { target_user_id: targetUserId },
+      });
+      if (res.error) throw res.error;
+      toast({ title: "Account unlocked", description: "User can now log in again." });
+      fetchAll();
+    } catch (err: any) {
+      toast({ title: "Unlock failed", description: err.message, variant: "destructive" });
+    }
+  };
 
   if (authLoading || roleLoading) {
     return (
@@ -155,6 +172,7 @@ const AdminSecurity = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           {[
             { icon: Users, label: "USERS TRACKED", value: uniqueUsersTracked, color: "text-primary" },
+            { icon: Lock, label: "LOCKED ACCOUNTS", value: lockedAccounts.length, color: "text-destructive" },
             { icon: AlertTriangle, label: "HIGH-SEV CLUSTERS", value: highSeverityClusters, color: "text-destructive" },
             { icon: Eye, label: "BOUNDARY HUGGERS", value: boundaryHuggers, color: "text-[hsl(var(--warning-amber))]" },
             { icon: TrendingDown, label: "RULE VIOLATIONS", value: recentViolations, color: "text-[hsl(var(--neon-magenta))]" },
@@ -171,12 +189,69 @@ const AdminSecurity = () => {
           ))}
         </div>
 
-        <Tabs defaultValue="clusters" className="space-y-6">
+        <Tabs defaultValue="locked" className="space-y-6">
           <TabsList className="bg-card border border-border">
+            <TabsTrigger value="locked" className="font-mono text-xs">LOCKED ACCOUNTS</TabsTrigger>
             <TabsTrigger value="clusters" className="font-mono text-xs">CROSS-ACCOUNT CLUSTERS</TabsTrigger>
             <TabsTrigger value="boundary" className="font-mono text-xs">BOUNDARY HUGGING</TabsTrigger>
             <TabsTrigger value="timeline" className="font-mono text-xs">TRUST TIMELINE</TabsTrigger>
           </TabsList>
+
+          {/* Locked Accounts */}
+          <TabsContent value="locked">
+            <Card className="cyber-border">
+              <CardHeader>
+                <CardTitle className="font-display text-lg gradient-text flex items-center gap-2">
+                  <Lock size={18} />
+                  LOCKED ACCOUNTS (NIST 800-53 AC-7)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {lockedAccounts.length === 0 ? (
+                  <p className="text-muted-foreground font-mono text-sm text-center py-8">NO LOCKED ACCOUNTS</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="font-mono text-xs">EMAIL</TableHead>
+                        <TableHead className="font-mono text-xs">NAME</TableHead>
+                        <TableHead className="font-mono text-xs">FAILED ATTEMPTS</TableHead>
+                        <TableHead className="font-mono text-xs">LOCKED AT</TableHead>
+                        <TableHead className="font-mono text-xs">ACTION</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {lockedAccounts.map((profile) => (
+                        <TableRow key={profile.user_id}>
+                          <TableCell className="font-mono text-xs">{profile.email}</TableCell>
+                          <TableCell className="font-mono text-xs text-muted-foreground">{profile.full_name ?? "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant="destructive" className="font-mono text-[10px]">
+                              {profile.failed_login_attempts} ATTEMPTS
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-mono text-xs text-muted-foreground">
+                            {profile.account_locked_at ? new Date(profile.account_locked_at).toLocaleString() : "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="font-mono text-xs gap-1"
+                              onClick={() => handleUnlock(profile.user_id)}
+                            >
+                              <Unlock size={12} />
+                              UNLOCK
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Cross-Account Clusters */}
           <TabsContent value="clusters">
