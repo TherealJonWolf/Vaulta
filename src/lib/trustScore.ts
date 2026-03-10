@@ -500,8 +500,14 @@ function generateRecommendations(metrics: UserMetrics, score: number): string[] 
     recommendations.push("Continue using the platform to build trust history");
   }
 
-  if (metrics.documentCount < 3) {
-    recommendations.push("Upload important documents to demonstrate platform engagement");
+  if (metrics.documentCategories.filter(d => d.document_category === 'identity').length === 0) {
+    recommendations.push("Upload a government-issued ID (passport, driver's license) for maximum trust impact");
+  }
+
+  if (metrics.documentCategories.filter(d => d.document_category === 'financial').length === 0) {
+    recommendations.push("Upload financial documents (bank statements, pay stubs) to strengthen your profile");
+  } else if (metrics.documentCategories.filter(d => d.document_category === 'financial').length < 2) {
+    recommendations.push("Upload additional financial documents for stronger verification");
   }
 
   if (metrics.failedLoginCount > 3) {
