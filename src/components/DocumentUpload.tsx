@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscription } from "@/hooks/useSubscription";
 import DOMPurify from "dompurify";
+import { classifyDocument } from "@/lib/documentClassifier";
 
 interface DocumentUploadProps {
   isOpen: boolean;
