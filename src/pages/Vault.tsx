@@ -143,6 +143,11 @@ const Vault = () => {
           <div className="flex items-center gap-4">
             <SubscriptionBadge />
             <div className="flex items-center gap-2">
+              {isAdmin && (
+                <Button variant="ghost" onClick={() => navigate("/admin/security")} className="text-destructive" title="Admin Dashboard">
+                  <ShieldAlert size={18} />
+                </Button>
+              )}
               <Button variant="ghost" onClick={() => setTrustScoreOpen(true)} className="text-muted-foreground" title="Trust Score">
                 <TrendingUp size={18} />
               </Button>
