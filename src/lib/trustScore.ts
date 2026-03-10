@@ -567,6 +567,7 @@ export async function calculateTrustScore(userId: string): Promise<TrustScoreRes
   // Calculate individual dimension scores
   const identity = calculateIdentityScore(metrics);
   const security = calculateSecurityScore(metrics);
+  const documents = calculateDocumentScore(metrics);
   const behavioral = calculateBehavioralScore(metrics);
   const reputation = calculateReputationScore(metrics);
   const risk = calculateRiskScore(metrics);
@@ -575,6 +576,7 @@ export async function calculateTrustScore(userId: string): Promise<TrustScoreRes
   const positiveFactors = [
     ...identity.factors.positive,
     ...security.factors.positive,
+    ...documents.factors.positive,
     ...behavioral.factors.positive,
     ...reputation.factors.positive,
     ...risk.factors.positive,
@@ -583,6 +585,7 @@ export async function calculateTrustScore(userId: string): Promise<TrustScoreRes
   const negativeFactors = [
     ...identity.factors.negative,
     ...security.factors.negative,
+    ...documents.factors.negative,
     ...behavioral.factors.negative,
     ...reputation.factors.negative,
     ...risk.factors.negative,
@@ -592,6 +595,7 @@ export async function calculateTrustScore(userId: string): Promise<TrustScoreRes
   let rawScore = Math.round(
     identity.score * WEIGHTS.IDENTITY_INTEGRITY +
     security.score * WEIGHTS.SECURITY_POSTURE +
+    documents.score * WEIGHTS.DOCUMENT_VERIFICATION +
     behavioral.score * WEIGHTS.BEHAVIORAL_CONSISTENCY +
     reputation.score * WEIGHTS.PLATFORM_REPUTATION +
     risk.score * WEIGHTS.RISK_EVENTS
