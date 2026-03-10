@@ -26,6 +26,7 @@ const Vault = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, loading, mfaRequired, signOut } = useAuth();
+  const { isAdmin } = useAdminRole();
   const { checkSubscription, fetchDocumentCount, isPremium } = useSubscription();
   const { toast } = useToast();
   const [oracleOpen, setOracleOpen] = useState(false);
