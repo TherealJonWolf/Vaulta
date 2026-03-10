@@ -185,7 +185,7 @@ These limitations do not apply where prohibited by law or in cases of gross negl
 - Penetration testing performed quarterly
 - Compliance certificates available upon request
 
-For compliance inquiries: compliance@vaulta.io`
+For compliance inquiries: hello@tryvaulta.com`
     }
   ];
 
