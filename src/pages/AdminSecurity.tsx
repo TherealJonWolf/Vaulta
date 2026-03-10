@@ -53,6 +53,8 @@ interface ProfileInfo {
   user_id: string;
   email: string;
   full_name: string | null;
+  failed_login_attempts: number;
+  account_locked_at: string | null;
 }
 
 const AdminSecurity = () => {
