@@ -309,7 +309,7 @@ function calculateBehavioralScore(metrics: UserMetrics): { score: number; factor
       (new Date().getTime() - metrics.lastActiveDate.getTime()) / (1000 * 60 * 60 * 24)
     );
     if (daysSinceActive <= 7) {
-      score += 15;
+      score += 10;
       positive.push("Recently active on platform");
     } else if (daysSinceActive > 90) {
       score -= 10;
@@ -317,14 +317,17 @@ function calculateBehavioralScore(metrics: UserMetrics): { score: number; factor
     }
   }
 
-  // Document engagement
-  if (metrics.documentCount >= 10) {
-    score += 15;
-    positive.push("Active document management");
-  } else if (metrics.documentCount >= 3) {
-    score += 8;
-    positive.push("Using document storage");
-  }
+  // ── Document Category-Weighted Trust ──
+  const docBreakdown = calculateDocumentTrustContribution(metrics.documentCategories);
+
+  // Apply weighted document score (scaled to fit within behavioral dimension)
+  // Max contribution: ~20 points from documents
+  const docContribution = Math.round((docBreakdown.totalWeightedScore / docBreakdown.maxPossibleScore) * 20);
+  score += docContribution;
+
+  // Merge document factors
+  positive.push(...docBreakdown.factors.positive);
+  negative.push(...docBreakdown.factors.negative);
 
   return { score: Math.max(0, Math.min(100, score)), factors: { positive, negative } };
 }
