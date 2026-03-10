@@ -167,6 +167,7 @@ async function fetchUserMetrics(userId: string): Promise<UserMetrics> {
     uniqueDevices,
     uniqueLocations,
     documentCount: documentCount || 0,
+    documentCategories,
     securityEventsCount: securityEvents?.length || 0,
     suspiciousEvents,
     lastActiveDate: lastSession ? new Date(lastSession.last_active_at) : null,
