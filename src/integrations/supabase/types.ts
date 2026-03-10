@@ -260,6 +260,7 @@ export type Database = {
       documents: {
         Row: {
           created_at: string
+          document_category: Database["public"]["Enums"]["document_category"]
           encrypted_iv: string | null
           encryption_key_hash: string | null
           file_name: string
@@ -274,6 +275,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          document_category?: Database["public"]["Enums"]["document_category"]
           encrypted_iv?: string | null
           encryption_key_hash?: string | null
           file_name: string
@@ -288,6 +290,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          document_category?: Database["public"]["Enums"]["document_category"]
           encrypted_iv?: string | null
           encryption_key_hash?: string | null
           file_name?: string
@@ -712,6 +715,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      document_category: "identity" | "financial" | "general"
       trust_level:
         | "restricted"
         | "low_trust"
@@ -846,6 +850,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      document_category: ["identity", "financial", "general"],
       trust_level: [
         "restricted",
         "low_trust",

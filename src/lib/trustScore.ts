@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { calculateDocumentTrustContribution, type DocumentCategory } from "@/lib/documentClassifier";
 
 export interface TrustScoreResult {
   trustScore: number;
@@ -19,6 +20,7 @@ interface UserMetrics {
   uniqueDevices: number;
   uniqueLocations: number;
   documentCount: number;
+  documentCategories: Array<{ document_category: DocumentCategory }>;
   securityEventsCount: number;
   suspiciousEvents: number;
   lastActiveDate: Date | null;
@@ -79,11 +81,15 @@ async function fetchUserMetrics(userId: string): Promise<UserMetrics> {
     .select("device_info, location, last_active_at")
     .eq("user_id", userId);
 
-  // Fetch documents count
-  const { count: documentCount } = await supabase
+  // Fetch documents with categories
+  const { data: documentsData, count: documentCount } = await supabase
     .from("documents")
-    .select("id", { count: "exact", head: true })
+    .select("document_category", { count: "exact" })
     .eq("user_id", userId);
+
+  const documentCategories = (documentsData || []).map((d: any) => ({
+    document_category: (d.document_category || 'general') as DocumentCategory,
+  }));
 
   // Fetch security events
   const { data: securityEvents } = await supabase
@@ -161,6 +167,7 @@ async function fetchUserMetrics(userId: string): Promise<UserMetrics> {
     uniqueDevices,
     uniqueLocations,
     documentCount: documentCount || 0,
+    documentCategories,
     securityEventsCount: securityEvents?.length || 0,
     suspiciousEvents,
     lastActiveDate: lastSession ? new Date(lastSession.last_active_at) : null,
@@ -302,7 +309,7 @@ function calculateBehavioralScore(metrics: UserMetrics): { score: number; factor
       (new Date().getTime() - metrics.lastActiveDate.getTime()) / (1000 * 60 * 60 * 24)
     );
     if (daysSinceActive <= 7) {
-      score += 15;
+      score += 10;
       positive.push("Recently active on platform");
     } else if (daysSinceActive > 90) {
       score -= 10;
@@ -310,14 +317,17 @@ function calculateBehavioralScore(metrics: UserMetrics): { score: number; factor
     }
   }
 
-  // Document engagement
-  if (metrics.documentCount >= 10) {
-    score += 15;
-    positive.push("Active document management");
-  } else if (metrics.documentCount >= 3) {
-    score += 8;
-    positive.push("Using document storage");
-  }
+  // ── Document Category-Weighted Trust ──
+  const docBreakdown = calculateDocumentTrustContribution(metrics.documentCategories);
+
+  // Apply weighted document score (scaled to fit within behavioral dimension)
+  // Max contribution: ~20 points from documents
+  const docContribution = Math.round((docBreakdown.totalWeightedScore / docBreakdown.maxPossibleScore) * 20);
+  score += docContribution;
+
+  // Merge document factors
+  positive.push(...docBreakdown.factors.positive);
+  negative.push(...docBreakdown.factors.negative);
 
   return { score: Math.max(0, Math.min(100, score)), factors: { positive, negative } };
 }
@@ -490,8 +500,14 @@ function generateRecommendations(metrics: UserMetrics, score: number): string[] 
     recommendations.push("Continue using the platform to build trust history");
   }
 
-  if (metrics.documentCount < 3) {
-    recommendations.push("Upload important documents to demonstrate platform engagement");
+  if (metrics.documentCategories.filter(d => d.document_category === 'identity').length === 0) {
+    recommendations.push("Upload a government-issued ID (passport, driver's license) for maximum trust impact");
+  }
+
+  if (metrics.documentCategories.filter(d => d.document_category === 'financial').length === 0) {
+    recommendations.push("Upload financial documents (bank statements, pay stubs) to strengthen your profile");
+  } else if (metrics.documentCategories.filter(d => d.document_category === 'financial').length < 2) {
+    recommendations.push("Upload additional financial documents for stronger verification");
   }
 
   if (metrics.failedLoginCount > 3) {
