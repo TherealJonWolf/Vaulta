@@ -514,13 +514,24 @@ function generateRecommendations(metrics: UserMetrics, score: number): string[] 
     recommendations.push("Continue using the platform to build trust history");
   }
 
-  if (metrics.documentCategories.filter(d => d.document_category === 'identity').length === 0) {
-    recommendations.push("Upload a government-issued ID (passport, driver's license) for maximum trust impact");
+  const idDocs = metrics.documentCategories.filter(d => d.document_category === 'identity').length;
+  const finDocs = metrics.documentCategories.filter(d => d.document_category === 'financial').length;
+  const genDocs = metrics.documentCategories.filter(d => d.document_category === 'general').length;
+  const categoriesPresent = [idDocs, finDocs, genDocs].filter(c => c > 0).length;
+
+  if (categoriesPresent < 3) {
+    recommendations.push("Upload documents across all categories (identity, financial, general) for the diversity bonus");
   }
 
-  if (metrics.documentCategories.filter(d => d.document_category === 'financial').length === 0) {
+  if (idDocs === 0) {
+    recommendations.push("Upload a government-issued ID (passport, driver's license) for maximum trust impact");
+  } else if (idDocs === 1) {
+    recommendations.push("Upload a second form of ID to strengthen identity verification");
+  }
+
+  if (finDocs === 0) {
     recommendations.push("Upload financial documents (bank statements, pay stubs) to strengthen your profile");
-  } else if (metrics.documentCategories.filter(d => d.document_category === 'financial').length < 2) {
+  } else if (finDocs < 2) {
     recommendations.push("Upload additional financial documents for stronger verification");
   }
 
