@@ -41,12 +41,14 @@ interface UserMetrics {
 }
 
 // Weight constants for scoring dimensions
+// Documents are their own dimension — no single category can carry the score
 const WEIGHTS = {
-  IDENTITY_INTEGRITY: 0.25,
-  SECURITY_POSTURE: 0.30,
-  BEHAVIORAL_CONSISTENCY: 0.20,
-  PLATFORM_REPUTATION: 0.15,
-  RISK_EVENTS: 0.10,
+  IDENTITY_INTEGRITY: 0.15,    // Email, account age, MFA, recovery codes
+  SECURITY_POSTURE: 0.20,      // MFA, login patterns, device consistency
+  DOCUMENT_VERIFICATION: 0.30, // Documents with diminishing returns + diversity
+  BEHAVIORAL_CONSISTENCY: 0.15,// Login frequency, recent activity
+  PLATFORM_REPUTATION: 0.10,   // Longevity, clean record
+  RISK_EVENTS: 0.10,           // Deductions for incidents
 };
 
 // Score thresholds
