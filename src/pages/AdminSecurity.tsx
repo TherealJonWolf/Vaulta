@@ -172,6 +172,7 @@ const AdminSecurity = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           {[
             { icon: Users, label: "USERS TRACKED", value: uniqueUsersTracked, color: "text-primary" },
+            { icon: Lock, label: "LOCKED ACCOUNTS", value: lockedAccounts.length, color: "text-destructive" },
             { icon: AlertTriangle, label: "HIGH-SEV CLUSTERS", value: highSeverityClusters, color: "text-destructive" },
             { icon: Eye, label: "BOUNDARY HUGGERS", value: boundaryHuggers, color: "text-[hsl(var(--warning-amber))]" },
             { icon: TrendingDown, label: "RULE VIOLATIONS", value: recentViolations, color: "text-[hsl(var(--neon-magenta))]" },
