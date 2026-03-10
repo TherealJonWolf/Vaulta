@@ -478,6 +478,9 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
+      // Classify the document
+      const classification = classifyDocument(file.name, file.type);
+
       // E2E Encrypt the file client-side before upload
       const fileBuffer = await file.arrayBuffer();
       const { encrypted, iv } = await encryptFile(fileBuffer);
@@ -494,7 +497,7 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
         setProgress(i);
       }
 
-      const { error: dbError } = await supabase.from("documents").insert({
+      const { error: dbError } = await (supabase.from("documents") as any).insert({
         user_id: user.id,
         file_name: file.name,
         file_path: filePath,
@@ -502,6 +505,7 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
         mime_type: file.type,
         source: "upload",
         encrypted_iv: iv,
+        document_category: classification.category,
       });
 
       if (dbError) throw dbError;
