@@ -110,10 +110,25 @@ const AdminSecurity = () => {
   };
 
   // Stats
+  const lockedAccounts = profiles.filter((p) => p.account_locked_at !== null);
   const highSeverityClusters = crossSignals.filter((s) => s.severity === "high").length;
   const boundaryHuggers = evalMeta.filter((e) => e.boundary_hugging_score > 50).length;
   const recentViolations = trustHistory.filter((h) => (h.rules_violated?.length ?? 0) > 0).length;
   const uniqueUsersTracked = new Set(evalMeta.map((e) => e.user_id)).size;
+
+  const handleUnlock = async (targetUserId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("admin-unlock-account", {
+        body: { target_user_id: targetUserId },
+      });
+      if (res.error) throw res.error;
+      toast({ title: "Account unlocked", description: "User can now log in again." });
+      fetchAll();
+    } catch (err: any) {
+      toast({ title: "Unlock failed", description: err.message, variant: "destructive" });
+    }
+  };
 
   if (authLoading || roleLoading) {
     return (
