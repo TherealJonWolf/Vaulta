@@ -17,8 +17,8 @@ const supportChannels = [
     icon: Shield,
     title: "Security Incidents",
     description: "Report security vulnerabilities or incidents immediately",
-    action: "security@tryvaulta.com",
-    href: "mailto:security@tryvaulta.com",
+    action: "hello@tryvaulta.com",
+    href: "mailto:hello@tryvaulta.com",
     response: "Priority response within 4 hours"
   }
 ];
