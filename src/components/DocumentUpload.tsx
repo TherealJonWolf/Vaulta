@@ -512,9 +512,14 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
 
       setProgress(100);
       setUploadStatus("success");
+      const categoryLabels: Record<string, string> = {
+        identity: '🪪 Identity Document',
+        financial: '💰 Financial Document',
+        general: '📄 General Document',
+      };
       toast({
         title: "Document Secured",
-        description: `${file.name} has been verified, encrypted, and stored in your Sovereign Sector.`,
+        description: `${file.name} classified as ${categoryLabels[classification.category] || 'Document'} and stored in your Sovereign Sector.`,
       });
 
       fetchDocumentCount();
