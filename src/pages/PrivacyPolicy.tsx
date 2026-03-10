@@ -151,7 +151,7 @@ To delete your account, visit Settings > Security > Delete Account`
 | IR (Incident Response) | 24/7 monitoring, breach notification |
 | PM (Program Management) | Privacy program, risk assessments |
 
-For a complete compliance matrix, contact compliance@vaulta.io`
+For a complete compliance matrix, contact hello@tryvaulta.com`
     }
   ];
 
