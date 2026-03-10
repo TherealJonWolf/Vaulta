@@ -189,12 +189,69 @@ const AdminSecurity = () => {
           ))}
         </div>
 
-        <Tabs defaultValue="clusters" className="space-y-6">
+        <Tabs defaultValue="locked" className="space-y-6">
           <TabsList className="bg-card border border-border">
+            <TabsTrigger value="locked" className="font-mono text-xs">LOCKED ACCOUNTS</TabsTrigger>
             <TabsTrigger value="clusters" className="font-mono text-xs">CROSS-ACCOUNT CLUSTERS</TabsTrigger>
             <TabsTrigger value="boundary" className="font-mono text-xs">BOUNDARY HUGGING</TabsTrigger>
             <TabsTrigger value="timeline" className="font-mono text-xs">TRUST TIMELINE</TabsTrigger>
           </TabsList>
+
+          {/* Locked Accounts */}
+          <TabsContent value="locked">
+            <Card className="cyber-border">
+              <CardHeader>
+                <CardTitle className="font-display text-lg gradient-text flex items-center gap-2">
+                  <Lock size={18} />
+                  LOCKED ACCOUNTS (NIST 800-53 AC-7)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {lockedAccounts.length === 0 ? (
+                  <p className="text-muted-foreground font-mono text-sm text-center py-8">NO LOCKED ACCOUNTS</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="font-mono text-xs">EMAIL</TableHead>
+                        <TableHead className="font-mono text-xs">NAME</TableHead>
+                        <TableHead className="font-mono text-xs">FAILED ATTEMPTS</TableHead>
+                        <TableHead className="font-mono text-xs">LOCKED AT</TableHead>
+                        <TableHead className="font-mono text-xs">ACTION</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {lockedAccounts.map((profile) => (
+                        <TableRow key={profile.user_id}>
+                          <TableCell className="font-mono text-xs">{profile.email}</TableCell>
+                          <TableCell className="font-mono text-xs text-muted-foreground">{profile.full_name ?? "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant="destructive" className="font-mono text-[10px]">
+                              {profile.failed_login_attempts} ATTEMPTS
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-mono text-xs text-muted-foreground">
+                            {profile.account_locked_at ? new Date(profile.account_locked_at).toLocaleString() : "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="font-mono text-xs gap-1"
+                              onClick={() => handleUnlock(profile.user_id)}
+                            >
+                              <Unlock size={12} />
+                              UNLOCK
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Cross-Account Clusters */}
           <TabsContent value="clusters">
