@@ -41,12 +41,14 @@ interface UserMetrics {
 }
 
 // Weight constants for scoring dimensions
+// Documents are their own dimension — no single category can carry the score
 const WEIGHTS = {
-  IDENTITY_INTEGRITY: 0.25,
-  SECURITY_POSTURE: 0.30,
-  BEHAVIORAL_CONSISTENCY: 0.20,
-  PLATFORM_REPUTATION: 0.15,
-  RISK_EVENTS: 0.10,
+  IDENTITY_INTEGRITY: 0.15,    // Email, account age, MFA, recovery codes
+  SECURITY_POSTURE: 0.20,      // MFA, login patterns, device consistency
+  DOCUMENT_VERIFICATION: 0.30, // Documents with diminishing returns + diversity
+  BEHAVIORAL_CONSISTENCY: 0.15,// Login frequency, recent activity
+  PLATFORM_REPUTATION: 0.10,   // Longevity, clean record
+  RISK_EVENTS: 0.10,           // Deductions for incidents
 };
 
 // Score thresholds
@@ -286,6 +288,22 @@ function calculateSecurityScore(metrics: UserMetrics): { score: number; factors:
   return { score: Math.max(0, Math.min(100, score)), factors: { positive, negative } };
 }
 
+function calculateDocumentScore(metrics: UserMetrics): { score: number; factors: { positive: string[]; negative: string[] } } {
+  const docBreakdown = calculateDocumentTrustContribution(metrics.documentCategories);
+
+  // Scale the document weighted score to 0-100 for this dimension
+  // maxPossibleScore = 85, so a perfect document portfolio = 100
+  const score = Math.round((docBreakdown.totalWeightedScore / docBreakdown.maxPossibleScore) * 100);
+
+  return {
+    score: Math.max(0, Math.min(100, score)),
+    factors: {
+      positive: [...docBreakdown.factors.positive],
+      negative: [...docBreakdown.factors.negative],
+    },
+  };
+}
+
 function calculateBehavioralScore(metrics: UserMetrics): { score: number; factors: { positive: string[]; negative: string[] } } {
   let score = 50;
   const positive: string[] = [];
@@ -309,25 +327,21 @@ function calculateBehavioralScore(metrics: UserMetrics): { score: number; factor
       (new Date().getTime() - metrics.lastActiveDate.getTime()) / (1000 * 60 * 60 * 24)
     );
     if (daysSinceActive <= 7) {
-      score += 10;
+      score += 15;
       positive.push("Recently active on platform");
     } else if (daysSinceActive > 90) {
-      score -= 10;
+      score -= 15;
       negative.push("Inactive for extended period");
     }
   }
 
-  // ── Document Category-Weighted Trust ──
-  const docBreakdown = calculateDocumentTrustContribution(metrics.documentCategories);
-
-  // Apply weighted document score (scaled to fit within behavioral dimension)
-  // Max contribution: ~20 points from documents
-  const docContribution = Math.round((docBreakdown.totalWeightedScore / docBreakdown.maxPossibleScore) * 20);
-  score += docContribution;
-
-  // Merge document factors
-  positive.push(...docBreakdown.factors.positive);
-  negative.push(...docBreakdown.factors.negative);
+  // Document count as engagement signal (not trust weight — that's in documentScore)
+  if (metrics.documentCount >= 5) {
+    score += 15;
+    positive.push("Actively building document portfolio");
+  } else if (metrics.documentCount >= 2) {
+    score += 8;
+  }
 
   return { score: Math.max(0, Math.min(100, score)), factors: { positive, negative } };
 }
@@ -500,13 +514,24 @@ function generateRecommendations(metrics: UserMetrics, score: number): string[] 
     recommendations.push("Continue using the platform to build trust history");
   }
 
-  if (metrics.documentCategories.filter(d => d.document_category === 'identity').length === 0) {
-    recommendations.push("Upload a government-issued ID (passport, driver's license) for maximum trust impact");
+  const idDocs = metrics.documentCategories.filter(d => d.document_category === 'identity').length;
+  const finDocs = metrics.documentCategories.filter(d => d.document_category === 'financial').length;
+  const genDocs = metrics.documentCategories.filter(d => d.document_category === 'general').length;
+  const categoriesPresent = [idDocs, finDocs, genDocs].filter(c => c > 0).length;
+
+  if (categoriesPresent < 3) {
+    recommendations.push("Upload documents across all categories (identity, financial, general) for the diversity bonus");
   }
 
-  if (metrics.documentCategories.filter(d => d.document_category === 'financial').length === 0) {
+  if (idDocs === 0) {
+    recommendations.push("Upload a government-issued ID (passport, driver's license) for maximum trust impact");
+  } else if (idDocs === 1) {
+    recommendations.push("Upload a second form of ID to strengthen identity verification");
+  }
+
+  if (finDocs === 0) {
     recommendations.push("Upload financial documents (bank statements, pay stubs) to strengthen your profile");
-  } else if (metrics.documentCategories.filter(d => d.document_category === 'financial').length < 2) {
+  } else if (finDocs < 2) {
     recommendations.push("Upload additional financial documents for stronger verification");
   }
 
@@ -553,6 +578,7 @@ export async function calculateTrustScore(userId: string): Promise<TrustScoreRes
   // Calculate individual dimension scores
   const identity = calculateIdentityScore(metrics);
   const security = calculateSecurityScore(metrics);
+  const documents = calculateDocumentScore(metrics);
   const behavioral = calculateBehavioralScore(metrics);
   const reputation = calculateReputationScore(metrics);
   const risk = calculateRiskScore(metrics);
@@ -561,6 +587,7 @@ export async function calculateTrustScore(userId: string): Promise<TrustScoreRes
   const positiveFactors = [
     ...identity.factors.positive,
     ...security.factors.positive,
+    ...documents.factors.positive,
     ...behavioral.factors.positive,
     ...reputation.factors.positive,
     ...risk.factors.positive,
@@ -569,6 +596,7 @@ export async function calculateTrustScore(userId: string): Promise<TrustScoreRes
   const negativeFactors = [
     ...identity.factors.negative,
     ...security.factors.negative,
+    ...documents.factors.negative,
     ...behavioral.factors.negative,
     ...reputation.factors.negative,
     ...risk.factors.negative,
@@ -578,6 +606,7 @@ export async function calculateTrustScore(userId: string): Promise<TrustScoreRes
   let rawScore = Math.round(
     identity.score * WEIGHTS.IDENTITY_INTEGRITY +
     security.score * WEIGHTS.SECURITY_POSTURE +
+    documents.score * WEIGHTS.DOCUMENT_VERIFICATION +
     behavioral.score * WEIGHTS.BEHAVIORAL_CONSISTENCY +
     reputation.score * WEIGHTS.PLATFORM_REPUTATION +
     risk.score * WEIGHTS.RISK_EVENTS
