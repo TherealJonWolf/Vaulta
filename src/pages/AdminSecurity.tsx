@@ -86,7 +86,7 @@ const AdminSecurity = () => {
       (supabase.from("cross_account_signals") as any).select("*").order("last_seen_at", { ascending: false }).limit(50),
       (supabase.from("trust_history") as any).select("*").order("created_at", { ascending: false }).limit(100),
       (supabase.from("evaluation_metadata") as any).select("*").order("boundary_hugging_score", { ascending: false }),
-      (supabase.from("profiles") as any).select("user_id, email, full_name"),
+      (supabase.from("profiles") as any).select("user_id, email, full_name, failed_login_attempts, account_locked_at"),
     ]);
 
     if (signalsRes.data) setCrossSignals(signalsRes.data);
