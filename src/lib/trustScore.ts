@@ -81,11 +81,15 @@ async function fetchUserMetrics(userId: string): Promise<UserMetrics> {
     .select("device_info, location, last_active_at")
     .eq("user_id", userId);
 
-  // Fetch documents count
-  const { count: documentCount } = await supabase
+  // Fetch documents with categories
+  const { data: documentsData, count: documentCount } = await supabase
     .from("documents")
-    .select("id", { count: "exact", head: true })
+    .select("document_category", { count: "exact" })
     .eq("user_id", userId);
+
+  const documentCategories = (documentsData || []).map((d: any) => ({
+    document_category: (d.document_category || 'general') as DocumentCategory,
+  }));
 
   // Fetch security events
   const { data: securityEvents } = await supabase
