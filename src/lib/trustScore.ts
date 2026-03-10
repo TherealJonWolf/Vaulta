@@ -20,6 +20,7 @@ interface UserMetrics {
   uniqueDevices: number;
   uniqueLocations: number;
   documentCount: number;
+  documentCategories: Array<{ document_category: DocumentCategory }>;
   securityEventsCount: number;
   suspiciousEvents: number;
   lastActiveDate: Date | null;
