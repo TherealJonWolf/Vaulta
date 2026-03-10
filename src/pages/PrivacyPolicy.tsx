@@ -90,7 +90,7 @@ We do NOT:
 - Download your documents in original format
 - Export account data in machine-readable format
 
-To exercise these rights, contact us at privacy@vaulta.io`
+To exercise these rights, contact us at hello@tryvaulta.com`
     },
     {
       icon: Bell,
