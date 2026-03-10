@@ -232,8 +232,8 @@ For a complete compliance matrix, contact hello@tryvaulta.com`
             <h3 className="text-xl font-display font-bold mb-4">Questions About Privacy?</h3>
             <p className="text-muted-foreground font-rajdhani mb-4">
               Contact our Data Protection Officer at{" "}
-              <a href="mailto:privacy@vaulta.io" className="text-primary hover:underline">
-                privacy@vaulta.io
+              <a href="mailto:hello@tryvaulta.com" className="text-primary hover:underline">
+                hello@tryvaulta.com
               </a>
             </p>
             <p className="text-sm text-muted-foreground font-mono">

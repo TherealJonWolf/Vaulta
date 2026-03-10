@@ -125,7 +125,7 @@ export default function Support() {
                     asChild
                     className="btn-gradient font-rajdhani font-semibold tracking-wider"
                   >
-                    <a href="mailto:security@tryvaulta.com">Report Security Incident</a>
+                    <a href="mailto:hello@tryvaulta.com">Report Security Incident</a>
                   </Button>
                 </div>
               </div>

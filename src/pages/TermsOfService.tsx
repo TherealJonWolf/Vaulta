@@ -284,8 +284,8 @@ For compliance inquiries: hello@tryvaulta.com`
             <h3 className="text-xl font-display font-bold mb-4">Legal Questions?</h3>
             <p className="text-muted-foreground font-rajdhani mb-4">
               Contact our legal team at{" "}
-              <a href="mailto:legal@vaulta.io" className="text-primary hover:underline">
-                legal@vaulta.io
+              <a href="mailto:hello@tryvaulta.com" className="text-primary hover:underline">
+                hello@tryvaulta.com
               </a>
             </p>
             <p className="text-sm text-muted-foreground font-mono">
