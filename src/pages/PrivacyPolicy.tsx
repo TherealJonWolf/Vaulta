@@ -90,7 +90,7 @@ We do NOT:
 - Download your documents in original format
 - Export account data in machine-readable format
 
-To exercise these rights, contact us at privacy@vaulta.io`
+To exercise these rights, contact us at hello@tryvaulta.com`
     },
     {
       icon: Bell,
@@ -151,7 +151,7 @@ To delete your account, visit Settings > Security > Delete Account`
 | IR (Incident Response) | 24/7 monitoring, breach notification |
 | PM (Program Management) | Privacy program, risk assessments |
 
-For a complete compliance matrix, contact compliance@vaulta.io`
+For a complete compliance matrix, contact hello@tryvaulta.com`
     }
   ];
 
@@ -232,8 +232,8 @@ For a complete compliance matrix, contact compliance@vaulta.io`
             <h3 className="text-xl font-display font-bold mb-4">Questions About Privacy?</h3>
             <p className="text-muted-foreground font-rajdhani mb-4">
               Contact our Data Protection Officer at{" "}
-              <a href="mailto:privacy@vaulta.io" className="text-primary hover:underline">
-                privacy@vaulta.io
+              <a href="mailto:hello@tryvaulta.com" className="text-primary hover:underline">
+                hello@tryvaulta.com
               </a>
             </p>
             <p className="text-sm text-muted-foreground font-mono">
