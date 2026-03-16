@@ -580,6 +580,27 @@ function generateExplanation(score: number, metrics: UserMetrics, positiveFactor
 export async function calculateTrustScore(userId: string): Promise<TrustScoreResult> {
   const metrics = await fetchUserMetrics(userId);
 
+  // CRITICAL: No verified documents = trust score is zero
+  if (!metrics.hasVerifiedDocuments) {
+    const negativeFactors = ["No verified documents — trust score locked at 0"];
+    const recommendations = [
+      "Upload and verify at least one document to unlock your trust score",
+      "Documents are verified through the 7-layer verification pipeline during upload",
+    ];
+    if (!metrics.mfaEnabled) {
+      recommendations.push("Enable multi-factor authentication for enhanced security");
+    }
+    return {
+      trustScore: 0,
+      trustLevel: "Restricted",
+      confidence: "Low",
+      positiveFactors: [],
+      negativeFactors,
+      explanation: "Trust score is 0/100 (Restricted). You must upload and pass document verification before your trust score can begin building. Upload a document through the Sovereign Sector to get started.",
+      recommendations,
+    };
+  }
+
   // Calculate individual dimension scores
   const identity = calculateIdentityScore(metrics);
   const security = calculateSecurityScore(metrics);
