@@ -25,6 +25,7 @@ interface UserMetrics {
   suspiciousEvents: number;
   lastActiveDate: Date | null;
   hasRecoveryCodes: boolean;
+  hasVerifiedDocuments: boolean;
   // Data consistency integration
   unresolvedFindings: Array<{
     severity: string;
@@ -83,15 +84,18 @@ async function fetchUserMetrics(userId: string): Promise<UserMetrics> {
     .select("device_info, location, last_active_at")
     .eq("user_id", userId);
 
-  // Fetch documents with categories
+  // Fetch documents with categories and verification status
   const { data: documentsData, count: documentCount } = await supabase
     .from("documents")
-    .select("document_category", { count: "exact" })
+    .select("document_category, is_verified", { count: "exact" })
     .eq("user_id", userId);
 
   const documentCategories = (documentsData || []).map((d: any) => ({
     document_category: (d.document_category || 'general') as DocumentCategory,
   }));
+
+  const verifiedDocumentCount = (documentsData || []).filter((d: any) => d.is_verified === true).length;
+  const hasVerifiedDocuments = verifiedDocumentCount > 0;
 
   // Fetch security events
   const { data: securityEvents } = await supabase
@@ -174,6 +178,7 @@ async function fetchUserMetrics(userId: string): Promise<UserMetrics> {
     suspiciousEvents,
     lastActiveDate: lastSession ? new Date(lastSession.last_active_at) : null,
     hasRecoveryCodes: (recoveryCodeCount || 0) > 0,
+    hasVerifiedDocuments: hasVerifiedDocuments,
     unresolvedFindings: (consistencyFindings || []).map((f: any) => ({
       severity: f.severity,
       confidence_impact: f.confidence_impact,
@@ -574,6 +579,27 @@ function generateExplanation(score: number, metrics: UserMetrics, positiveFactor
 
 export async function calculateTrustScore(userId: string): Promise<TrustScoreResult> {
   const metrics = await fetchUserMetrics(userId);
+
+  // CRITICAL: No verified documents = trust score is zero
+  if (!metrics.hasVerifiedDocuments) {
+    const negativeFactors = ["No verified documents — trust score locked at 0"];
+    const recommendations = [
+      "Upload and verify at least one document to unlock your trust score",
+      "Documents are verified through the 7-layer verification pipeline during upload",
+    ];
+    if (!metrics.mfaEnabled) {
+      recommendations.push("Enable multi-factor authentication for enhanced security");
+    }
+    return {
+      trustScore: 0,
+      trustLevel: "Restricted",
+      confidence: "Low",
+      positiveFactors: [],
+      negativeFactors,
+      explanation: "Trust score is 0/100 (Restricted). You must upload and pass document verification before your trust score can begin building. Upload a document through the Sovereign Sector to get started.",
+      recommendations,
+    };
+  }
 
   // Calculate individual dimension scores
   const identity = calculateIdentityScore(metrics);
