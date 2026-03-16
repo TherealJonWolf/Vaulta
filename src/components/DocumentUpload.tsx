@@ -267,17 +267,28 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
   ) => {
     if (!user) return;
     try {
-      await (supabase.from('document_upload_events') as any).insert({
+      const { error } = await (supabase.from('document_upload_events') as any).insert({
         user_id: user.id,
         file_name: fileName,
         file_size: fileSize,
         mime_type: mimeType,
         event_type: eventType,
-        failure_reason: failureReason,
-        failure_step: failureStep,
+        failure_reason: failureReason || null,
+        failure_step: failureStep || null,
         severity,
         metadata: meta,
       });
+      if (error) {
+        console.error('Upload event logging error:', error);
+        // Fallback: log to security_events table which we know works
+        await supabase.from('security_events').insert({
+          user_id: user.id,
+          event_type: 'document_uploaded',
+          event_description: `Upload ${eventType}: ${fileName} — ${failureReason || 'success'}`,
+          metadata: { fileName, fileSize, mimeType, eventType, failureReason, failureStep, severity },
+          user_agent: navigator.userAgent,
+        });
+      }
     } catch (err) {
       console.error('Failed to log upload event:', err);
     }
