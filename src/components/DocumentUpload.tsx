@@ -30,6 +30,7 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<"idle" | "verifying" | "encrypting" | "uploading" | "success" | "error">("idle");
+  const [errorDetail, setErrorDetail] = useState<string>("");
   const [checking, setChecking] = useState(false);
   const [verificationSteps, setVerificationSteps] = useState<VerificationStep[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
