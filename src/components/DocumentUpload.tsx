@@ -583,6 +583,7 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
         description: `${file.name} classified as ${categoryLabels[classification.category] || 'Document'} and stored in your Sovereign Sector.`,
       });
 
+      await logUploadEvent(file.name, file.size, file.type, 'success', undefined, undefined, 'info', { category: classification.category });
       fetchDocumentCount();
 
       setTimeout(() => {
@@ -590,10 +591,11 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
         onClose();
         resetState();
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Upload error:", error);
       setUploadStatus("error");
-      toast({ variant: "destructive", title: "Upload Failed", description: "Unable to secure document. Please try again." });
+      await logUploadEvent(file.name, file.size, file.type, 'technical_failure', error?.message || 'Upload failed', 'storage_upload', 'warning');
+      toast({ variant: "destructive", title: "Upload Failed", description: "Unable to secure document. This appears to be a technical issue — please try again." });
     } finally {
       setUploading(false);
     }
