@@ -583,7 +583,7 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
       const { error: uploadError } = await supabase.storage
         .from("documents")
         .upload(filePath, encryptedBlob, {
-          contentType: file.type,
+          contentType: "application/octet-stream",
           upsert: false,
         });
 
