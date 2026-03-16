@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Download, Trash2, Eye, Lock, Building2, Upload as UploadIcon, ExternalLink, Languages, Loader2 } from "lucide-react";
+import { FileText, Download, Trash2, Eye, Lock, Building2, Upload as UploadIcon, ExternalLink, Languages, Loader2, ShieldCheck, ShieldAlert } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
