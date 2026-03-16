@@ -630,9 +630,11 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
       }, 2000);
     } catch (error: any) {
       console.error("Upload error:", error);
+      const reason = error?.message || error?.statusText || "An unexpected error occurred";
+      setErrorDetail(reason);
       setUploadStatus("error");
-      await logUploadEvent(file.name, file.size, file.type, 'technical_failure', error?.message || 'Upload failed', 'storage_upload', 'warning');
-      toast({ variant: "destructive", title: "Upload Failed", description: "Unable to secure document. This appears to be a technical issue — please try again." });
+      await logUploadEvent(file.name, file.size, file.type, 'technical_failure', reason, 'storage_upload', 'warning');
+      toast({ variant: "destructive", title: "Upload Failed", description: reason });
     } finally {
       setUploading(false);
     }
