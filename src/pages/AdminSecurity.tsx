@@ -57,6 +57,20 @@ interface ProfileInfo {
   account_locked_at: string | null;
 }
 
+interface UploadEvent {
+  id: string;
+  user_id: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string | null;
+  event_type: string;
+  failure_reason: string | null;
+  failure_step: string | null;
+  severity: string;
+  metadata: any;
+  created_at: string;
+}
+
 const AdminSecurity = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
