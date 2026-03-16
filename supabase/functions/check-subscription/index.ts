@@ -42,6 +42,21 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // Test/pen-testing accounts — bypass subscription check
+    const TEST_ACCOUNTS = ["jonathan.mcewen2025@gmail.com"];
+    if (TEST_ACCOUNTS.includes(user.email.toLowerCase())) {
+      logStep("Test account detected, granting unlimited access", { email: user.email });
+      return new Response(JSON.stringify({
+        subscribed: true,
+        product_id: PREMIUM_VAULT_PRODUCT_ID,
+        subscription_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        is_premium: true,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
