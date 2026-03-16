@@ -25,6 +25,7 @@ interface UserMetrics {
   suspiciousEvents: number;
   lastActiveDate: Date | null;
   hasRecoveryCodes: boolean;
+  hasVerifiedDocuments: boolean;
   // Data consistency integration
   unresolvedFindings: Array<{
     severity: string;
