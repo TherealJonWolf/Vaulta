@@ -169,9 +169,22 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
             const exifData = new TextDecoder('utf-8', { fatal: false }).decode(
               new Uint8Array(buffer, offset, Math.min(2000, view.byteLength - offset))
             );
-            const softwareMatch = exifData.match(/Adobe|Photoshop|GIMP|Paint|Canva|Pixlr/i);
-            if (softwareMatch) {
-              metadata.software = softwareMatch[0];
+            // Only match actual editing software, NOT ICC color profiles like "Adobe RGB"
+            // Look for specific software tool names, excluding color profile references
+            const editingPatterns = [
+              /(?:Software|Creator)\s*[:=]?\s*(Adobe\s*Photoshop[^;]*)/i,
+              /(?:Software|Creator)\s*[:=]?\s*(GIMP[^;]*)/i,
+              /(?:Software|Creator)\s*[:=]?\s*(Paint\.NET[^;]*)/i,
+              /(?:Software|Creator)\s*[:=]?\s*(Pixlr[^;]*)/i,
+              /(?:Software|Creator)\s*[:=]?\s*(Canva[^;]*)/i,
+              /(?:Software|Creator)\s*[:=]?\s*(Affinity\s*Photo[^;]*)/i,
+            ];
+            for (const pattern of editingPatterns) {
+              const match = exifData.match(pattern);
+              if (match) {
+                metadata.software = match[1].trim();
+                break;
+              }
             }
             break;
           }
