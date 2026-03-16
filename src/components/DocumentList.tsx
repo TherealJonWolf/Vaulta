@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Download, Trash2, Eye, Lock, Building2, Upload as UploadIcon, ExternalLink, Languages, Loader2 } from "lucide-react";
+import { FileText, Download, Trash2, Eye, Lock, Building2, Upload as UploadIcon, ExternalLink, Languages, Loader2, ShieldCheck, ShieldAlert } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ interface Document {
   institution_name: string | null;
   created_at: string;
   encrypted_iv: string | null;
+  is_verified: boolean;
+  verification_result: Record<string, any> | null;
 }
 
 interface DocumentListProps {
@@ -288,9 +290,22 @@ const DocumentList = ({ refreshTrigger, encryptFile, decryptFile }: DocumentList
                 </div>
               </div>
 
-              <h3 className="font-display font-bold text-foreground mb-1 truncate">
-                {doc.file_name}
-              </h3>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-display font-bold text-foreground truncate flex-1">
+                  {doc.file_name}
+                </h3>
+                {doc.is_verified ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-bold uppercase tracking-wider shrink-0">
+                    <ShieldCheck size={10} />
+                    Verified
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/15 border border-yellow-500/30 text-yellow-400 text-[10px] font-mono font-bold uppercase tracking-wider shrink-0">
+                    <ShieldAlert size={10} />
+                    Unverified
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-3 text-xs text-muted-foreground font-mono">
                 <span>{formatFileSize(doc.file_size)}</span>
                 <span>•</span>

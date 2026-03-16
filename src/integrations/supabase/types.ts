@@ -313,10 +313,12 @@ export type Database = {
           file_size: number
           id: string
           institution_name: string | null
+          is_verified: boolean
           mime_type: string
           source: string | null
           updated_at: string
           user_id: string
+          verification_result: Json | null
         }
         Insert: {
           created_at?: string
@@ -328,10 +330,12 @@ export type Database = {
           file_size?: number
           id?: string
           institution_name?: string | null
+          is_verified?: boolean
           mime_type: string
           source?: string | null
           updated_at?: string
           user_id: string
+          verification_result?: Json | null
         }
         Update: {
           created_at?: string
@@ -343,10 +347,12 @@ export type Database = {
           file_size?: number
           id?: string
           institution_name?: string | null
+          is_verified?: boolean
           mime_type?: string
           source?: string | null
           updated_at?: string
           user_id?: string
+          verification_result?: Json | null
         }
         Relationships: []
       }
