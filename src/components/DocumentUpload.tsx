@@ -242,6 +242,47 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
     }
   };
 
+  const logUploadEvent = async (
+    fileName: string,
+    fileSize: number,
+    mimeType: string,
+    eventType: 'success' | 'security_failure' | 'technical_failure',
+    failureReason?: string,
+    failureStep?: string,
+    severity: 'info' | 'warning' | 'critical' = 'info',
+    meta: Record<string, any> = {}
+  ) => {
+    if (!user) return;
+    try {
+      await (supabase.from('document_upload_events') as any).insert({
+        user_id: user.id,
+        file_name: fileName,
+        file_size: fileSize,
+        mime_type: mimeType,
+        event_type: eventType,
+        failure_reason: failureReason,
+        failure_step: failureStep,
+        severity,
+        metadata: meta,
+      });
+    } catch (err) {
+      console.error('Failed to log upload event:', err);
+    }
+  };
+
+  const checkPriorSecurityFailures = async (): Promise<number> => {
+    if (!user) return 0;
+    try {
+      const { count } = await (supabase.from('document_upload_events') as any)
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('event_type', 'security_failure');
+      return count || 0;
+    } catch {
+      return 0;
+    }
+  };
+
   const handleFiles = async (files: FileList) => {
     if (!user) {
       toast({ variant: "destructive", title: "Authentication Required", description: "Please log in to upload documents." });
@@ -305,7 +346,13 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
     if (!signatureValid) {
       updateStep("signature", { status: "failed", detail: "File header doesn't match declared type" });
       await flagAccountAsFraudulent('File signature mismatch: contents do not match declared MIME type', file.name);
-      toast({ variant: "destructive", title: "⚠️ Document Rejected — Account Flagged", description: "This file appears to be tampered with." });
+      await logUploadEvent(file.name, file.size, file.type, 'security_failure', 'File signature mismatch', 'signature', 'critical');
+      const priorFailures = await checkPriorSecurityFailures();
+      if (priorFailures >= 2) {
+        toast({ variant: "destructive", title: "⚠️ FINAL WARNING — Account Under Review", description: "Multiple security violations detected. Your next failed attempt will result in account suspension and administrative review." });
+      } else {
+        toast({ variant: "destructive", title: "⚠️ Document Rejected — Account Flagged", description: "This file appears to be tampered with. Further security violations may result in account lock." });
+      }
       setUploadStatus("error");
       setUploading(false);
       return;
@@ -319,7 +366,13 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
     if (!scanResult.safe) {
       updateStep("content", { status: "failed", detail: scanResult.reason });
       await flagAccountAsFraudulent(`Malicious content: ${scanResult.reason}`, file.name);
-      toast({ variant: "destructive", title: "⚠️ Malicious Document Blocked", description: "Embedded scripts or injection patterns detected." });
+      await logUploadEvent(file.name, file.size, file.type, 'security_failure', `Malicious content: ${scanResult.reason}`, 'content', 'critical');
+      const priorFailures = await checkPriorSecurityFailures();
+      if (priorFailures >= 2) {
+        toast({ variant: "destructive", title: "⚠️ FINAL WARNING — Account Under Review", description: "Multiple security violations detected. Your next failed attempt will result in account suspension and administrative review." });
+      } else {
+        toast({ variant: "destructive", title: "⚠️ Malicious Document Blocked", description: "Embedded scripts or injection patterns detected. Further violations may lock your account." });
+      }
       setUploadStatus("error");
       setUploading(false);
       return;
@@ -444,15 +497,23 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
         }
 
         if (blocked) {
-          await flagAccountAsFraudulent(
-            verifyData.criticalFailures?.map((f: any) => f.reason).join("; ") || "Failed verification",
-            file.name
-          );
-          toast({
-            variant: "destructive",
-            title: "⚠️ Document Rejected",
-            description: "This document failed verification checks. Your account has been flagged.",
-          });
+          const failureReasons = verifyData.criticalFailures?.map((f: any) => f.reason).join("; ") || "Failed verification";
+          await flagAccountAsFraudulent(failureReasons, file.name);
+          await logUploadEvent(file.name, file.size, file.type, 'security_failure', failureReasons, 'server_verification', 'critical', { criticalFailures: verifyData.criticalFailures });
+          const priorFailures = await checkPriorSecurityFailures();
+          if (priorFailures >= 2) {
+            toast({
+              variant: "destructive",
+              title: "⚠️ FINAL WARNING — Account Under Review",
+              description: "Multiple security violations detected. Your next failed attempt will result in account suspension and administrative review.",
+            });
+          } else {
+            toast({
+              variant: "destructive",
+              title: "⚠️ Document Rejected",
+              description: "This document failed verification checks. Your account has been flagged. Further violations may lock your account.",
+            });
+          }
           setUploadStatus("error");
           setUploading(false);
           return;
@@ -522,6 +583,7 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
         description: `${file.name} classified as ${categoryLabels[classification.category] || 'Document'} and stored in your Sovereign Sector.`,
       });
 
+      await logUploadEvent(file.name, file.size, file.type, 'success', undefined, undefined, 'info', { category: classification.category });
       fetchDocumentCount();
 
       setTimeout(() => {
@@ -529,10 +591,11 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
         onClose();
         resetState();
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Upload error:", error);
       setUploadStatus("error");
-      toast({ variant: "destructive", title: "Upload Failed", description: "Unable to secure document. Please try again." });
+      await logUploadEvent(file.name, file.size, file.type, 'technical_failure', error?.message || 'Upload failed', 'storage_upload', 'warning');
+      toast({ variant: "destructive", title: "Upload Failed", description: "Unable to secure document. This appears to be a technical issue — please try again." });
     } finally {
       setUploading(false);
     }

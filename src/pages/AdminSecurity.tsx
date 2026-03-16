@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Shield, ArrowLeft, Users, Activity, AlertTriangle, TrendingDown, Eye, RefreshCw, Lock, Unlock } from "lucide-react";
+import { Shield, ArrowLeft, Users, Activity, AlertTriangle, TrendingDown, Eye, RefreshCw, Lock, Unlock, FileWarning, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -57,6 +57,20 @@ interface ProfileInfo {
   account_locked_at: string | null;
 }
 
+interface UploadEvent {
+  id: string;
+  user_id: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string | null;
+  event_type: string;
+  failure_reason: string | null;
+  failure_step: string | null;
+  severity: string;
+  metadata: any;
+  created_at: string;
+}
+
 const AdminSecurity = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -67,6 +81,7 @@ const AdminSecurity = () => {
   const [trustHistory, setTrustHistory] = useState<TrustHistoryEntry[]>([]);
   const [evalMeta, setEvalMeta] = useState<EvaluationMeta[]>([]);
   const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
+  const [uploadEvents, setUploadEvents] = useState<UploadEvent[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -82,17 +97,19 @@ const AdminSecurity = () => {
 
   const fetchAll = async () => {
     setRefreshing(true);
-    const [signalsRes, historyRes, evalRes, profilesRes] = await Promise.all([
+    const [signalsRes, historyRes, evalRes, profilesRes, uploadEventsRes] = await Promise.all([
       (supabase.from("cross_account_signals") as any).select("*").order("last_seen_at", { ascending: false }).limit(50),
       (supabase.from("trust_history") as any).select("*").order("created_at", { ascending: false }).limit(100),
       (supabase.from("evaluation_metadata") as any).select("*").order("boundary_hugging_score", { ascending: false }),
       (supabase.from("profiles") as any).select("user_id, email, full_name, failed_login_attempts, account_locked_at"),
+      (supabase.from("document_upload_events") as any).select("*").order("created_at", { ascending: false }).limit(200),
     ]);
 
     if (signalsRes.data) setCrossSignals(signalsRes.data);
     if (historyRes.data) setTrustHistory(historyRes.data);
     if (evalRes.data) setEvalMeta(evalRes.data);
     if (profilesRes.data) setProfiles(profilesRes.data);
+    if (uploadEventsRes.data) setUploadEvents(uploadEventsRes.data);
     setRefreshing(false);
   };
 
@@ -115,6 +132,8 @@ const AdminSecurity = () => {
   const boundaryHuggers = evalMeta.filter((e) => e.boundary_hugging_score > 50).length;
   const recentViolations = trustHistory.filter((h) => (h.rules_violated?.length ?? 0) > 0).length;
   const uniqueUsersTracked = new Set(evalMeta.map((e) => e.user_id)).size;
+  const securityFailures = uploadEvents.filter((e) => e.event_type === 'security_failure').length;
+  const technicalFailures = uploadEvents.filter((e) => e.event_type === 'technical_failure').length;
 
   const handleUnlock = async (targetUserId: string) => {
     try {
@@ -176,6 +195,8 @@ const AdminSecurity = () => {
             { icon: AlertTriangle, label: "HIGH-SEV CLUSTERS", value: highSeverityClusters, color: "text-destructive" },
             { icon: Eye, label: "BOUNDARY HUGGERS", value: boundaryHuggers, color: "text-[hsl(var(--warning-amber))]" },
             { icon: TrendingDown, label: "RULE VIOLATIONS", value: recentViolations, color: "text-[hsl(var(--neon-magenta))]" },
+            { icon: FileWarning, label: "UPLOAD SECURITY FAILS", value: securityFailures, color: "text-destructive" },
+            { icon: Upload, label: "UPLOAD TECH FAILS", value: technicalFailures, color: "text-[hsl(var(--warning-amber))]" },
           ].map((stat) => (
             <Card key={stat.label} className="cyber-border">
               <CardContent className="p-4 flex items-center gap-4">
@@ -192,6 +213,7 @@ const AdminSecurity = () => {
         <Tabs defaultValue="locked" className="space-y-6">
           <TabsList className="bg-card border border-border">
             <TabsTrigger value="locked" className="font-mono text-xs">LOCKED ACCOUNTS</TabsTrigger>
+            <TabsTrigger value="uploads" className="font-mono text-xs">UPLOAD EVENTS</TabsTrigger>
             <TabsTrigger value="clusters" className="font-mono text-xs">CROSS-ACCOUNT CLUSTERS</TabsTrigger>
             <TabsTrigger value="boundary" className="font-mono text-xs">BOUNDARY HUGGING</TabsTrigger>
             <TabsTrigger value="timeline" className="font-mono text-xs">TRUST TIMELINE</TabsTrigger>
@@ -253,7 +275,68 @@ const AdminSecurity = () => {
             </Card>
           </TabsContent>
 
-          {/* Cross-Account Clusters */}
+          {/* Upload Events */}
+          <TabsContent value="uploads">
+            <Card className="cyber-border">
+              <CardHeader>
+                <CardTitle className="font-display text-lg gradient-text flex items-center gap-2">
+                  <FileWarning size={18} />
+                  DOCUMENT UPLOAD EVENTS
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {uploadEvents.length === 0 ? (
+                  <p className="text-muted-foreground font-mono text-sm text-center py-8">NO UPLOAD EVENTS RECORDED</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="font-mono text-xs">USER</TableHead>
+                        <TableHead className="font-mono text-xs">FILE</TableHead>
+                        <TableHead className="font-mono text-xs">TYPE</TableHead>
+                        <TableHead className="font-mono text-xs">RESULT</TableHead>
+                        <TableHead className="font-mono text-xs">FAILED STEP</TableHead>
+                        <TableHead className="font-mono text-xs">REASON</TableHead>
+                        <TableHead className="font-mono text-xs">SEVERITY</TableHead>
+                        <TableHead className="font-mono text-xs">TIME</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {uploadEvents.map((event) => {
+                        const resultVariant = event.event_type === 'success' ? 'outline' :
+                          event.event_type === 'security_failure' ? 'destructive' : 'secondary';
+                        const resultLabel = event.event_type === 'success' ? 'SUCCESS' :
+                          event.event_type === 'security_failure' ? 'SECURITY' : 'TECHNICAL';
+                        const sevVariant = event.severity === 'critical' ? 'destructive' :
+                          event.severity === 'warning' ? 'secondary' : 'outline';
+                        return (
+                          <TableRow key={event.id}>
+                            <TableCell className="font-mono text-xs">{getEmail(event.user_id)}</TableCell>
+                            <TableCell className="font-mono text-xs max-w-[150px] truncate" title={event.file_name}>{event.file_name}</TableCell>
+                            <TableCell className="font-mono text-xs text-muted-foreground">{event.mime_type || '—'}</TableCell>
+                            <TableCell>
+                              <Badge variant={resultVariant as any} className="font-mono text-[10px]">{resultLabel}</Badge>
+                            </TableCell>
+                            <TableCell className="font-mono text-xs text-muted-foreground">{event.failure_step || '—'}</TableCell>
+                            <TableCell className="font-mono text-xs text-muted-foreground max-w-[200px] truncate" title={event.failure_reason || ''}>
+                              {event.failure_reason || '—'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={sevVariant as any} className="font-mono text-[10px]">{event.severity.toUpperCase()}</Badge>
+                            </TableCell>
+                            <TableCell className="font-mono text-xs text-muted-foreground">
+                              {new Date(event.created_at).toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="clusters">
             <Card className="cyber-border">
               <CardHeader>

@@ -257,6 +257,51 @@ export type Database = {
         }
         Relationships: []
       }
+      document_upload_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          failure_reason: string | null
+          failure_step: string | null
+          file_name: string
+          file_size: number | null
+          id: string
+          metadata: Json | null
+          mime_type: string | null
+          security_warnings_issued: number
+          severity: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type?: string
+          failure_reason?: string | null
+          failure_step?: string | null
+          file_name: string
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          security_warnings_issued?: number
+          severity?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          failure_reason?: string | null
+          failure_step?: string | null
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          security_warnings_issued?: number
+          severity?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           created_at: string
