@@ -645,6 +645,7 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
     setUploadStatus("idle");
     setUploading(false);
     setVerificationSteps([]);
+    setErrorDetail("");
   };
 
   if (!isOpen) return null;
