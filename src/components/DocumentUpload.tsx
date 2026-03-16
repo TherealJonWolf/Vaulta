@@ -297,11 +297,20 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
   const checkPriorSecurityFailures = async (): Promise<number> => {
     if (!user) return 0;
     try {
-      const { count } = await (supabase.from('document_upload_events') as any)
+      // Try upload events table first
+      const { count, error } = await (supabase.from('document_upload_events') as any)
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .eq('event_type', 'security_failure');
-      return count || 0;
+      
+      if (!error && count !== null) return count;
+      
+      // Fallback: check security_events for fraud_detected events
+      const { count: seCount } = await supabase.from('security_events')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('event_type', 'fraud_detected');
+      return seCount || 0;
     } catch {
       return 0;
     }
