@@ -30,6 +30,7 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<"idle" | "verifying" | "encrypting" | "uploading" | "success" | "error">("idle");
+  const [errorDetail, setErrorDetail] = useState<string>("");
   const [checking, setChecking] = useState(false);
   const [verificationSteps, setVerificationSteps] = useState<VerificationStep[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -629,9 +630,11 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
       }, 2000);
     } catch (error: any) {
       console.error("Upload error:", error);
+      const reason = error?.message || error?.statusText || "An unexpected error occurred";
+      setErrorDetail(reason);
       setUploadStatus("error");
-      await logUploadEvent(file.name, file.size, file.type, 'technical_failure', error?.message || 'Upload failed', 'storage_upload', 'warning');
-      toast({ variant: "destructive", title: "Upload Failed", description: "Unable to secure document. This appears to be a technical issue — please try again." });
+      await logUploadEvent(file.name, file.size, file.type, 'technical_failure', reason, 'storage_upload', 'warning');
+      toast({ variant: "destructive", title: "Upload Failed", description: reason });
     } finally {
       setUploading(false);
     }
@@ -642,6 +645,7 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
     setUploadStatus("idle");
     setUploading(false);
     setVerificationSteps([]);
+    setErrorDetail("");
   };
 
   if (!isOpen) return null;
@@ -797,10 +801,16 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
                     {uploadStatus === "encrypting" && "Applying 256-bit AES encryption"}
                     {uploadStatus === "uploading" && "Transferring to Sovereign Sector"}
                     {uploadStatus === "success" && "Verified, encrypted, and stored"}
-                    {uploadStatus === "error" && "Please try again"}
+                    {uploadStatus === "error" && (errorDetail || "An unexpected error occurred")}
                   </p>
                 </div>
               </div>
+
+              {uploadStatus === "error" && errorDetail && (
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                  <p className="text-xs font-mono text-destructive break-all">{errorDetail}</p>
+                </div>
+              )}
 
               {(uploadStatus === "encrypting" || uploadStatus === "uploading") && (
                 <Progress value={progress} className="h-2" />
