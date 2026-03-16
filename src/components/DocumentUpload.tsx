@@ -346,7 +346,13 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
     if (!signatureValid) {
       updateStep("signature", { status: "failed", detail: "File header doesn't match declared type" });
       await flagAccountAsFraudulent('File signature mismatch: contents do not match declared MIME type', file.name);
-      toast({ variant: "destructive", title: "⚠️ Document Rejected — Account Flagged", description: "This file appears to be tampered with." });
+      await logUploadEvent(file.name, file.size, file.type, 'security_failure', 'File signature mismatch', 'signature', 'critical');
+      const priorFailures = await checkPriorSecurityFailures();
+      if (priorFailures >= 2) {
+        toast({ variant: "destructive", title: "⚠️ FINAL WARNING — Account Under Review", description: "Multiple security violations detected. Your next failed attempt will result in account suspension and administrative review." });
+      } else {
+        toast({ variant: "destructive", title: "⚠️ Document Rejected — Account Flagged", description: "This file appears to be tampered with. Further security violations may result in account lock." });
+      }
       setUploadStatus("error");
       setUploading(false);
       return;
