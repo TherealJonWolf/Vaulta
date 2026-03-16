@@ -81,6 +81,7 @@ const AdminSecurity = () => {
   const [trustHistory, setTrustHistory] = useState<TrustHistoryEntry[]>([]);
   const [evalMeta, setEvalMeta] = useState<EvaluationMeta[]>([]);
   const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
+  const [uploadEvents, setUploadEvents] = useState<UploadEvent[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
