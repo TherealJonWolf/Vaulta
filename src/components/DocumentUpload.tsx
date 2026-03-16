@@ -366,7 +366,13 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
     if (!scanResult.safe) {
       updateStep("content", { status: "failed", detail: scanResult.reason });
       await flagAccountAsFraudulent(`Malicious content: ${scanResult.reason}`, file.name);
-      toast({ variant: "destructive", title: "⚠️ Malicious Document Blocked", description: "Embedded scripts or injection patterns detected." });
+      await logUploadEvent(file.name, file.size, file.type, 'security_failure', `Malicious content: ${scanResult.reason}`, 'content', 'critical');
+      const priorFailures = await checkPriorSecurityFailures();
+      if (priorFailures >= 2) {
+        toast({ variant: "destructive", title: "⚠️ FINAL WARNING — Account Under Review", description: "Multiple security violations detected. Your next failed attempt will result in account suspension and administrative review." });
+      } else {
+        toast({ variant: "destructive", title: "⚠️ Malicious Document Blocked", description: "Embedded scripts or injection patterns detected. Further violations may lock your account." });
+      }
       setUploadStatus("error");
       setUploading(false);
       return;
