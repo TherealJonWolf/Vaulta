@@ -497,15 +497,23 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
         }
 
         if (blocked) {
-          await flagAccountAsFraudulent(
-            verifyData.criticalFailures?.map((f: any) => f.reason).join("; ") || "Failed verification",
-            file.name
-          );
-          toast({
-            variant: "destructive",
-            title: "⚠️ Document Rejected",
-            description: "This document failed verification checks. Your account has been flagged.",
-          });
+          const failureReasons = verifyData.criticalFailures?.map((f: any) => f.reason).join("; ") || "Failed verification";
+          await flagAccountAsFraudulent(failureReasons, file.name);
+          await logUploadEvent(file.name, file.size, file.type, 'security_failure', failureReasons, 'server_verification', 'critical', { criticalFailures: verifyData.criticalFailures });
+          const priorFailures = await checkPriorSecurityFailures();
+          if (priorFailures >= 2) {
+            toast({
+              variant: "destructive",
+              title: "⚠️ FINAL WARNING — Account Under Review",
+              description: "Multiple security violations detected. Your next failed attempt will result in account suspension and administrative review.",
+            });
+          } else {
+            toast({
+              variant: "destructive",
+              title: "⚠️ Document Rejected",
+              description: "This document failed verification checks. Your account has been flagged. Further violations may lock your account.",
+            });
+          }
           setUploadStatus("error");
           setUploading(false);
           return;
