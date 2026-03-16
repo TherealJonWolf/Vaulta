@@ -83,15 +83,18 @@ async function fetchUserMetrics(userId: string): Promise<UserMetrics> {
     .select("device_info, location, last_active_at")
     .eq("user_id", userId);
 
-  // Fetch documents with categories
+  // Fetch documents with categories and verification status
   const { data: documentsData, count: documentCount } = await supabase
     .from("documents")
-    .select("document_category", { count: "exact" })
+    .select("document_category, is_verified", { count: "exact" })
     .eq("user_id", userId);
 
   const documentCategories = (documentsData || []).map((d: any) => ({
     document_category: (d.document_category || 'general') as DocumentCategory,
   }));
+
+  const verifiedDocumentCount = (documentsData || []).filter((d: any) => d.is_verified === true).length;
+  const hasVerifiedDocuments = verifiedDocumentCount > 0;
 
   // Fetch security events
   const { data: securityEvents } = await supabase
