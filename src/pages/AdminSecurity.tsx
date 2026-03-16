@@ -132,6 +132,8 @@ const AdminSecurity = () => {
   const boundaryHuggers = evalMeta.filter((e) => e.boundary_hugging_score > 50).length;
   const recentViolations = trustHistory.filter((h) => (h.rules_violated?.length ?? 0) > 0).length;
   const uniqueUsersTracked = new Set(evalMeta.map((e) => e.user_id)).size;
+  const securityFailures = uploadEvents.filter((e) => e.event_type === 'security_failure').length;
+  const technicalFailures = uploadEvents.filter((e) => e.event_type === 'technical_failure').length;
 
   const handleUnlock = async (targetUserId: string) => {
     try {
