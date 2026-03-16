@@ -195,6 +195,8 @@ const AdminSecurity = () => {
             { icon: AlertTriangle, label: "HIGH-SEV CLUSTERS", value: highSeverityClusters, color: "text-destructive" },
             { icon: Eye, label: "BOUNDARY HUGGERS", value: boundaryHuggers, color: "text-[hsl(var(--warning-amber))]" },
             { icon: TrendingDown, label: "RULE VIOLATIONS", value: recentViolations, color: "text-[hsl(var(--neon-magenta))]" },
+            { icon: FileWarning, label: "UPLOAD SECURITY FAILS", value: securityFailures, color: "text-destructive" },
+            { icon: Upload, label: "UPLOAD TECH FAILS", value: technicalFailures, color: "text-[hsl(var(--warning-amber))]" },
           ].map((stat) => (
             <Card key={stat.label} className="cyber-border">
               <CardContent className="p-4 flex items-center gap-4">
