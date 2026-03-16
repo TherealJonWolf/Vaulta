@@ -242,6 +242,47 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
     }
   };
 
+  const logUploadEvent = async (
+    fileName: string,
+    fileSize: number,
+    mimeType: string,
+    eventType: 'success' | 'security_failure' | 'technical_failure',
+    failureReason?: string,
+    failureStep?: string,
+    severity: 'info' | 'warning' | 'critical' = 'info',
+    meta: Record<string, any> = {}
+  ) => {
+    if (!user) return;
+    try {
+      await (supabase.from('document_upload_events') as any).insert({
+        user_id: user.id,
+        file_name: fileName,
+        file_size: fileSize,
+        mime_type: mimeType,
+        event_type: eventType,
+        failure_reason: failureReason,
+        failure_step: failureStep,
+        severity,
+        metadata: meta,
+      });
+    } catch (err) {
+      console.error('Failed to log upload event:', err);
+    }
+  };
+
+  const checkPriorSecurityFailures = async (): Promise<number> => {
+    if (!user) return 0;
+    try {
+      const { count } = await (supabase.from('document_upload_events') as any)
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('event_type', 'security_failure');
+      return count || 0;
+    } catch {
+      return 0;
+    }
+  };
+
   const handleFiles = async (files: FileList) => {
     if (!user) {
       toast({ variant: "destructive", title: "Authentication Required", description: "Please log in to upload documents." });
