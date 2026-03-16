@@ -34,7 +34,16 @@ export const useSubscription = () => {
     try {
       const { data, error } = await supabase.functions.invoke("check-subscription");
 
-      if (error) throw error;
+      if (error) {
+        // If auth error (session expired), silently reset to unsubscribed — don't crash
+        const errMsg = error?.message || String(error);
+        if (errMsg.includes("Auth session") || errMsg.includes("Authentication error") || errMsg.includes("401") || errMsg.includes("403")) {
+          console.warn("Subscription check: session expired, defaulting to free tier");
+          setStatus(prev => ({ ...prev, loading: false, subscribed: false, isPremium: false }));
+          return;
+        }
+        throw error;
+      }
 
       setStatus({
         subscribed: data.subscribed || false,
