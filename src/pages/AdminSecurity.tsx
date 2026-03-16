@@ -275,7 +275,68 @@ const AdminSecurity = () => {
             </Card>
           </TabsContent>
 
-          {/* Cross-Account Clusters */}
+          {/* Upload Events */}
+          <TabsContent value="uploads">
+            <Card className="cyber-border">
+              <CardHeader>
+                <CardTitle className="font-display text-lg gradient-text flex items-center gap-2">
+                  <FileWarning size={18} />
+                  DOCUMENT UPLOAD EVENTS
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {uploadEvents.length === 0 ? (
+                  <p className="text-muted-foreground font-mono text-sm text-center py-8">NO UPLOAD EVENTS RECORDED</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="font-mono text-xs">USER</TableHead>
+                        <TableHead className="font-mono text-xs">FILE</TableHead>
+                        <TableHead className="font-mono text-xs">TYPE</TableHead>
+                        <TableHead className="font-mono text-xs">RESULT</TableHead>
+                        <TableHead className="font-mono text-xs">FAILED STEP</TableHead>
+                        <TableHead className="font-mono text-xs">REASON</TableHead>
+                        <TableHead className="font-mono text-xs">SEVERITY</TableHead>
+                        <TableHead className="font-mono text-xs">TIME</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {uploadEvents.map((event) => {
+                        const resultVariant = event.event_type === 'success' ? 'outline' :
+                          event.event_type === 'security_failure' ? 'destructive' : 'secondary';
+                        const resultLabel = event.event_type === 'success' ? 'SUCCESS' :
+                          event.event_type === 'security_failure' ? 'SECURITY' : 'TECHNICAL';
+                        const sevVariant = event.severity === 'critical' ? 'destructive' :
+                          event.severity === 'warning' ? 'secondary' : 'outline';
+                        return (
+                          <TableRow key={event.id}>
+                            <TableCell className="font-mono text-xs">{getEmail(event.user_id)}</TableCell>
+                            <TableCell className="font-mono text-xs max-w-[150px] truncate" title={event.file_name}>{event.file_name}</TableCell>
+                            <TableCell className="font-mono text-xs text-muted-foreground">{event.mime_type || '—'}</TableCell>
+                            <TableCell>
+                              <Badge variant={resultVariant as any} className="font-mono text-[10px]">{resultLabel}</Badge>
+                            </TableCell>
+                            <TableCell className="font-mono text-xs text-muted-foreground">{event.failure_step || '—'}</TableCell>
+                            <TableCell className="font-mono text-xs text-muted-foreground max-w-[200px] truncate" title={event.failure_reason || ''}>
+                              {event.failure_reason || '—'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={sevVariant as any} className="font-mono text-[10px]">{event.severity.toUpperCase()}</Badge>
+                            </TableCell>
+                            <TableCell className="font-mono text-xs text-muted-foreground">
+                              {new Date(event.created_at).toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="clusters">
             <Card className="cyber-border">
               <CardHeader>
