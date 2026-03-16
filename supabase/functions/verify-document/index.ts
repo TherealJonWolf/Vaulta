@@ -91,7 +91,12 @@ Deno.serve(async (req) => {
       ];
 
       const editorUsed = (metadata.software || metadata.creator || "").toLowerCase();
-      const isEdited = suspiciousEditors.some((editor) => editorUsed.includes(editor));
+      
+      // Exclude ICC color profile references like "Adobe RGB" which are NOT editing software
+      const iccProfilePatterns = ["adobe rgb", "adobe srgb", "adobe icc", "adobe color"];
+      const isIccProfile = iccProfilePatterns.some((p) => editorUsed.includes(p));
+      
+      const isEdited = !isIccProfile && suspiciousEditors.some((editor) => editorUsed.includes(editor));
 
       if (isEdited) {
         results.metadataCheck = {

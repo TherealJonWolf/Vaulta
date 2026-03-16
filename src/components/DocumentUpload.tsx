@@ -169,9 +169,22 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
             const exifData = new TextDecoder('utf-8', { fatal: false }).decode(
               new Uint8Array(buffer, offset, Math.min(2000, view.byteLength - offset))
             );
-            const softwareMatch = exifData.match(/Adobe|Photoshop|GIMP|Paint|Canva|Pixlr/i);
-            if (softwareMatch) {
-              metadata.software = softwareMatch[0];
+            // Only match actual editing software, NOT ICC color profiles like "Adobe RGB"
+            // Look for specific software tool names, excluding color profile references
+            const editingPatterns = [
+              /(?:Software|Creator)\s*[:=]?\s*(Adobe\s*Photoshop[^;]*)/i,
+              /(?:Software|Creator)\s*[:=]?\s*(GIMP[^;]*)/i,
+              /(?:Software|Creator)\s*[:=]?\s*(Paint\.NET[^;]*)/i,
+              /(?:Software|Creator)\s*[:=]?\s*(Pixlr[^;]*)/i,
+              /(?:Software|Creator)\s*[:=]?\s*(Canva[^;]*)/i,
+              /(?:Software|Creator)\s*[:=]?\s*(Affinity\s*Photo[^;]*)/i,
+            ];
+            for (const pattern of editingPatterns) {
+              const match = exifData.match(pattern);
+              if (match) {
+                metadata.software = match[1].trim();
+                break;
+              }
             }
             break;
           }
@@ -254,17 +267,28 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
   ) => {
     if (!user) return;
     try {
-      await (supabase.from('document_upload_events') as any).insert({
+      const { error } = await (supabase.from('document_upload_events') as any).insert({
         user_id: user.id,
         file_name: fileName,
         file_size: fileSize,
         mime_type: mimeType,
         event_type: eventType,
-        failure_reason: failureReason,
-        failure_step: failureStep,
+        failure_reason: failureReason || null,
+        failure_step: failureStep || null,
         severity,
         metadata: meta,
       });
+      if (error) {
+        console.error('Upload event logging error:', error);
+        // Fallback: log to security_events table which we know works
+        await supabase.from('security_events').insert({
+          user_id: user.id,
+          event_type: 'document_uploaded',
+          event_description: `Upload ${eventType}: ${fileName} — ${failureReason || 'success'}`,
+          metadata: { fileName, fileSize, mimeType, eventType, failureReason, failureStep, severity },
+          user_agent: navigator.userAgent,
+        });
+      }
     } catch (err) {
       console.error('Failed to log upload event:', err);
     }
@@ -273,11 +297,20 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
   const checkPriorSecurityFailures = async (): Promise<number> => {
     if (!user) return 0;
     try {
-      const { count } = await (supabase.from('document_upload_events') as any)
+      // Try upload events table first
+      const { count, error } = await (supabase.from('document_upload_events') as any)
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .eq('event_type', 'security_failure');
-      return count || 0;
+      
+      if (!error && count !== null) return count;
+      
+      // Fallback: check security_events for fraud_detected events
+      const { count: seCount } = await supabase.from('security_events')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('event_type', 'fraud_detected');
+      return seCount || 0;
     } catch {
       return 0;
     }
