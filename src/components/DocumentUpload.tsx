@@ -801,10 +801,16 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
                     {uploadStatus === "encrypting" && "Applying 256-bit AES encryption"}
                     {uploadStatus === "uploading" && "Transferring to Sovereign Sector"}
                     {uploadStatus === "success" && "Verified, encrypted, and stored"}
-                    {uploadStatus === "error" && "Please try again"}
+                    {uploadStatus === "error" && (errorDetail || "An unexpected error occurred")}
                   </p>
                 </div>
               </div>
+
+              {uploadStatus === "error" && errorDetail && (
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                  <p className="text-xs font-mono text-destructive break-all">{errorDetail}</p>
+                </div>
+              )}
 
               {(uploadStatus === "encrypting" || uploadStatus === "uploading") && (
                 <Progress value={progress} className="h-2" />
