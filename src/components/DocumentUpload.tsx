@@ -595,6 +595,14 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
         setProgress(i);
       }
 
+      // Determine verification result from steps
+      const allStepsPassed = verificationSteps.every(
+        s => s.status === "passed" || s.status === "skipped"
+      );
+      const verificationSummary = Object.fromEntries(
+        verificationSteps.map(s => [s.id, { status: s.status, detail: s.detail }])
+      );
+
       const { error: dbError } = await (supabase.from("documents") as any).insert({
         user_id: user.id,
         file_name: file.name,
@@ -604,6 +612,8 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
         source: "upload",
         encrypted_iv: iv,
         document_category: classification.category,
+        is_verified: allStepsPassed,
+        verification_result: verificationSummary,
       });
 
       if (dbError) throw dbError;

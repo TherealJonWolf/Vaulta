@@ -19,6 +19,8 @@ interface Document {
   institution_name: string | null;
   created_at: string;
   encrypted_iv: string | null;
+  is_verified: boolean;
+  verification_result: Record<string, any> | null;
 }
 
 interface DocumentListProps {
