@@ -177,7 +177,7 @@ async function fetchUserMetrics(userId: string): Promise<UserMetrics> {
     securityEventsCount: securityEvents?.length || 0,
     suspiciousEvents,
     lastActiveDate: lastSession ? new Date(lastSession.last_active_at) : null,
-    hasRecoveryCodes: (recoveryCodeCount || 0) > 0,
+    hasVerifiedDocuments: hasVerifiedDocuments,
     unresolvedFindings: (consistencyFindings || []).map((f: any) => ({
       severity: f.severity,
       confidence_impact: f.confidence_impact,
