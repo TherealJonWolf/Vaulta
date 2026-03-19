@@ -164,7 +164,44 @@ const AdminSecurity = () => {
     }
   };
 
-  if (authLoading || roleLoading) {
+  const CATEGORY_LABELS: Record<string, string> = {
+    identity: "Identity Document",
+    financial: "Financial Document",
+    general: "General Document",
+  };
+
+  const buildAuditData = (doc: AdminDocument, getEmailFn: (id: string) => string): DocumentAuditData => {
+    const vr = doc.verification_result || {};
+    const checkNames = [
+      "Magic-Byte Signature Check",
+      "Malicious Content Scan",
+      "SHA-256 Fingerprint",
+      "EXIF & Metadata Analysis",
+      "Document Structure Validation",
+      "Cross-User Duplicate Detection",
+      "AI Authenticity Analysis",
+      "Data Consistency Check",
+    ];
+    const checks: import("@/components/DocumentVerificationAudit").VerificationCheck[] = checkNames.map((name) => {
+      const key = name.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+      const passed = vr[key] !== false;
+      const defaults = DEFAULT_CHECK_EXPLANATIONS[name];
+      return {
+        name,
+        passed,
+        explanation: passed ? defaults?.pass ?? "Check passed." : defaults?.fail ?? "Check failed.",
+      };
+    });
+    return {
+      documentType: CATEGORY_LABELS[doc.document_category] || doc.document_category,
+      fileName: doc.file_name,
+      submittedBy: getEmailFn(doc.user_id),
+      submissionDate: new Date(doc.created_at).toLocaleDateString(),
+      overallVerified: doc.is_verified,
+      checks,
+    };
+  };
+
     return (
       <div className="min-h-screen bg-background grid-bg flex items-center justify-center">
         <div className="text-primary font-mono animate-pulse">VERIFYING CLEARANCE...</div>
