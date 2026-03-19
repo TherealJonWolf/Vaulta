@@ -72,6 +72,16 @@ interface UploadEvent {
   created_at: string;
 }
 
+interface AdminDocument {
+  id: string;
+  user_id: string;
+  file_name: string;
+  document_category: string;
+  is_verified: boolean;
+  verification_result: any;
+  created_at: string;
+}
+
 const AdminSecurity = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
