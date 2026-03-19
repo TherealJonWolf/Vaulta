@@ -291,7 +291,69 @@ const AdminSecurity = () => {
             </Card>
           </TabsContent>
 
-          {/* Upload Events */}
+          {/* Document Verification Audits */}
+          <TabsContent value="doc-audits">
+            {selectedAuditDoc ? (
+              <div className="space-y-4">
+                <Button variant="ghost" size="sm" className="font-mono text-xs gap-1" onClick={() => setSelectedAuditDoc(null)}>
+                  <ArrowLeft size={14} /> BACK TO LIST
+                </Button>
+                <DocumentVerificationAudit
+                  audit={buildAuditData(selectedAuditDoc, getEmail)}
+                />
+              </div>
+            ) : (
+              <Card className="cyber-border">
+                <CardHeader>
+                  <CardTitle className="font-display text-lg gradient-text flex items-center gap-2">
+                    <ClipboardCheck size={18} />
+                    DOCUMENT VERIFICATION AUDITS
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {adminDocs.length === 0 ? (
+                    <p className="text-muted-foreground font-mono text-sm text-center py-8">NO DOCUMENTS FOUND</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="font-mono text-xs">USER</TableHead>
+                          <TableHead className="font-mono text-xs">FILE</TableHead>
+                          <TableHead className="font-mono text-xs">CATEGORY</TableHead>
+                          <TableHead className="font-mono text-xs">STATUS</TableHead>
+                          <TableHead className="font-mono text-xs">SUBMITTED</TableHead>
+                          <TableHead className="font-mono text-xs">ACTION</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {adminDocs.map((doc) => (
+                          <TableRow key={doc.id}>
+                            <TableCell className="font-mono text-xs">{getEmail(doc.user_id)}</TableCell>
+                            <TableCell className="font-mono text-xs max-w-[180px] truncate" title={doc.file_name}>{doc.file_name}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="font-mono text-[10px] uppercase">{doc.document_category}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={`font-mono text-[10px] ${doc.is_verified ? "bg-[#1D9E75]/15 text-[#1D9E75] border-[#1D9E75]/30" : "bg-[#E24B4A]/15 text-[#E24B4A] border-[#E24B4A]/30"}`}>
+                                {doc.is_verified ? "VERIFIED" : "FLAGGED"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-mono text-xs text-muted-foreground">{new Date(doc.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell>
+                              <Button size="sm" variant="outline" className="font-mono text-xs gap-1" onClick={() => setSelectedAuditDoc(doc)}>
+                                <Eye size={12} /> VIEW AUDIT
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
           <TabsContent value="uploads">
             <Card className="cyber-border">
               <CardHeader>
