@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Shield, ArrowLeft, Users, Activity, AlertTriangle, TrendingDown, Eye, RefreshCw, Lock, Unlock, FileWarning, Upload } from "lucide-react";
+import { Shield, ArrowLeft, Users, Activity, AlertTriangle, TrendingDown, Eye, RefreshCw, Lock, Unlock, FileWarning, Upload, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import DocumentVerificationAudit, { DEFAULT_CHECK_EXPLANATIONS, type DocumentAuditData } from "@/components/DocumentVerificationAudit";
 
 interface CrossAccountSignal {
   id: string;
@@ -71,6 +72,16 @@ interface UploadEvent {
   created_at: string;
 }
 
+interface AdminDocument {
+  id: string;
+  user_id: string;
+  file_name: string;
+  document_category: string;
+  is_verified: boolean;
+  verification_result: any;
+  created_at: string;
+}
+
 const AdminSecurity = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -82,6 +93,8 @@ const AdminSecurity = () => {
   const [evalMeta, setEvalMeta] = useState<EvaluationMeta[]>([]);
   const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
   const [uploadEvents, setUploadEvents] = useState<UploadEvent[]>([]);
+  const [adminDocs, setAdminDocs] = useState<AdminDocument[]>([]);
+  const [selectedAuditDoc, setSelectedAuditDoc] = useState<AdminDocument | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -97,12 +110,13 @@ const AdminSecurity = () => {
 
   const fetchAll = async () => {
     setRefreshing(true);
-    const [signalsRes, historyRes, evalRes, profilesRes, uploadEventsRes] = await Promise.all([
+    const [signalsRes, historyRes, evalRes, profilesRes, uploadEventsRes, docsRes] = await Promise.all([
       (supabase.from("cross_account_signals") as any).select("*").order("last_seen_at", { ascending: false }).limit(50),
       (supabase.from("trust_history") as any).select("*").order("created_at", { ascending: false }).limit(100),
       (supabase.from("evaluation_metadata") as any).select("*").order("boundary_hugging_score", { ascending: false }),
       (supabase.from("profiles") as any).select("user_id, email, full_name, failed_login_attempts, account_locked_at"),
       (supabase.from("document_upload_events") as any).select("*").order("created_at", { ascending: false }).limit(200),
+      (supabase.from("documents") as any).select("id, user_id, file_name, document_category, is_verified, verification_result, created_at").order("created_at", { ascending: false }).limit(200),
     ]);
 
     if (signalsRes.data) setCrossSignals(signalsRes.data);
@@ -110,6 +124,7 @@ const AdminSecurity = () => {
     if (evalRes.data) setEvalMeta(evalRes.data);
     if (profilesRes.data) setProfiles(profilesRes.data);
     if (uploadEventsRes.data) setUploadEvents(uploadEventsRes.data);
+    if (docsRes.data) setAdminDocs(docsRes.data);
     setRefreshing(false);
   };
 
@@ -147,6 +162,44 @@ const AdminSecurity = () => {
     } catch (err: any) {
       toast({ title: "Unlock failed", description: err.message, variant: "destructive" });
     }
+  };
+
+  const CATEGORY_LABELS: Record<string, string> = {
+    identity: "Identity Document",
+    financial: "Financial Document",
+    general: "General Document",
+  };
+
+  const buildAuditData = (doc: AdminDocument, getEmailFn: (id: string) => string): DocumentAuditData => {
+    const vr = doc.verification_result || {};
+    const checkNames = [
+      "Magic-Byte Signature Check",
+      "Malicious Content Scan",
+      "SHA-256 Fingerprint",
+      "EXIF & Metadata Analysis",
+      "Document Structure Validation",
+      "Cross-User Duplicate Detection",
+      "AI Authenticity Analysis",
+      "Data Consistency Check",
+    ];
+    const checks: import("@/components/DocumentVerificationAudit").VerificationCheck[] = checkNames.map((name) => {
+      const key = name.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+      const passed = vr[key] !== false;
+      const defaults = DEFAULT_CHECK_EXPLANATIONS[name];
+      return {
+        name,
+        passed,
+        explanation: passed ? defaults?.pass ?? "Check passed." : defaults?.fail ?? "Check failed.",
+      };
+    });
+    return {
+      documentType: CATEGORY_LABELS[doc.document_category] || doc.document_category,
+      fileName: doc.file_name,
+      submittedBy: getEmailFn(doc.user_id),
+      submissionDate: new Date(doc.created_at).toLocaleDateString(),
+      overallVerified: doc.is_verified,
+      checks,
+    };
   };
 
   if (authLoading || roleLoading) {
@@ -211,8 +264,9 @@ const AdminSecurity = () => {
         </div>
 
         <Tabs defaultValue="locked" className="space-y-6">
-          <TabsList className="bg-card border border-border">
+          <TabsList className="bg-card border border-border flex-wrap">
             <TabsTrigger value="locked" className="font-mono text-xs">LOCKED ACCOUNTS</TabsTrigger>
+            <TabsTrigger value="doc-audits" className="font-mono text-xs">DOC AUDITS</TabsTrigger>
             <TabsTrigger value="uploads" className="font-mono text-xs">UPLOAD EVENTS</TabsTrigger>
             <TabsTrigger value="clusters" className="font-mono text-xs">CROSS-ACCOUNT CLUSTERS</TabsTrigger>
             <TabsTrigger value="boundary" className="font-mono text-xs">BOUNDARY HUGGING</TabsTrigger>
@@ -275,7 +329,69 @@ const AdminSecurity = () => {
             </Card>
           </TabsContent>
 
-          {/* Upload Events */}
+          {/* Document Verification Audits */}
+          <TabsContent value="doc-audits">
+            {selectedAuditDoc ? (
+              <div className="space-y-4">
+                <Button variant="ghost" size="sm" className="font-mono text-xs gap-1" onClick={() => setSelectedAuditDoc(null)}>
+                  <ArrowLeft size={14} /> BACK TO LIST
+                </Button>
+                <DocumentVerificationAudit
+                  audit={buildAuditData(selectedAuditDoc, getEmail)}
+                />
+              </div>
+            ) : (
+              <Card className="cyber-border">
+                <CardHeader>
+                  <CardTitle className="font-display text-lg gradient-text flex items-center gap-2">
+                    <ClipboardCheck size={18} />
+                    DOCUMENT VERIFICATION AUDITS
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {adminDocs.length === 0 ? (
+                    <p className="text-muted-foreground font-mono text-sm text-center py-8">NO DOCUMENTS FOUND</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="font-mono text-xs">USER</TableHead>
+                          <TableHead className="font-mono text-xs">FILE</TableHead>
+                          <TableHead className="font-mono text-xs">CATEGORY</TableHead>
+                          <TableHead className="font-mono text-xs">STATUS</TableHead>
+                          <TableHead className="font-mono text-xs">SUBMITTED</TableHead>
+                          <TableHead className="font-mono text-xs">ACTION</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {adminDocs.map((doc) => (
+                          <TableRow key={doc.id}>
+                            <TableCell className="font-mono text-xs">{getEmail(doc.user_id)}</TableCell>
+                            <TableCell className="font-mono text-xs max-w-[180px] truncate" title={doc.file_name}>{doc.file_name}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="font-mono text-[10px] uppercase">{doc.document_category}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={`font-mono text-[10px] ${doc.is_verified ? "bg-[#1D9E75]/15 text-[#1D9E75] border-[#1D9E75]/30" : "bg-[#E24B4A]/15 text-[#E24B4A] border-[#E24B4A]/30"}`}>
+                                {doc.is_verified ? "VERIFIED" : "FLAGGED"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-mono text-xs text-muted-foreground">{new Date(doc.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell>
+                              <Button size="sm" variant="outline" className="font-mono text-xs gap-1" onClick={() => setSelectedAuditDoc(doc)}>
+                                <Eye size={12} /> VIEW AUDIT
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
           <TabsContent value="uploads">
             <Card className="cyber-border">
               <CardHeader>
