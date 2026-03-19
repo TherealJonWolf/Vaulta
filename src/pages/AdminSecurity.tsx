@@ -202,6 +202,7 @@ const AdminSecurity = () => {
     };
   };
 
+  if (authLoading || roleLoading) {
     return (
       <div className="min-h-screen bg-background grid-bg flex items-center justify-center">
         <div className="text-primary font-mono animate-pulse">VERIFYING CLEARANCE...</div>
