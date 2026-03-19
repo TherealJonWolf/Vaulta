@@ -93,6 +93,8 @@ const AdminSecurity = () => {
   const [evalMeta, setEvalMeta] = useState<EvaluationMeta[]>([]);
   const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
   const [uploadEvents, setUploadEvents] = useState<UploadEvent[]>([]);
+  const [adminDocs, setAdminDocs] = useState<AdminDocument[]>([]);
+  const [selectedAuditDoc, setSelectedAuditDoc] = useState<AdminDocument | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
