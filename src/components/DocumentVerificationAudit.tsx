@@ -90,8 +90,10 @@ const DocumentVerificationAudit = ({ audit }: Props) => {
       const a = document.createElement("a");
       a.href = url;
       a.download = `vaulta-audit-${audit.fileName.replace(/\s+/g, "_")}.txt`;
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } finally {
       setGenerating(false);
     }
