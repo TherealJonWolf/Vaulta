@@ -124,6 +124,7 @@ const AdminSecurity = () => {
     if (evalRes.data) setEvalMeta(evalRes.data);
     if (profilesRes.data) setProfiles(profilesRes.data);
     if (uploadEventsRes.data) setUploadEvents(uploadEventsRes.data);
+    if (docsRes.data) setAdminDocs(docsRes.data);
     setRefreshing(false);
   };
 
