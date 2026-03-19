@@ -110,12 +110,13 @@ const AdminSecurity = () => {
 
   const fetchAll = async () => {
     setRefreshing(true);
-    const [signalsRes, historyRes, evalRes, profilesRes, uploadEventsRes] = await Promise.all([
+    const [signalsRes, historyRes, evalRes, profilesRes, uploadEventsRes, docsRes] = await Promise.all([
       (supabase.from("cross_account_signals") as any).select("*").order("last_seen_at", { ascending: false }).limit(50),
       (supabase.from("trust_history") as any).select("*").order("created_at", { ascending: false }).limit(100),
       (supabase.from("evaluation_metadata") as any).select("*").order("boundary_hugging_score", { ascending: false }),
       (supabase.from("profiles") as any).select("user_id, email, full_name, failed_login_attempts, account_locked_at"),
       (supabase.from("document_upload_events") as any).select("*").order("created_at", { ascending: false }).limit(200),
+      (supabase.from("documents") as any).select("id, user_id, file_name, document_category, is_verified, verification_result, created_at").order("created_at", { ascending: false }).limit(200),
     ]);
 
     if (signalsRes.data) setCrossSignals(signalsRes.data);
