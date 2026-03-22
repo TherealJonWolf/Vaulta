@@ -395,6 +395,41 @@ export type Database = {
         }
         Relationships: []
       }
+      landlord_saved_applicants: {
+        Row: {
+          applicant_user_id: string
+          id: string
+          landlord_user_id: string
+          notes: string | null
+          saved_at: string
+          shared_token_id: string | null
+        }
+        Insert: {
+          applicant_user_id: string
+          id?: string
+          landlord_user_id: string
+          notes?: string | null
+          saved_at?: string
+          shared_token_id?: string | null
+        }
+        Update: {
+          applicant_user_id?: string
+          id?: string
+          landlord_user_id?: string
+          notes?: string | null
+          saved_at?: string
+          shared_token_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landlord_saved_applicants_shared_token_id_fkey"
+            columns: ["shared_token_id"]
+            isOneToOne: false
+            referencedRelation: "shared_profile_tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       login_history: {
         Row: {
           failure_reason: string | null
@@ -524,6 +559,39 @@ export type Database = {
           metadata?: Json | null
           user_agent?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      shared_profile_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          is_active: boolean
+          label: string | null
+          token: string
+          user_id: string
+          view_count: number
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          token: string
+          user_id: string
+          view_count?: number
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          token?: string
+          user_id?: string
+          view_count?: number
         }
         Relationships: []
       }
@@ -759,13 +827,23 @@ export type Database = {
       increment_failed_login: { Args: { p_email: string }; Returns: Json }
       is_email_blacklisted: { Args: { check_email: string }; Returns: boolean }
       reset_failed_login: { Args: { p_user_id: string }; Returns: undefined }
+      resolve_shared_token: {
+        Args: { p_token: string }
+        Returns: {
+          applicant_email: string
+          applicant_name: string
+          is_valid: boolean
+          token_id: string
+          user_id: string
+        }[]
+      }
       verify_recovery_code: {
         Args: { p_code_hash: string; p_user_id: string }
         Returns: boolean
       }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "landlord"
       document_category: "identity" | "financial" | "general"
       trust_level:
         | "restricted"
@@ -900,7 +978,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "landlord"],
       document_category: ["identity", "financial", "general"],
       trust_level: [
         "restricted",
