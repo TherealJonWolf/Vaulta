@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useVaultEncryption } from "@/hooks/useVaultEncryption";
 import AIOracle from "@/components/AIOracle";
+import ShareVaultButton from "@/components/ShareVaultButton";
 import DocumentUpload from "@/components/DocumentUpload";
 import DocumentList from "@/components/DocumentList";
 import InstitutionConnect from "@/components/InstitutionConnect";
