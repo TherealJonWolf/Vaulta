@@ -6,6 +6,7 @@ import { Button } from "./ui/button";
 const navLinks = [
   { label: "SECURITY", href: "#security", isRoute: false },
   { label: "MISSION", href: "#mission", isRoute: false },
+  { label: "LANDLORDS", href: "/landlord", isRoute: true },
   { label: "BRAND", href: "/brand", isRoute: true },
   { label: "GET APP", href: "/install", isRoute: true },
 ];
