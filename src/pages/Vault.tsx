@@ -161,6 +161,7 @@ const Vault = () => {
               <Button variant="ghost" onClick={() => setSecurityOpen(true)} className="text-muted-foreground" title="Security Dashboard">
                 <ShieldCheck size={18} />
               </Button>
+              <ShareVaultButton />
               <Button variant="ghost" onClick={() => setSettingsOpen(true)} className="text-muted-foreground" title="Settings">
                 <Settings size={18} />
               </Button>
