@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useVaultEncryption } from "@/hooks/useVaultEncryption";
 import AIOracle from "@/components/AIOracle";
+import ShareVaultButton from "@/components/ShareVaultButton";
 import DocumentUpload from "@/components/DocumentUpload";
 import DocumentList from "@/components/DocumentList";
 import InstitutionConnect from "@/components/InstitutionConnect";
@@ -160,6 +161,7 @@ const Vault = () => {
               <Button variant="ghost" onClick={() => setSecurityOpen(true)} className="text-muted-foreground" title="Security Dashboard">
                 <ShieldCheck size={18} />
               </Button>
+              <ShareVaultButton />
               <Button variant="ghost" onClick={() => setSettingsOpen(true)} className="text-muted-foreground" title="Settings">
                 <Settings size={18} />
               </Button>
