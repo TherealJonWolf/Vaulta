@@ -18,6 +18,8 @@ import Install from "./pages/Install";
 import WhatVaultaIs from "./pages/WhatVaultaIs";
 import ResetPassword from "./pages/ResetPassword";
 import AdminSecurity from "./pages/AdminSecurity";
+import SharedProfile from "./pages/SharedProfile";
+import LandlordDashboard from "./pages/LandlordDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +46,8 @@ const App = () => (
             <Route path="/what-vaulta-is" element={<WhatVaultaIs />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/admin/security" element={<AdminSecurity />} />
+            <Route path="/shared/:token" element={<SharedProfile />} />
+            <Route path="/landlord" element={<LandlordDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
