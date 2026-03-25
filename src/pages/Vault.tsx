@@ -22,6 +22,8 @@ import UpgradePrompt from "@/components/UpgradePrompt";
 import VeriffVerification from "@/components/VeriffVerification";
 import VaultPassphraseGate from "@/components/VaultPassphraseGate";
 import { useSubscription } from "@/hooks/useSubscription";
+import NotificationCenter from "@/components/NotificationCenter";
+import OnboardingTour, { ONBOARDING_STORAGE_KEY } from "@/components/OnboardingTour";
 
 const Vault = () => {
   const navigate = useNavigate();
