@@ -66,35 +66,7 @@ const DocumentVerificationAudit = ({ audit }: Props) => {
   const handleDownloadReport = async () => {
     setGenerating(true);
     try {
-      const lines = [
-        "VAULTA — DOCUMENT VERIFICATION AUDIT REPORT",
-        "=".repeat(50),
-        "",
-        `Document Type:    ${audit.documentType}`,
-        `File Name:        ${audit.fileName}`,
-        `Submitted By:     ${audit.submittedBy}`,
-        `Submission Date:  ${audit.submissionDate}`,
-        `Overall Status:   ${audit.overallVerified ? "VERIFIED" : "FLAGGED"}`,
-        "",
-        "-".repeat(50),
-        "",
-        ...audit.checks.flatMap((c) => [
-          `[${c.passed ? "PASS" : "FAIL"}] ${c.name}`,
-          `  ${c.explanation}`,
-          "",
-        ]),
-        "-".repeat(50),
-        `Report generated: ${new Date().toISOString()}`,
-      ];
-      const blob = new Blob([lines.join("\n")], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `vaulta-audit-${audit.fileName.replace(/\s+/g, "_")}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      exportAuditReportPdf(audit);
     } finally {
       setGenerating(false);
     }
