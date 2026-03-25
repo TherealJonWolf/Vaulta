@@ -275,6 +275,7 @@ const LenderDashboard = () => {
                             <div className="flex items-center gap-2 mb-1">
                               <Shield size={16} className="text-primary shrink-0" />
                               <span className="font-display font-bold text-sm truncate">{item.tokenLabel || "Shared Profile"}</span>
+                              <ApplicantScoreIndicator applicantUserId={item.applicant_user_id} />
                               {item.tokenActive ? (
                                 <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/30 font-mono text-[10px] shrink-0">ACTIVE</Badge>
                               ) : (
