@@ -205,6 +205,7 @@ const LandlordDashboard = () => {
                           <span className="font-display font-bold text-sm truncate">
                             {item.tokenLabel || "Shared Profile"}
                           </span>
+                          <ApplicantScoreIndicator applicantUserId={item.applicant_user_id} />
                           {item.tokenActive ? (
                             <Badge className="bg-[#1D9E75]/15 text-[#1D9E75] border-[#1D9E75]/30 font-mono text-[10px] shrink-0">
                               ACTIVE
