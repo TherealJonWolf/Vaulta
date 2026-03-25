@@ -1,15 +1,20 @@
 import { useState, useEffect } from "react";
+import { History } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { getNarrativesForApplicant, type TrustNarrative } from "@/lib/trustNarrative";
 import { TrustNarrativeCard, ScoreStateIndicator } from "@/components/TrustNarrativeCard";
+import { NarrativeTimelineDialog } from "@/components/NarrativeTimeline";
 
 interface ApplicantNarrativesProps {
   applicantUserId: string;
+  applicantLabel?: string;
   compact?: boolean;
 }
 
-export function ApplicantNarratives({ applicantUserId, compact }: ApplicantNarrativesProps) {
+export function ApplicantNarratives({ applicantUserId, applicantLabel, compact }: ApplicantNarrativesProps) {
   const [narratives, setNarratives] = useState<TrustNarrative[]>([]);
   const [loading, setLoading] = useState(true);
+  const [timelineOpen, setTimelineOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,12 +43,28 @@ export function ApplicantNarratives({ applicantUserId, compact }: ApplicantNarra
     );
   }
 
-  // Show the most recent narrative
   const latest = narratives[0];
 
   return (
     <div className="mt-3">
       <TrustNarrativeCard narrative={latest} compact={compact} />
+      {narratives.length > 1 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mt-1.5 h-6 text-[10px] font-mono gap-1 text-muted-foreground hover:text-primary"
+          onClick={() => setTimelineOpen(true)}
+        >
+          <History size={10} />
+          {narratives.length} assessments — view history
+        </Button>
+      )}
+      <NarrativeTimelineDialog
+        open={timelineOpen}
+        onOpenChange={setTimelineOpen}
+        applicantUserId={applicantUserId}
+        applicantLabel={applicantLabel}
+      />
     </div>
   );
 }
