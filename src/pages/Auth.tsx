@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Shield, Eye, EyeOff, Lock, ArrowLeft } from "lucide-react";
+import { Shield, Eye, EyeOff, Lock, ArrowLeft, Building2, User, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,10 +9,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import MFAVerification from "@/components/MFAVerification";
 
+type SignupRole = "user" | "landlord";
+
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const isSignup = searchParams.get("mode") === "signup";
+  const initialRole = searchParams.get("role") as SignupRole | null;
   const [mode, setMode] = useState<"login" | "signup">(isSignup ? "signup" : "login");
+  const [signupRole, setSignupRole] = useState<SignupRole>(initialRole === "landlord" ? "landlord" : "user");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -26,7 +30,6 @@ const Auth = () => {
   const { user, mfaRequired, currentLevel, signIn, signUp, checkMFAStatus } = useAuth();
 
   useEffect(() => {
-    // Only navigate if user is authenticated AND MFA is not required
     if (user && !mfaRequired && currentLevel !== "aal1") {
       navigate("/vault");
     }
@@ -69,7 +72,7 @@ const Auth = () => {
           navigate("/vault");
         }
       } else {
-        const { error } = await signUp(email, password);
+        const { error } = await signUp(email, password, signupRole);
         
         if (error) {
           toast({
@@ -78,11 +81,14 @@ const Auth = () => {
             description: error.message,
           });
         } else {
+          const destination = signupRole === "landlord" ? "/landlord" : "/vault";
           toast({
-            title: "Vault Initialized!",
-            description: "Your identity has been secured.",
+            title: signupRole === "landlord" ? "Dashboard Initialized!" : "Vault Initialized!",
+            description: signupRole === "landlord" 
+              ? "Your compliance-ready landlord portal is ready."
+              : "Your identity has been secured.",
           });
-          navigate("/vault");
+          navigate(destination);
         }
       }
     } catch (error) {
@@ -108,7 +114,6 @@ const Auth = () => {
 
   const handleMFACancel = async () => {
     setShowMFAVerification(false);
-    // Sign out since MFA was cancelled
     const { signOut } = await import("@/integrations/supabase/client").then(m => ({ signOut: m.supabase.auth.signOut.bind(m.supabase.auth) }));
     await signOut();
   };
@@ -187,9 +192,67 @@ const Auth = () => {
           <h1 className="font-display text-3xl font-bold text-center gradient-text mb-2">
             {mode === "login" ? "VAULT ACCESS" : "INITIALIZE VAULT"}
           </h1>
-          <p className="text-center text-muted-foreground font-mono text-sm mb-8">
+          <p className="text-center text-muted-foreground font-mono text-sm mb-6">
             // {mode === "login" ? "AUTHENTICATE TO ENTER" : "CREATE YOUR SOVEREIGN IDENTITY"} //
           </p>
+
+          {/* Role selector tabs — only shown in signup mode */}
+          {mode === "signup" && (
+            <div className="mb-6">
+              <p className="text-xs text-muted-foreground font-mono text-center mb-3 uppercase tracking-widest">Select Account Type</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSignupRole("user")}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all duration-200 ${
+                    signupRole === "user"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-card/30 text-muted-foreground hover:border-primary/40"
+                  }`}
+                >
+                  <User size={20} />
+                  <span className="font-rajdhani font-semibold text-sm">Applicant</span>
+                  <span className="text-[10px] font-mono opacity-70 leading-tight text-center">
+                    Tenants & Individuals
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSignupRole("landlord")}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all duration-200 ${
+                    signupRole === "landlord"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-card/30 text-muted-foreground hover:border-primary/40"
+                  }`}
+                >
+                  <Building2 size={20} />
+                  <span className="font-rajdhani font-semibold text-sm">Landlord / Lender</span>
+                  <span className="text-[10px] font-mono opacity-70 leading-tight text-center">
+                    Property Managers & Banks
+                  </span>
+                </button>
+              </div>
+
+              {/* Compliance badge for landlord/lender */}
+              {signupRole === "landlord" && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="mt-3 p-2.5 rounded-lg border border-primary/20 bg-primary/5"
+                >
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Landmark size={14} className="text-primary" />
+                    <span className="text-xs font-rajdhani font-semibold text-primary">Enterprise-Grade Compliance</span>
+                  </div>
+                  <p className="text-[10px] font-mono text-muted-foreground leading-relaxed">
+                    SOC 2 · SOX · GDPR · FCRA · FedRAMP · GLBA · ISO 27001 · CCPA
+                    <br />
+                    End-to-end encrypted · Zero-knowledge architecture
+                  </p>
+                </motion.div>
+              )}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
@@ -209,7 +272,14 @@ const Auth = () => {
 
             <Button type="submit" className="w-full btn-gradient font-rajdhani font-bold tracking-wider text-primary-foreground" disabled={loading}>
               <Lock size={18} className="mr-2" />
-              {loading ? "PROCESSING..." : mode === "login" ? "ACCESS VAULT" : "CREATE VAULT"}
+              {loading 
+                ? "PROCESSING..." 
+                : mode === "login" 
+                  ? "ACCESS VAULT" 
+                  : signupRole === "landlord" 
+                    ? "INITIALIZE DASHBOARD" 
+                    : "CREATE VAULT"
+              }
             </Button>
           </form>
 
