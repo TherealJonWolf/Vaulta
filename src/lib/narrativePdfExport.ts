@@ -59,9 +59,10 @@ export function exportNarrativePdf(narrative: TrustNarrative) {
   doc.setTextColor(...COLORS.dark);
   doc.text("VAULTA", margin, y);
 
-  // TM symbol
-  doc.setFontSize(8);
-  doc.text("\u2122", margin + doc.getTextWidth("VAULTA") + 0.5, y - 4);
+  // TM symbol — offset further right to avoid overlap
+  const vaultaWidth = doc.getTextWidth("VAULTA");
+  doc.setFontSize(7);
+  doc.text("\u2122", margin + vaultaWidth + 1, y - 5);
 
   // Right-aligned score state badge
   doc.setFillColor(...stateColor);
