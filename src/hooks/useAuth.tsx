@@ -95,7 +95,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Assign role after successful signup
     if (!error && data.user) {
       const roleToAssign = role === 'landlord' ? 'landlord' : 'user';
-      await supabase.rpc('assign_user_role', { p_user_id: data.user.id, p_role: roleToAssign });
+      await (supabase.rpc as any)('assign_user_role', { p_user_id: data.user.id, p_role: roleToAssign });
     }
     
     return { error: error as Error | null };
