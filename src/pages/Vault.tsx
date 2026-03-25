@@ -66,6 +66,14 @@ const Vault = () => {
     }
   }, [user, loading, mfaRequired, navigate]);
 
+  // Show onboarding for new users
+  useEffect(() => {
+    if (user && !loading && isUnlocked) {
+      const completed = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+      if (!completed) setShowOnboarding(true);
+    }
+  }, [user, loading, isUnlocked]);
+
   // Check if user has a passphrase set
   useEffect(() => {
     if (user && !loading) {
