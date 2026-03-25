@@ -804,6 +804,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_user_role: {
+        Args: {
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       check_account_locked: { Args: { p_email: string }; Returns: boolean }
       check_document_hash: {
         Args: { p_hash: string }

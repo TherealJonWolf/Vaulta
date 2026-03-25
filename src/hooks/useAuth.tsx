@@ -9,7 +9,7 @@ interface AuthContextType {
   loading: boolean;
   mfaRequired: boolean;
   currentLevel: AuthenticatorAssuranceLevels | null;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, role?: 'user' | 'landlord') => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null; mfaRequired?: boolean; accountLocked?: boolean }>;
   signOut: () => Promise<void>;
   checkMFAStatus: () => Promise<boolean>;
@@ -79,16 +79,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string) => {
-    const redirectUrl = `${window.location.origin}/vault`;
+  const signUp = async (email: string, password: string, role: 'user' | 'landlord' = 'user') => {
+    const redirectUrl = role === 'landlord' 
+      ? `${window.location.origin}/landlord`
+      : `${window.location.origin}/vault`;
     
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
       },
     });
+    
+    // Assign role after successful signup
+    if (!error && data.user) {
+      const roleToAssign = role === 'landlord' ? 'landlord' : 'user';
+      await supabase.rpc('assign_user_role', { p_user_id: data.user.id, p_role: roleToAssign });
+    }
     
     return { error: error as Error | null };
   };
