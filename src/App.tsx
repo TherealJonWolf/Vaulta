@@ -20,6 +20,7 @@ import ResetPassword from "./pages/ResetPassword";
 import AdminSecurity from "./pages/AdminSecurity";
 import SharedProfile from "./pages/SharedProfile";
 import LandlordDashboard from "./pages/LandlordDashboard";
+import LenderDashboard from "./pages/LenderDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/admin/security" element={<AdminSecurity />} />
             <Route path="/shared/:token" element={<SharedProfile />} />
             <Route path="/landlord" element={<LandlordDashboard />} />
+            <Route path="/lender" element={<LenderDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
