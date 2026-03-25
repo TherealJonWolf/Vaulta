@@ -9,7 +9,7 @@ interface AuthContextType {
   loading: boolean;
   mfaRequired: boolean;
   currentLevel: AuthenticatorAssuranceLevels | null;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, role?: 'user' | 'landlord') => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null; mfaRequired?: boolean; accountLocked?: boolean }>;
   signOut: () => Promise<void>;
   checkMFAStatus: () => Promise<boolean>;
