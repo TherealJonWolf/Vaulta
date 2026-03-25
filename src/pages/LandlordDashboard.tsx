@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ApplicantNarratives, ApplicantScoreIndicator } from "@/components/ApplicantNarratives";
 
 interface SavedApplicant {
   id: string;
