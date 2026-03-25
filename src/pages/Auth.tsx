@@ -44,6 +44,14 @@ const Auth = () => {
     setLoading(true);
     
     try {
+      if (mode === "signup") {
+        const check = isPasswordAcceptable(password);
+        if (!check.ok) {
+          toast({ variant: "destructive", title: "Weak Password", description: check.reason });
+          setLoading(false);
+          return;
+        }
+      }
       if (mode === "login") {
         const { error, mfaRequired, accountLocked } = await signIn(email, password);
         
