@@ -49,6 +49,7 @@ const App = () => (
             <Route path="/admin/security" element={<AdminSecurity />} />
             <Route path="/shared/:token" element={<SharedProfile />} />
             <Route path="/landlord" element={<LandlordDashboard />} />
+            <Route path="/lender" element={<LenderDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
