@@ -3,7 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Building2, ArrowLeft, Users, Shield, ShieldCheck, ShieldAlert,
-  Clock, Trash2, ExternalLink, RefreshCw, Search, StickyNote, BookmarkPlus
+  Clock, Trash2, ExternalLink, RefreshCw, Search, StickyNote, BookmarkPlus,
+  CheckCircle2, Lock, Globe, FileCheck, Scale, Landmark, Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -164,6 +165,64 @@ const LandlordDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Compliance & Framework Badges */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="mb-8"
+        >
+          <Card className="cyber-border overflow-hidden">
+            <CardContent className="p-0">
+              <div className="px-5 py-3 border-b border-border flex items-center gap-2">
+                <ShieldCheck size={16} className="text-primary" />
+                <span className="font-display text-xs font-bold text-foreground tracking-wide">COMPLIANCE FRAMEWORKS</span>
+                <span className="text-[10px] font-mono text-muted-foreground ml-auto">All assessments comply with:</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-border">
+                {[
+                  { name: "SOC 2", status: "Compliant", icon: <ShieldCheck size={14} />, color: "text-[#1D9E75]", desc: "Service Organization Control" },
+                  { name: "GDPR", status: "Compliant", icon: <Globe size={14} />, color: "text-[#1D9E75]", desc: "EU Data Protection" },
+                  { name: "FCRA", status: "Compliant", icon: <Scale size={14} />, color: "text-[#1D9E75]", desc: "Fair Credit Reporting Act" },
+                  { name: "FHA", status: "Aligned", icon: <Landmark size={14} />, color: "text-primary", desc: "Fair Housing Act" },
+                  { name: "ECOA", status: "Aligned", icon: <Scale size={14} />, color: "text-primary", desc: "Equal Credit Opportunity" },
+                  { name: "GLBA", status: "Compliant", icon: <Lock size={14} />, color: "text-[#1D9E75]", desc: "Gramm-Leach-Bliley Act" },
+                  { name: "CCPA", status: "Compliant", icon: <Eye size={14} />, color: "text-[#1D9E75]", desc: "CA Consumer Privacy Act" },
+                  { name: "NIST 800-53", status: "Verified", icon: <FileCheck size={14} />, color: "text-[#1D9E75]", desc: "Federal Security Controls" },
+                ].map((fw) => (
+                  <div key={fw.name} className="bg-card p-3 flex items-start gap-2.5">
+                    <div className={`mt-0.5 shrink-0 ${fw.color}`}>{fw.icon}</div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-display text-xs font-bold text-foreground">{fw.name}</span>
+                        <CheckCircle2 size={10} className={fw.color} />
+                      </div>
+                      <p className="text-[10px] font-mono text-muted-foreground leading-tight mt-0.5">{fw.desc}</p>
+                      <Badge
+                        className={`mt-1 text-[9px] px-1.5 py-0 font-mono border ${
+                          fw.status === "Compliant"
+                            ? "bg-[#1D9E75]/10 text-[#1D9E75] border-[#1D9E75]/20"
+                            : fw.status === "Verified"
+                            ? "bg-[#1D9E75]/10 text-[#1D9E75] border-[#1D9E75]/20"
+                            : "bg-primary/10 text-primary border-primary/20"
+                        }`}
+                      >
+                        {fw.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="px-5 py-2.5 border-t border-border flex items-center gap-2">
+                <Lock size={12} className="text-muted-foreground" />
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  E2E Encrypted · Zero-Knowledge Architecture · AES-256-GCM · ISO 27001 Aligned
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Search */}
         <div className="relative mb-6">
