@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import MFAVerification from "@/components/MFAVerification";
+import PasswordStrengthMeter from "@/components/PasswordStrengthMeter";
+import { isPasswordAcceptable } from "@/lib/passwordStrength";
 
 type SignupRole = "user" | "landlord";
 
@@ -42,6 +44,14 @@ const Auth = () => {
     setLoading(true);
     
     try {
+      if (mode === "signup") {
+        const check = isPasswordAcceptable(password);
+        if (!check.ok) {
+          toast({ variant: "destructive", title: "Weak Password", description: check.reason });
+          setLoading(false);
+          return;
+        }
+      }
       if (mode === "login") {
         const { error, mfaRequired, accountLocked } = await signIn(email, password);
         
@@ -263,11 +273,12 @@ const Auth = () => {
             <div className="space-y-2">
               <Label htmlFor="password" className="font-rajdhani">Password</Label>
               <div className="relative">
-                <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-card/50 border-border focus:border-primary pr-10" required minLength={6} />
+                <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-card/50 border-border focus:border-primary pr-10" required minLength={8} />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              {mode === "signup" && <PasswordStrengthMeter password={password} />}
             </div>
 
             <Button type="submit" className="w-full btn-gradient font-rajdhani font-bold tracking-wider text-primary-foreground" disabled={loading}>

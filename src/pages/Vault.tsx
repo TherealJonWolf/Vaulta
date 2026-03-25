@@ -22,6 +22,8 @@ import UpgradePrompt from "@/components/UpgradePrompt";
 import VeriffVerification from "@/components/VeriffVerification";
 import VaultPassphraseGate from "@/components/VaultPassphraseGate";
 import { useSubscription } from "@/hooks/useSubscription";
+import NotificationCenter from "@/components/NotificationCenter";
+import OnboardingTour, { ONBOARDING_STORAGE_KEY } from "@/components/OnboardingTour";
 
 const Vault = () => {
   const navigate = useNavigate();
@@ -42,6 +44,7 @@ const Vault = () => {
   const [veriffOpen, setVeriffOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [passphraseLoading, setPassphraseLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const {
     isUnlocked,
@@ -62,6 +65,14 @@ const Vault = () => {
       navigate("/auth");
     }
   }, [user, loading, mfaRequired, navigate]);
+
+  // Show onboarding for new users
+  useEffect(() => {
+    if (user && !loading && isUnlocked) {
+      const completed = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+      if (!completed) setShowOnboarding(true);
+    }
+  }, [user, loading, isUnlocked]);
 
   // Check if user has a passphrase set
   useEffect(() => {
@@ -161,6 +172,7 @@ const Vault = () => {
               <Button variant="ghost" onClick={() => setSecurityOpen(true)} className="text-muted-foreground" title="Security Dashboard">
                 <ShieldCheck size={18} />
               </Button>
+              <NotificationCenter />
               <ShareVaultButton />
               <Button variant="ghost" onClick={() => setSettingsOpen(true)} className="text-muted-foreground" title="Settings">
                 <Settings size={18} />
@@ -270,6 +282,7 @@ const Vault = () => {
       <ThreatSimulation open={threatSimOpen} onOpenChange={setThreatSimOpen} />
       <UpgradePrompt isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
       <VeriffVerification open={veriffOpen} onOpenChange={setVeriffOpen} />
+      {showOnboarding && <OnboardingTour onComplete={() => setShowOnboarding(false)} />}
     </div>
   );
 };
