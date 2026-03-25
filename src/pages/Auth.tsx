@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import MFAVerification from "@/components/MFAVerification";
+import PasswordStrengthMeter from "@/components/PasswordStrengthMeter";
+import { isPasswordAcceptable } from "@/lib/passwordStrength";
 
 type SignupRole = "user" | "landlord";
 
