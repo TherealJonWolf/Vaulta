@@ -224,6 +224,7 @@ const LandlordDashboard = () => {
                             📝 {item.notes}
                           </p>
                         )}
+                        <ApplicantNarratives applicantUserId={item.applicant_user_id} compact />
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         {item.token && item.tokenActive && (
