@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { calculateDocumentTrustContribution, type DocumentCategory } from "@/lib/documentClassifier";
+import { createNarrative, deriveScoreState } from "@/lib/trustNarrative";
 
 export interface TrustScoreResult {
   trustScore: number;
