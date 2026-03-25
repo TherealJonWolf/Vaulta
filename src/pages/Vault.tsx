@@ -282,6 +282,7 @@ const Vault = () => {
       <ThreatSimulation open={threatSimOpen} onOpenChange={setThreatSimOpen} />
       <UpgradePrompt isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
       <VeriffVerification open={veriffOpen} onOpenChange={setVeriffOpen} />
+      {showOnboarding && <OnboardingTour onComplete={() => setShowOnboarding(false)} />}
     </div>
   );
 };
