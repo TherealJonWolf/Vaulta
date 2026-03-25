@@ -18,6 +18,7 @@ import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ApplicantNarratives, ApplicantScoreIndicator } from "@/components/ApplicantNarratives";
 
 interface SavedApplicant {
   id: string;
@@ -274,6 +275,7 @@ const LenderDashboard = () => {
                             <div className="flex items-center gap-2 mb-1">
                               <Shield size={16} className="text-primary shrink-0" />
                               <span className="font-display font-bold text-sm truncate">{item.tokenLabel || "Shared Profile"}</span>
+                              <ApplicantScoreIndicator applicantUserId={item.applicant_user_id} />
                               {item.tokenActive ? (
                                 <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/30 font-mono text-[10px] shrink-0">ACTIVE</Badge>
                               ) : (
@@ -284,6 +286,7 @@ const LenderDashboard = () => {
                             {item.notes && (
                               <p className="text-xs text-muted-foreground font-rajdhani mt-2 p-2 rounded bg-muted/30 border border-border">📝 {item.notes}</p>
                             )}
+                            <ApplicantNarratives applicantUserId={item.applicant_user_id} compact />
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             {item.token && item.tokenActive && (

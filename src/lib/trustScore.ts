@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { calculateDocumentTrustContribution, type DocumentCategory } from "@/lib/documentClassifier";
+import { createNarrative, deriveScoreState } from "@/lib/trustNarrative";
 
 export interface TrustScoreResult {
   trustScore: number;
@@ -665,7 +666,6 @@ export async function calculateTrustScore(userId: string): Promise<TrustScoreRes
 }
 
 export async function saveTrustScore(userId: string, result: TrustScoreResult): Promise<void> {
-  // Map trust level to database enum
   const trustLevelMap: Record<TrustScoreResult["trustLevel"], string> = {
     "Highly Trusted": "highly_trusted",
     "Trusted": "trusted",
@@ -674,7 +674,7 @@ export async function saveTrustScore(userId: string, result: TrustScoreResult): 
     "Restricted": "restricted",
   };
 
-  await (supabase.from("trust_scores") as any).insert({
+  const { data: inserted } = await (supabase.from("trust_scores") as any).insert({
     user_id: userId,
     trust_score: result.trustScore,
     trust_level: trustLevelMap[result.trustLevel],
@@ -684,7 +684,36 @@ export async function saveTrustScore(userId: string, result: TrustScoreResult): 
     explanation: result.explanation,
     recommendations: result.recommendations,
     calculated_at: new Date().toISOString(),
-  });
+  }).select("id").single();
+
+  // Auto-generate immutable trust narrative
+  if (inserted?.id) {
+    const { data: docs } = await (supabase.from("documents") as any)
+      .select("created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true });
+
+    const docCount = docs?.length ?? 0;
+    let historyMonths: number | null = null;
+    if (docs && docs.length > 0) {
+      const earliest = new Date(docs[0].created_at);
+      historyMonths = Math.max(1, Math.round((Date.now() - earliest.getTime()) / (30 * 24 * 60 * 60 * 1000)));
+    }
+
+    const flagCount = result.negativeFactors.length;
+
+    await createNarrative(
+      userId,
+      inserted.id,
+      "The institution",
+      "general",
+      result.trustScore,
+      docCount,
+      historyMonths,
+      flagCount,
+      result.negativeFactors,
+    );
+  }
 }
 
 export async function getLatestTrustScore(userId: string): Promise<TrustScoreResult | null> {

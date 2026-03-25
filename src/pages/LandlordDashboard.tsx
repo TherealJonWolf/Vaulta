@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ApplicantNarratives, ApplicantScoreIndicator } from "@/components/ApplicantNarratives";
 
 interface SavedApplicant {
   id: string;
@@ -204,6 +205,7 @@ const LandlordDashboard = () => {
                           <span className="font-display font-bold text-sm truncate">
                             {item.tokenLabel || "Shared Profile"}
                           </span>
+                          <ApplicantScoreIndicator applicantUserId={item.applicant_user_id} />
                           {item.tokenActive ? (
                             <Badge className="bg-[#1D9E75]/15 text-[#1D9E75] border-[#1D9E75]/30 font-mono text-[10px] shrink-0">
                               ACTIVE
@@ -222,6 +224,7 @@ const LandlordDashboard = () => {
                             📝 {item.notes}
                           </p>
                         )}
+                        <ApplicantNarratives applicantUserId={item.applicant_user_id} compact />
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         {item.token && item.tokenActive && (
