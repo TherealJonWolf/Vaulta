@@ -44,6 +44,7 @@ const Vault = () => {
   const [veriffOpen, setVeriffOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [passphraseLoading, setPassphraseLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const {
     isUnlocked,
