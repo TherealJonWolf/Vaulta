@@ -3,7 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Building2, ArrowLeft, Users, Shield, ShieldCheck, ShieldAlert,
-  Clock, Trash2, ExternalLink, RefreshCw, Search, StickyNote, BookmarkPlus
+  Clock, Trash2, ExternalLink, RefreshCw, Search, StickyNote, BookmarkPlus,
+  CheckCircle2, Lock, Globe, FileCheck, Scale, Landmark, Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
