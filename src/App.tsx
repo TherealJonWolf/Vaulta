@@ -20,6 +20,7 @@ import ResetPassword from "./pages/ResetPassword";
 import AdminSecurity from "./pages/AdminSecurity";
 import SharedProfile from "./pages/SharedProfile";
 import LandlordDashboard from "./pages/LandlordDashboard";
+import LenderDashboard from "./pages/LenderDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
