@@ -673,6 +673,57 @@ export type Database = {
         }
         Relationships: []
       }
+      trust_narratives: {
+        Row: {
+          assessed_at: string
+          assessment_id: string
+          created_at: string
+          document_count: number
+          flag_count: number
+          history_months: number | null
+          id: string
+          institution_name: string | null
+          institution_type: string
+          metadata: Json | null
+          narrative_text: string
+          score_state: string
+          trust_score: number | null
+          user_id: string
+        }
+        Insert: {
+          assessed_at?: string
+          assessment_id: string
+          created_at?: string
+          document_count?: number
+          flag_count?: number
+          history_months?: number | null
+          id?: string
+          institution_name?: string | null
+          institution_type?: string
+          metadata?: Json | null
+          narrative_text: string
+          score_state: string
+          trust_score?: number | null
+          user_id: string
+        }
+        Update: {
+          assessed_at?: string
+          assessment_id?: string
+          created_at?: string
+          document_count?: number
+          flag_count?: number
+          history_months?: number | null
+          id?: string
+          institution_name?: string | null
+          institution_type?: string
+          metadata?: Json | null
+          narrative_text?: string
+          score_state?: string
+          trust_score?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       trust_scores: {
         Row: {
           calculated_at: string
