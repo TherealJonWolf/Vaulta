@@ -286,6 +286,7 @@ const LenderDashboard = () => {
                             {item.notes && (
                               <p className="text-xs text-muted-foreground font-rajdhani mt-2 p-2 rounded bg-muted/30 border border-border">📝 {item.notes}</p>
                             )}
+                            <ApplicantNarratives applicantUserId={item.applicant_user_id} compact />
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             {item.token && item.tokenActive && (
