@@ -4,6 +4,7 @@ import { CheckCircle2, XCircle, Download, FileText, ShieldCheck, ShieldAlert } f
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { exportAuditReportPdf } from "@/lib/auditReportPdf";
 
 export interface VerificationCheck {
   name: string;
