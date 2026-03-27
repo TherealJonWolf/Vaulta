@@ -33,7 +33,20 @@ const Auth = () => {
 
   useEffect(() => {
     if (user && !mfaRequired && currentLevel !== "aal1") {
-      navigate("/vault");
+      // Role-based redirect: landlord/admin → institutional, user → vault
+      const checkRoleAndRedirect = async () => {
+        const { data } = await (await import("@/integrations/supabase/client")).supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id);
+        const roles = (data || []).map((r: any) => r.role);
+        if (roles.includes("landlord") || roles.includes("admin")) {
+          navigate("/institutional/dashboard");
+        } else {
+          navigate("/vault");
+        }
+      };
+      checkRoleAndRedirect();
     }
   }, [user, mfaRequired, currentLevel, navigate]);
 
