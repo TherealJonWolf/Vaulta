@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, ArrowLeft, Users, Shield, ShieldCheck, ShieldAlert,
   Clock, Trash2, ExternalLink, RefreshCw, Search, StickyNote, BookmarkPlus,
-  CheckCircle2, Lock, Globe, FileCheck, Scale, Landmark, Eye
+  CheckCircle2, Lock, Globe, FileCheck, Scale, Landmark, Eye, X, Calendar, Link2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,10 +12,78 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ApplicantNarratives, ApplicantScoreIndicator } from "@/components/ApplicantNarratives";
+
+const complianceFrameworks = [
+  {
+    name: "SOC 2", status: "Compliant", icon: <ShieldCheck size={14} />, color: "text-[#1D9E75]",
+    desc: "Service Organization Control",
+    lastAudit: "2026-02-15",
+    detail: "SOC 2 Type II certification validates that Vaulta's security controls operate effectively over time. Covers Trust Service Criteria: Security, Availability, Processing Integrity, Confidentiality, and Privacy.",
+    controls: ["Access Controls", "Encryption at Rest & Transit", "Continuous Monitoring", "Incident Response"],
+    certLink: "/documentation#soc2",
+  },
+  {
+    name: "GDPR", status: "Compliant", icon: <Globe size={14} />, color: "text-[#1D9E75]",
+    desc: "EU Data Protection",
+    lastAudit: "2026-01-20",
+    detail: "Full compliance with the EU General Data Protection Regulation. Vaulta processes data under lawful basis, enforces data minimization, and supports data subject rights including erasure and portability.",
+    controls: ["Right to Erasure", "Data Portability", "Consent Management", "DPO Appointed"],
+    certLink: "/privacy",
+  },
+  {
+    name: "FCRA", status: "Compliant", icon: <Scale size={14} />, color: "text-[#1D9E75]",
+    desc: "Fair Credit Reporting Act",
+    lastAudit: "2026-03-01",
+    detail: "Vaulta does not act as a Consumer Reporting Agency. Assessments are informational trust narratives — not credit reports — and do not constitute adverse action triggers under FCRA §604.",
+    controls: ["No Adverse Action", "Permissible Purpose Docs", "Dispute Resolution", "Accuracy Standards"],
+    certLink: "/documentation#fcra",
+  },
+  {
+    name: "FHA", status: "Aligned", icon: <Landmark size={14} />, color: "text-primary",
+    desc: "Fair Housing Act",
+    lastAudit: "2026-02-28",
+    detail: "Vaulta's assessment engine is designed to avoid discrimination based on race, color, religion, sex, national origin, disability, or familial status. No protected-class data is used in scoring.",
+    controls: ["Bias-Free Scoring", "No Protected Class Inputs", "Equal Treatment Protocols", "Audit Trail"],
+    certLink: "/documentation#fha",
+  },
+  {
+    name: "ECOA", status: "Aligned", icon: <Scale size={14} />, color: "text-primary",
+    desc: "Equal Credit Opportunity",
+    lastAudit: "2026-02-28",
+    detail: "Alignment with the Equal Credit Opportunity Act ensures Vaulta's trust scoring does not discriminate on prohibited bases. All applicants receive identical evaluation criteria.",
+    controls: ["Uniform Criteria", "No Demographic Scoring", "Transparency Requirements", "Record Retention"],
+    certLink: "/documentation#ecoa",
+  },
+  {
+    name: "GLBA", status: "Compliant", icon: <Lock size={14} />, color: "text-[#1D9E75]",
+    desc: "Gramm-Leach-Bliley Act",
+    lastAudit: "2026-01-15",
+    detail: "Financial data shared through Vaulta is protected under GLBA Safeguards Rule. AES-256-GCM encryption, zero-knowledge architecture, and strict access controls protect nonpublic personal information.",
+    controls: ["Safeguards Rule", "Privacy Notices", "Information Security Program", "Third-Party Oversight"],
+    certLink: "/documentation#glba",
+  },
+  {
+    name: "CCPA", status: "Compliant", icon: <Eye size={14} />, color: "text-[#1D9E75]",
+    desc: "CA Consumer Privacy Act",
+    lastAudit: "2026-01-20",
+    detail: "California residents have full rights under CCPA including right to know, right to delete, and right to opt-out. Vaulta does not sell personal information.",
+    controls: ["Right to Know", "Right to Delete", "Opt-Out Rights", "No Data Sales"],
+    certLink: "/privacy#ccpa",
+  },
+  {
+    name: "NIST 800-53", status: "Verified", icon: <FileCheck size={14} />, color: "text-[#1D9E75]",
+    desc: "Federal Security Controls",
+    lastAudit: "2026-03-10",
+    detail: "Vaulta implements controls from NIST SP 800-53 Rev. 5 across four control families: Access Control (AC), Audit & Accountability (AU), Identification & Authentication (IA), and System & Communications Protection (SC).",
+    controls: ["AC — Access Control", "AU — Audit & Accountability", "IA — Identification & Auth", "SC — System & Comms Protection"],
+    certLink: "/documentation#nist",
+  },
+];
 
 interface SavedApplicant {
   id: string;
