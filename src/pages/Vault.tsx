@@ -307,6 +307,16 @@ const Vault = () => {
       <ThreatSimulation open={threatSimOpen} onOpenChange={setThreatSimOpen} />
       <UpgradePrompt isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
       <VeriffVerification open={veriffOpen} onOpenChange={setVeriffOpen} />
+      <UserProfileSettings
+        isOpen={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        userId={user?.id}
+        onSettingsChanged={(s) => {
+          if (s.vaultDisplayName !== undefined) setVaultDisplayName(s.vaultDisplayName || null);
+          if (s.vaultAccentColor) setVaultAccentColor(s.vaultAccentColor);
+        }}
+      />
+      <DocumentPossessionReview open={docRequestsOpen} onClose={() => setDocRequestsOpen(false)} userId={user?.id} />
       {showOnboarding && <OnboardingTour onComplete={() => setShowOnboarding(false)} />}
     </div>
   );
