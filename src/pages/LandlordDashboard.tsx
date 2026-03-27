@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, ArrowLeft, Users, Shield, ShieldCheck, ShieldAlert,
   Clock, Trash2, ExternalLink, RefreshCw, Search, StickyNote, BookmarkPlus,
-  CheckCircle2, Lock, Globe, FileCheck, Scale, Landmark, Eye, X, Calendar, Link2
+  CheckCircle2, Lock, Globe, FileCheck, Scale, Landmark, Eye, X, Calendar, Link2, Download
 } from "lucide-react";
+import { exportComplianceCertificatePdf } from "@/lib/complianceCertificatePdf";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
