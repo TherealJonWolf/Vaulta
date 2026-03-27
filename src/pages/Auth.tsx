@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Shield, Eye, EyeOff, Lock, ArrowLeft, Building2, User, Landmark } from "lucide-react";
@@ -31,24 +32,25 @@ const Auth = () => {
   const { toast } = useToast();
   const { user, mfaRequired, currentLevel, signIn, signUp, checkMFAStatus } = useAuth();
 
+  // Redirect already-authenticated users based on role
   useEffect(() => {
-    if (user && !mfaRequired && currentLevel !== "aal1") {
-      // Role-based redirect: landlord/admin → institutional, user → vault
-      const checkRoleAndRedirect = async () => {
-        const { data } = await (await import("@/integrations/supabase/client")).supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id);
-        const roles = (data || []).map((r: any) => r.role);
-        if (roles.includes("landlord") || roles.includes("admin")) {
-          navigate("/institutional/dashboard");
-        } else {
-          navigate("/vault");
-        }
-      };
-      checkRoleAndRedirect();
+    if (user && !mfaRequired) {
+      roleRedirect(user.id);
     }
-  }, [user, mfaRequired, currentLevel, navigate]);
+  }, [user, mfaRequired]);
+
+  const roleRedirect = async (userId: string) => {
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const roles = (data || []).map((r: any) => r.role);
+    if (roles.includes("landlord") || roles.includes("admin")) {
+      navigate("/institutional/dashboard");
+    } else {
+      navigate("/vault");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,7 +94,13 @@ const Auth = () => {
             title: "Welcome back!",
             description: "Accessing your Sovereign Sector...",
           });
-          navigate("/vault");
+          // Role-based redirect after successful login
+          const { data: session } = await supabase.auth.getSession();
+          if (session?.session?.user) {
+            await roleRedirect(session.session.user.id);
+          } else {
+            navigate("/vault");
+          }
         }
       } else {
         const { error } = await signUp(email, password, signupRole);
@@ -104,7 +112,7 @@ const Auth = () => {
             description: error.message,
           });
         } else {
-          const destination = signupRole === "landlord" ? "/landlord" : "/vault";
+          const destination = signupRole === "landlord" ? "/institutional/dashboard" : "/vault";
           toast({
             title: signupRole === "landlord" ? "Dashboard Initialized!" : "Vault Initialized!",
             description: signupRole === "landlord" 
