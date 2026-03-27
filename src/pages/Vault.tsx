@@ -24,6 +24,8 @@ import VaultPassphraseGate from "@/components/VaultPassphraseGate";
 import { useSubscription } from "@/hooks/useSubscription";
 import NotificationCenter from "@/components/NotificationCenter";
 import OnboardingTour, { ONBOARDING_STORAGE_KEY } from "@/components/OnboardingTour";
+import UserProfileSettings from "@/components/UserProfileSettings";
+import DocumentPossessionReview from "@/components/DocumentPossessionReview";
 
 const Vault = () => {
   const navigate = useNavigate();
