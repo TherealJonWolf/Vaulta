@@ -32,16 +32,16 @@ const Auth = () => {
   const { toast } = useToast();
   const { user, mfaRequired, currentLevel, signIn, signUp, checkMFAStatus } = useAuth();
 
-  // If user is already fully authenticated (not from this login attempt), redirect
+  // Only redirect if user was already authenticated when the page first loaded
   useEffect(() => {
-    if (user && !mfaRequired) {
-      // Only auto-redirect if user navigated to /auth while already logged in
-      // Check if we came from a sign-out or fresh visit
-      const isReturningUser = !loading;
-      if (isReturningUser) {
-        roleRedirect(user.id);
+    const checkExisting = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user && !mfaRequired) {
+        roleRedirect(session.user.id);
       }
-    }
+    };
+    checkExisting();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const roleRedirect = async (userId: string) => {
