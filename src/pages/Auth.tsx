@@ -112,7 +112,7 @@ const Auth = () => {
             description: error.message,
           });
         } else {
-          const destination = signupRole === "landlord" ? "/landlord" : "/vault";
+          const destination = signupRole === "landlord" ? "/institutional/dashboard" : "/vault";
           toast({
             title: signupRole === "landlord" ? "Dashboard Initialized!" : "Vault Initialized!",
             description: signupRole === "landlord" 
