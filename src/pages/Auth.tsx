@@ -94,7 +94,13 @@ const Auth = () => {
             title: "Welcome back!",
             description: "Accessing your Sovereign Sector...",
           });
-          navigate("/vault");
+          // Role-based redirect after successful login
+          const { data: session } = await supabase.auth.getSession();
+          if (session?.session?.user) {
+            await roleRedirect(session.session.user.id);
+          } else {
+            navigate("/vault");
+          }
         }
       } else {
         const { error } = await signUp(email, password, signupRole);
