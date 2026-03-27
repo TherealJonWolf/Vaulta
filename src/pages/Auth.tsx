@@ -61,17 +61,21 @@ const Auth = () => {
       .eq("user_id", userId);
     const roles = (data || []).map((r: any) => r.role);
 
-    // Check institutional membership to distinguish landlords with institutions
-    const { data: instData } = await (supabase.rpc as any)('ensure_institutional_access', {
-      _user_id: userId,
-    });
-    const hasInstitution = instData && !instData.error;
+    // Only redirect to institutional if user is a landlord with existing membership
+    // Do NOT use ensure_institutional_access here — it auto-creates institutions
+    if (roles.includes("landlord")) {
+      const { data: membership } = await (supabase.from as any)('institutional_users')
+        .select('institution_id')
+        .eq('user_id', userId)
+        .maybeSingle();
 
-    if (roles.includes("landlord") && hasInstitution) {
-      navigate("/institutional/dashboard");
-    } else {
-      navigate("/vault");
+      if (membership?.institution_id) {
+        navigate("/institutional/dashboard");
+        return;
+      }
     }
+
+    navigate("/vault");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
