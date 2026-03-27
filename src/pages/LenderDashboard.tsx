@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { exportComplianceCertificatePdf } from "@/lib/complianceCertificatePdf";
 import {
   Landmark, ArrowLeft, Users, ShieldCheck, ShieldAlert, Shield,
   Clock, Trash2, ExternalLink, RefreshCw, Search, StickyNote,
   BookmarkPlus, FileCheck, Lock, Scale, AlertTriangle, CheckCircle2,
-  Eye, BadgeCheck, Fingerprint, Server, Calendar, Link2, Globe
+  Eye, BadgeCheck, Fingerprint, Server, Calendar, Link2, Globe, Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -220,7 +221,17 @@ const LenderDashboard = () => {
               <div className="flex items-center gap-3 mb-3">
                 <ShieldCheck size={20} className="text-emerald-500" />
                 <span className="font-display text-sm font-bold text-foreground">REGULATORY COMPLIANCE STATUS</span>
-                <span className="text-[10px] font-mono text-muted-foreground ml-auto">Click any framework for details</span>
+                <div className="ml-auto flex items-center gap-3">
+                  <span className="text-[10px] font-mono text-muted-foreground hidden sm:inline">Click any framework for details</span>
+                  <Button
+                    onClick={() => exportComplianceCertificatePdf(user?.email ? `Lender — ${user.email}` : undefined)}
+                    variant="outline"
+                    size="sm"
+                    className="font-mono text-[10px] gap-1.5 h-7"
+                  >
+                    <Download size={12} /> EXPORT CERTIFICATE
+                  </Button>
+                </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 {lenderComplianceFrameworks.map(fw => (
