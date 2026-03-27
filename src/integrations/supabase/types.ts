@@ -395,6 +395,207 @@ export type Database = {
         }
         Relationships: []
       }
+      institutional_activity_log: {
+        Row: {
+          applicant_name: string | null
+          created_at: string
+          detail: string | null
+          event_type: string
+          id: string
+          institution_id: string
+          reference_id: string | null
+          user_id: string
+        }
+        Insert: {
+          applicant_name?: string | null
+          created_at?: string
+          detail?: string | null
+          event_type: string
+          id?: string
+          institution_id: string
+          reference_id?: string | null
+          user_id: string
+        }
+        Update: {
+          applicant_name?: string | null
+          created_at?: string
+          detail?: string | null
+          event_type?: string
+          id?: string
+          institution_id?: string
+          reference_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institutional_activity_log_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      institutional_users: {
+        Row: {
+          created_at: string
+          id: string
+          institution_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          institution_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          institution_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institutional_users_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      institutions: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      intake_links: {
+        Row: {
+          applicant_name: string
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          institution_id: string
+          reference_id: string
+          status: string
+          submitted_at: string | null
+          token: string
+        }
+        Insert: {
+          applicant_name: string
+          created_at?: string
+          created_by: string
+          expires_at: string
+          id?: string
+          institution_id: string
+          reference_id: string
+          status?: string
+          submitted_at?: string | null
+          token: string
+        }
+        Update: {
+          applicant_name?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          institution_id?: string
+          reference_id?: string
+          status?: string
+          submitted_at?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_links_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intake_submissions: {
+        Row: {
+          applicant_name: string
+          assessed_at: string | null
+          assessment_narrative: string | null
+          created_at: string
+          document_count: number
+          document_types: string[] | null
+          id: string
+          institution_id: string
+          intake_link_id: string
+          reference_id: string
+          score_state: string
+          submitted_at: string
+          trust_score: number | null
+        }
+        Insert: {
+          applicant_name: string
+          assessed_at?: string | null
+          assessment_narrative?: string | null
+          created_at?: string
+          document_count?: number
+          document_types?: string[] | null
+          id?: string
+          institution_id: string
+          intake_link_id: string
+          reference_id: string
+          score_state?: string
+          submitted_at?: string
+          trust_score?: number | null
+        }
+        Update: {
+          applicant_name?: string
+          assessed_at?: string | null
+          assessment_narrative?: string | null
+          created_at?: string
+          document_count?: number
+          document_types?: string[] | null
+          id?: string
+          institution_id?: string
+          intake_link_id?: string
+          reference_id?: string
+          score_state?: string
+          submitted_at?: string
+          trust_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_submissions_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_submissions_intake_link_id_fkey"
+            columns: ["intake_link_id"]
+            isOneToOne: false
+            referencedRelation: "intake_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       landlord_saved_applicants: {
         Row: {
           applicant_user_id: string
@@ -904,10 +1105,12 @@ export type Database = {
           is_flagged: boolean
         }[]
       }
+      ensure_institutional_access: { Args: { _user_id: string }; Returns: Json }
       flag_document_hash: {
         Args: { p_hash: string; p_reason: string }
         Returns: undefined
       }
+      get_user_institution: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -917,6 +1120,10 @@ export type Database = {
       }
       increment_failed_login: { Args: { p_email: string }; Returns: Json }
       is_email_blacklisted: { Args: { check_email: string }; Returns: boolean }
+      is_institutional_member: {
+        Args: { _institution_id: string; _user_id: string }
+        Returns: boolean
+      }
       reset_failed_login: { Args: { p_user_id: string }; Returns: undefined }
       resolve_shared_token: {
         Args: { p_token: string }
@@ -926,6 +1133,16 @@ export type Database = {
           is_valid: boolean
           token_id: string
           user_id: string
+        }[]
+      }
+      validate_intake_token: {
+        Args: { p_token: string }
+        Returns: {
+          applicant_name: string
+          id: string
+          institution_name: string
+          is_valid: boolean
+          reference_id: string
         }[]
       }
       verify_recovery_code: {
