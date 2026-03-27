@@ -31,24 +31,25 @@ const Auth = () => {
   const { toast } = useToast();
   const { user, mfaRequired, currentLevel, signIn, signUp, checkMFAStatus } = useAuth();
 
+  // Redirect already-authenticated users based on role
   useEffect(() => {
-    if (user && !mfaRequired && currentLevel !== "aal1") {
-      // Role-based redirect: landlord/admin → institutional, user → vault
-      const checkRoleAndRedirect = async () => {
-        const { data } = await (await import("@/integrations/supabase/client")).supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id);
-        const roles = (data || []).map((r: any) => r.role);
-        if (roles.includes("landlord") || roles.includes("admin")) {
-          navigate("/institutional/dashboard");
-        } else {
-          navigate("/vault");
-        }
-      };
-      checkRoleAndRedirect();
+    if (user && !mfaRequired) {
+      roleRedirect(user.id);
     }
-  }, [user, mfaRequired, currentLevel, navigate]);
+  }, [user, mfaRequired]);
+
+  const roleRedirect = async (userId: string) => {
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const roles = (data || []).map((r: any) => r.role);
+    if (roles.includes("landlord") || roles.includes("admin")) {
+      navigate("/institutional/dashboard");
+    } else {
+      navigate("/vault");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
