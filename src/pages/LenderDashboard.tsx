@@ -5,7 +5,7 @@ import {
   Landmark, ArrowLeft, Users, ShieldCheck, ShieldAlert, Shield,
   Clock, Trash2, ExternalLink, RefreshCw, Search, StickyNote,
   BookmarkPlus, FileCheck, Lock, Scale, AlertTriangle, CheckCircle2,
-  Eye, BadgeCheck, Fingerprint, Server
+  Eye, BadgeCheck, Fingerprint, Server, Calendar, Link2, Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
