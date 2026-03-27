@@ -134,6 +134,63 @@ export type Database = {
         }
         Relationships: []
       }
+      consent_records: {
+        Row: {
+          consent_given_at: string
+          consent_text_hash: string
+          created_at: string
+          document_ids: string[]
+          document_names: string[]
+          id: string
+          institution_id: string
+          legal_basis: string
+          possession_request_id: string
+          retention_period: string
+          user_id: string
+        }
+        Insert: {
+          consent_given_at?: string
+          consent_text_hash: string
+          created_at?: string
+          document_ids?: string[]
+          document_names?: string[]
+          id?: string
+          institution_id: string
+          legal_basis: string
+          possession_request_id: string
+          retention_period: string
+          user_id: string
+        }
+        Update: {
+          consent_given_at?: string
+          consent_text_hash?: string
+          created_at?: string
+          document_ids?: string[]
+          document_names?: string[]
+          id?: string
+          institution_id?: string
+          legal_basis?: string
+          possession_request_id?: string
+          retention_period?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consent_records_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consent_records_possession_request_id_fkey"
+            columns: ["possession_request_id"]
+            isOneToOne: false
+            referencedRelation: "document_possession_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consistency_findings: {
         Row: {
           audit_log_entry: string
@@ -224,6 +281,64 @@ export type Database = {
         }
         Relationships: []
       }
+      document_access_log: {
+        Row: {
+          access_type: string
+          accessed_by: string
+          consent_record_id: string
+          created_at: string
+          id: string
+          institution_document_id: string
+          institution_id: string
+          ip_address: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          access_type: string
+          accessed_by: string
+          consent_record_id: string
+          created_at?: string
+          id?: string
+          institution_document_id: string
+          institution_id: string
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          access_type?: string
+          accessed_by?: string
+          consent_record_id?: string
+          created_at?: string
+          id?: string
+          institution_document_id?: string
+          institution_id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_access_log_consent_record_id_fkey"
+            columns: ["consent_record_id"]
+            isOneToOne: false
+            referencedRelation: "consent_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_access_log_institution_document_id_fkey"
+            columns: ["institution_document_id"]
+            isOneToOne: false
+            referencedRelation: "institution_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_access_log_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_hashes: {
         Row: {
           created_at: string
@@ -256,6 +371,78 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      document_possession_requests: {
+        Row: {
+          applicant_name: string | null
+          applicant_user_id: string
+          created_at: string
+          declined_reason: string | null
+          document_types: string[]
+          id: string
+          institution_id: string
+          legal_basis: string
+          legal_basis_detail: string | null
+          reference_id: string | null
+          requested_by: string
+          responded_at: string | null
+          retention_expires_at: string | null
+          retention_period: string
+          status: string
+          submission_id: string | null
+        }
+        Insert: {
+          applicant_name?: string | null
+          applicant_user_id: string
+          created_at?: string
+          declined_reason?: string | null
+          document_types?: string[]
+          id?: string
+          institution_id: string
+          legal_basis: string
+          legal_basis_detail?: string | null
+          reference_id?: string | null
+          requested_by: string
+          responded_at?: string | null
+          retention_expires_at?: string | null
+          retention_period: string
+          status?: string
+          submission_id?: string | null
+        }
+        Update: {
+          applicant_name?: string | null
+          applicant_user_id?: string
+          created_at?: string
+          declined_reason?: string | null
+          document_types?: string[]
+          id?: string
+          institution_id?: string
+          legal_basis?: string
+          legal_basis_detail?: string | null
+          reference_id?: string | null
+          requested_by?: string
+          responded_at?: string | null
+          retention_expires_at?: string | null
+          retention_period?: string
+          status?: string
+          submission_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_possession_requests_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_possession_requests_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "intake_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       document_upload_events: {
         Row: {
@@ -395,35 +582,138 @@ export type Database = {
         }
         Relationships: []
       }
+      institution_documents: {
+        Row: {
+          applicant_name: string | null
+          applicant_user_id: string
+          consent_record_id: string
+          created_at: string
+          deleted_at: string | null
+          document_type: string
+          encrypted_iv: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          institution_id: string
+          mime_type: string
+          original_document_id: string | null
+          possession_request_id: string
+          retention_expired_notified: boolean
+          retention_expires_at: string | null
+          transferred_at: string
+        }
+        Insert: {
+          applicant_name?: string | null
+          applicant_user_id: string
+          consent_record_id: string
+          created_at?: string
+          deleted_at?: string | null
+          document_type: string
+          encrypted_iv?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number
+          id?: string
+          institution_id: string
+          mime_type: string
+          original_document_id?: string | null
+          possession_request_id: string
+          retention_expired_notified?: boolean
+          retention_expires_at?: string | null
+          transferred_at?: string
+        }
+        Update: {
+          applicant_name?: string | null
+          applicant_user_id?: string
+          consent_record_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          document_type?: string
+          encrypted_iv?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          institution_id?: string
+          mime_type?: string
+          original_document_id?: string | null
+          possession_request_id?: string
+          retention_expired_notified?: boolean
+          retention_expires_at?: string | null
+          transferred_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institution_documents_consent_record_id_fkey"
+            columns: ["consent_record_id"]
+            isOneToOne: false
+            referencedRelation: "consent_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "institution_documents_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "institution_documents_possession_request_id_fkey"
+            columns: ["possession_request_id"]
+            isOneToOne: false
+            referencedRelation: "document_possession_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       institution_settings: {
         Row: {
           accent_color: string | null
+          business_address: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
           created_at: string
           display_name: string | null
           id: string
           institution_id: string
+          institution_type: string | null
           logo_path: string | null
           updated_at: string
+          website_url: string | null
           welcome_message: string | null
         }
         Insert: {
           accent_color?: string | null
+          business_address?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
           institution_id: string
+          institution_type?: string | null
           logo_path?: string | null
           updated_at?: string
+          website_url?: string | null
           welcome_message?: string | null
         }
         Update: {
           accent_color?: string | null
+          business_address?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
           institution_id?: string
+          institution_type?: string | null
           logo_path?: string | null
           updated_at?: string
+          website_url?: string | null
           welcome_message?: string | null
         }
         Relationships: [
@@ -777,8 +1067,14 @@ export type Database = {
           full_name: string | null
           id: string
           mfa_enabled: boolean | null
+          phone: string | null
+          preferred_language: string | null
+          preferred_name: string | null
+          profile_photo_url: string | null
           updated_at: string
           user_id: string
+          vault_accent_color: string | null
+          vault_display_name: string | null
         }
         Insert: {
           account_locked_at?: string | null
@@ -788,8 +1084,14 @@ export type Database = {
           full_name?: string | null
           id?: string
           mfa_enabled?: boolean | null
+          phone?: string | null
+          preferred_language?: string | null
+          preferred_name?: string | null
+          profile_photo_url?: string | null
           updated_at?: string
           user_id: string
+          vault_accent_color?: string | null
+          vault_display_name?: string | null
         }
         Update: {
           account_locked_at?: string | null
@@ -799,8 +1101,14 @@ export type Database = {
           full_name?: string | null
           id?: string
           mfa_enabled?: boolean | null
+          phone?: string | null
+          preferred_language?: string | null
+          preferred_name?: string | null
+          profile_photo_url?: string | null
           updated_at?: string
           user_id?: string
+          vault_accent_color?: string | null
+          vault_display_name?: string | null
         }
         Relationships: []
       }
