@@ -395,6 +395,47 @@ export type Database = {
         }
         Relationships: []
       }
+      institution_settings: {
+        Row: {
+          accent_color: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          institution_id: string
+          logo_path: string | null
+          updated_at: string
+          welcome_message: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          institution_id: string
+          logo_path?: string | null
+          updated_at?: string
+          welcome_message?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          institution_id?: string
+          logo_path?: string | null
+          updated_at?: string
+          welcome_message?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institution_settings_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: true
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       institutional_activity_log: {
         Row: {
           applicant_name: string | null
