@@ -160,9 +160,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     if (user) {
-      await logSecurityEvent(user.id, 'logout', 'User logged out');
+      await logSecurityEvent(user.id, 'logout', 'User logged out').catch(() => {});
     }
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      // Server session may already be gone — clear locally
+      await supabase.auth.signOut({ scope: 'local' });
+    }
   };
 
   return (
