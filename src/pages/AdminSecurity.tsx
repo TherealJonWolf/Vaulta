@@ -82,6 +82,22 @@ interface AdminDocument {
   created_at: string;
 }
 
+type AlertSeverity = "critical" | "high" | "medium" | "info";
+type AlertCategory = "fraud" | "auth" | "upload" | "trust" | "system";
+
+interface AdminAlert {
+  id: string;
+  severity: AlertSeverity;
+  category: AlertCategory;
+  title: string;
+  detail: string;
+  timestamp: string;
+  sourceId: string;
+  acknowledged: boolean;
+}
+
+const SEVERITY_ORDER: Record<AlertSeverity, number> = { critical: 0, high: 1, medium: 2, info: 3 };
+
 const AdminSecurity = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -96,6 +112,8 @@ const AdminSecurity = () => {
   const [adminDocs, setAdminDocs] = useState<AdminDocument[]>([]);
   const [selectedAuditDoc, setSelectedAuditDoc] = useState<AdminDocument | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [acknowledgedAlerts, setAcknowledgedAlerts] = useState<Set<string>>(new Set());
+  const [alertFilter, setAlertFilter] = useState<AlertCategory | "all">("all");
 
   useEffect(() => {
     if (!authLoading && !roleLoading) {
