@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { useAdminAlerts } from "@/hooks/useAdminAlerts";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Vault from "./pages/Vault";
@@ -27,6 +28,11 @@ import { InstitutionalRoutes } from "./institutional/InstitutionalRoutes";
 
 const queryClient = new QueryClient();
 
+const AdminAlertSubscriber = () => {
+  useAdminAlerts();
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -34,6 +40,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <AdminAlertSubscriber />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
