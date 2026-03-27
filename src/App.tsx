@@ -28,6 +28,11 @@ import { InstitutionalRoutes } from "./institutional/InstitutionalRoutes";
 
 const queryClient = new QueryClient();
 
+const AdminAlertSubscriber = () => {
+  useAdminAlerts();
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -35,6 +40,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <AdminAlertSubscriber />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
