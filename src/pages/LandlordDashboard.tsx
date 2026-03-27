@@ -247,7 +247,17 @@ const LandlordDashboard = () => {
               <div className="px-5 py-3 border-b border-border flex items-center gap-2">
                 <ShieldCheck size={16} className="text-primary" />
                 <span className="font-display text-xs font-bold text-foreground tracking-wide">COMPLIANCE FRAMEWORKS</span>
-                <span className="text-[10px] font-mono text-muted-foreground ml-auto">All assessments comply with:</span>
+                <div className="ml-auto flex items-center gap-3">
+                  <span className="text-[10px] font-mono text-muted-foreground hidden sm:inline">All assessments comply with:</span>
+                  <Button
+                    onClick={() => exportComplianceCertificatePdf(user?.email ? `Landlord — ${user.email}` : undefined)}
+                    variant="outline"
+                    size="sm"
+                    className="font-mono text-[10px] gap-1.5 h-6 px-2"
+                  >
+                    <Download size={10} /> CERTIFICATE
+                  </Button>
+                </div>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-border">
                 {complianceFrameworks.map((fw) => (
