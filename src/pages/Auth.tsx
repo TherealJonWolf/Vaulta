@@ -50,7 +50,14 @@ const Auth = () => {
       .select("role")
       .eq("user_id", userId);
     const roles = (data || []).map((r: any) => r.role);
-    if (roles.includes("landlord") || roles.includes("admin")) {
+
+    // Check institutional membership to distinguish landlords with institutions
+    const { data: instData } = await (supabase.rpc as any)('ensure_institutional_access', {
+      _user_id: userId,
+    });
+    const hasInstitution = instData && !instData.error;
+
+    if (roles.includes("landlord") && hasInstitution) {
       navigate("/institutional/dashboard");
     } else {
       navigate("/vault");
