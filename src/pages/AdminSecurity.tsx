@@ -413,6 +413,7 @@ const AdminSecurity = () => {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           {[
+            { icon: BellRing, label: "ACTIVE ALERTS", value: unacknowledgedCount, color: unacknowledgedCount > 0 ? "text-destructive" : "text-primary" },
             { icon: Users, label: "USERS TRACKED", value: uniqueUsersTracked, color: "text-primary" },
             { icon: Lock, label: "LOCKED ACCOUNTS", value: lockedAccounts.length, color: "text-destructive" },
             { icon: AlertTriangle, label: "HIGH-SEV CLUSTERS", value: highSeverityClusters, color: "text-destructive" },
@@ -433,8 +434,15 @@ const AdminSecurity = () => {
           ))}
         </div>
 
-        <Tabs defaultValue="locked" className="space-y-6">
+        <Tabs defaultValue="alerts" className="space-y-6">
           <TabsList className="bg-card border border-border flex-wrap">
+            <TabsTrigger value="alerts" className="font-mono text-xs gap-1.5">
+              <Bell size={12} />
+              ALERTS
+              {unacknowledgedCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">{unacknowledgedCount}</span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="locked" className="font-mono text-xs">LOCKED ACCOUNTS</TabsTrigger>
             <TabsTrigger value="doc-audits" className="font-mono text-xs">DOC AUDITS</TabsTrigger>
             <TabsTrigger value="uploads" className="font-mono text-xs">UPLOAD EVENTS</TabsTrigger>
@@ -442,6 +450,97 @@ const AdminSecurity = () => {
             <TabsTrigger value="boundary" className="font-mono text-xs">BOUNDARY HUGGING</TabsTrigger>
             <TabsTrigger value="timeline" className="font-mono text-xs">TRUST TIMELINE</TabsTrigger>
           </TabsList>
+
+          {/* ALERTS TAB */}
+          <TabsContent value="alerts">
+            <Card className="cyber-border">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="font-display text-lg gradient-text flex items-center gap-2">
+                    <BellRing size={18} />
+                    AUTOMATED ALERTS
+                    <span className="text-muted-foreground font-mono text-[10px] font-normal ml-2">Auto-refreshes every 30s</span>
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={alertFilter}
+                      onChange={(e) => setAlertFilter(e.target.value as AlertCategory | "all")}
+                      className="bg-card border border-border rounded px-2 py-1 font-mono text-xs text-foreground"
+                    >
+                      <option value="all">ALL CATEGORIES</option>
+                      <option value="fraud">FRAUD</option>
+                      <option value="auth">AUTH</option>
+                      <option value="upload">UPLOAD</option>
+                      <option value="trust">TRUST</option>
+                    </select>
+                    {unacknowledgedCount > 0 && (
+                      <Button size="sm" variant="outline" className="font-mono text-xs" onClick={acknowledgeAll}>
+                        <CheckCircle2 size={12} className="mr-1" />
+                        ACK ALL
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {filteredAlerts.length === 0 ? (
+                  <div className="text-center py-12">
+                    <CheckCircle2 size={48} className="mx-auto text-[hsl(var(--secure-green))] mb-3 opacity-50" />
+                    <p className="text-muted-foreground font-mono text-sm">ALL CLEAR — NO ACTIVE ALERTS</p>
+                    <p className="text-muted-foreground font-mono text-[10px] mt-1">System is monitoring continuously</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <AnimatePresence>
+                      {filteredAlerts.map((alert) => (
+                        <motion.div
+                          key={alert.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: alert.acknowledged ? 0.5 : 1, x: 0 }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className={`flex items-center gap-3 p-3 rounded-lg border ${
+                            alert.acknowledged
+                              ? "border-border bg-muted/30"
+                              : alert.severity === "critical"
+                              ? "border-destructive/40 bg-destructive/5"
+                              : alert.severity === "high"
+                              ? "border-[hsl(var(--warning-amber))]/40 bg-[hsl(var(--warning-amber))]/5"
+                              : "border-border bg-card"
+                          }`}
+                        >
+                          <div className="shrink-0">{categoryIcon(alert.category)}</div>
+                          <Badge className={`shrink-0 font-mono text-[10px] ${severityBadgeClass(alert.severity)}`}>
+                            {alert.severity.toUpperCase()}
+                          </Badge>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-mono text-xs font-semibold text-foreground">{alert.title}</p>
+                            <p className="font-mono text-[11px] text-muted-foreground truncate">{alert.detail}</p>
+                          </div>
+                          <div className="shrink-0 flex items-center gap-2">
+                            <span className="font-mono text-[10px] text-muted-foreground flex items-center gap-1">
+                              <Clock size={10} />
+                              {new Date(alert.timestamp).toLocaleString()}
+                            </span>
+                            {!alert.acknowledged && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0"
+                                onClick={() => acknowledgeAlert(alert.id)}
+                                title="Acknowledge"
+                              >
+                                <CheckCircle2 size={14} className="text-muted-foreground hover:text-primary" />
+                              </Button>
+                            )}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Locked Accounts */}
           <TabsContent value="locked">
