@@ -67,11 +67,10 @@ export const InstitutionalSidebar = () => {
             <Link
               key={item.path}
               to={item.path}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors"
-              style={active ? { backgroundColor: accentColor, color: "#fff" } : undefined}
-              {...(!active && {
-                className: "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-              })}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                active ? "text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              }`}
+              style={active ? { backgroundColor: accentColor } : undefined}
             >
               <item.icon className="h-4 w-4" />
               {item.label}
