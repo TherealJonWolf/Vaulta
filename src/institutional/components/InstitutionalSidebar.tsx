@@ -30,8 +30,8 @@ export const InstitutionalSidebar = () => {
         if (data.accent_color) setAccentColor(data.accent_color);
         if (data.display_name) setDisplayName(data.display_name);
         if (data.logo_path) {
-          const { data: urlData } = supabase.storage.from("documents").getPublicUrl(data.logo_path);
-          setLogoUrl(urlData.publicUrl);
+          // logo_path is now a full public URL
+          setLogoUrl(data.logo_path);
         }
       }
     };

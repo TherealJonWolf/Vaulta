@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck, ClipboardCheck, TrendingUp, Zap, Fingerprint, LockOpen, ShieldAlert } from "lucide-react";
+import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck, ClipboardCheck, TrendingUp, Zap, Fingerprint, LockOpen, ShieldAlert, User, FolderInput } from "lucide-react";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useVaultEncryption } from "@/hooks/useVaultEncryption";
+import { supabase } from "@/integrations/supabase/client";
 import AIOracle from "@/components/AIOracle";
 import ShareVaultButton from "@/components/ShareVaultButton";
 import DocumentUpload from "@/components/DocumentUpload";
@@ -24,6 +25,8 @@ import VaultPassphraseGate from "@/components/VaultPassphraseGate";
 import { useSubscription } from "@/hooks/useSubscription";
 import NotificationCenter from "@/components/NotificationCenter";
 import OnboardingTour, { ONBOARDING_STORAGE_KEY } from "@/components/OnboardingTour";
+import UserProfileSettings from "@/components/UserProfileSettings";
+import DocumentPossessionReview from "@/components/DocumentPossessionReview";
 
 const Vault = () => {
   const navigate = useNavigate();
@@ -45,6 +48,10 @@ const Vault = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [passphraseLoading, setPassphraseLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [docRequestsOpen, setDocRequestsOpen] = useState(false);
+  const [vaultDisplayName, setVaultDisplayName] = useState<string | null>(null);
+  const [vaultAccentColor, setVaultAccentColor] = useState<string | null>(null);
 
   const {
     isUnlocked,
@@ -81,6 +88,18 @@ const Vault = () => {
       checkPassphraseExists().finally(() => setPassphraseLoading(false));
     }
   }, [user, loading, checkPassphraseExists]);
+
+  // Fetch vault personalization settings
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("vault_display_name, vault_accent_color").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setVaultDisplayName((data as any).vault_display_name || null);
+          setVaultAccentColor((data as any).vault_accent_color || null);
+        }
+      });
+  }, [user]);
 
   // Handle subscription success/cancel from Stripe redirect
   useEffect(() => {
@@ -149,8 +168,8 @@ const Vault = () => {
       <header className="border-b border-border bg-card/50 backdrop-blur sticky top-0 z-40">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-            <Shield className="text-primary" size={28} />
-            <span className="font-display text-xl font-bold gradient-text">SOVEREIGN SECTOR</span>
+            <Shield className="text-primary" size={28} style={vaultAccentColor ? { color: vaultAccentColor } : undefined} />
+            <span className="font-display text-xl font-bold gradient-text">{vaultDisplayName || "SOVEREIGN SECTOR"}</span>
           </div>
           <div className="flex items-center gap-4">
             <SubscriptionBadge />
@@ -173,7 +192,13 @@ const Vault = () => {
                 <ShieldCheck size={18} />
               </Button>
               <NotificationCenter />
+              <Button variant="ghost" onClick={() => setDocRequestsOpen(true)} className="text-muted-foreground" title="Document Requests">
+                <FolderInput size={18} />
+              </Button>
               <ShareVaultButton />
+              <Button variant="ghost" onClick={() => setProfileOpen(true)} className="text-muted-foreground" title="Profile">
+                <User size={18} />
+              </Button>
               <Button variant="ghost" onClick={() => setSettingsOpen(true)} className="text-muted-foreground" title="Settings">
                 <Settings size={18} />
               </Button>
@@ -282,6 +307,16 @@ const Vault = () => {
       <ThreatSimulation open={threatSimOpen} onOpenChange={setThreatSimOpen} />
       <UpgradePrompt isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
       <VeriffVerification open={veriffOpen} onOpenChange={setVeriffOpen} />
+      <UserProfileSettings
+        isOpen={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        userId={user?.id}
+        onSettingsChanged={(s) => {
+          if (s.vaultDisplayName !== undefined) setVaultDisplayName(s.vaultDisplayName || null);
+          if (s.vaultAccentColor) setVaultAccentColor(s.vaultAccentColor);
+        }}
+      />
+      <DocumentPossessionReview open={docRequestsOpen} onClose={() => setDocRequestsOpen(false)} userId={user?.id} />
       {showOnboarding && <OnboardingTour onComplete={() => setShowOnboarding(false)} />}
     </div>
   );
