@@ -249,37 +249,77 @@ const LandlordDashboard = () => {
                 <span className="text-[10px] font-mono text-muted-foreground ml-auto">All assessments comply with:</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-border">
-                {[
-                  { name: "SOC 2", status: "Compliant", icon: <ShieldCheck size={14} />, color: "text-[#1D9E75]", desc: "Service Organization Control" },
-                  { name: "GDPR", status: "Compliant", icon: <Globe size={14} />, color: "text-[#1D9E75]", desc: "EU Data Protection" },
-                  { name: "FCRA", status: "Compliant", icon: <Scale size={14} />, color: "text-[#1D9E75]", desc: "Fair Credit Reporting Act" },
-                  { name: "FHA", status: "Aligned", icon: <Landmark size={14} />, color: "text-primary", desc: "Fair Housing Act" },
-                  { name: "ECOA", status: "Aligned", icon: <Scale size={14} />, color: "text-primary", desc: "Equal Credit Opportunity" },
-                  { name: "GLBA", status: "Compliant", icon: <Lock size={14} />, color: "text-[#1D9E75]", desc: "Gramm-Leach-Bliley Act" },
-                  { name: "CCPA", status: "Compliant", icon: <Eye size={14} />, color: "text-[#1D9E75]", desc: "CA Consumer Privacy Act" },
-                  { name: "NIST 800-53", status: "Verified", icon: <FileCheck size={14} />, color: "text-[#1D9E75]", desc: "Federal Security Controls" },
-                ].map((fw) => (
-                  <div key={fw.name} className="bg-card p-3 flex items-start gap-2.5">
-                    <div className={`mt-0.5 shrink-0 ${fw.color}`}>{fw.icon}</div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-display text-xs font-bold text-foreground">{fw.name}</span>
-                        <CheckCircle2 size={10} className={fw.color} />
+                {complianceFrameworks.map((fw) => (
+                  <Popover key={fw.name}>
+                    <PopoverTrigger asChild>
+                      <button className="bg-card p-3 flex items-start gap-2.5 text-left w-full hover:bg-accent/5 transition-colors cursor-pointer group">
+                        <div className={`mt-0.5 shrink-0 ${fw.color}`}>{fw.icon}</div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-display text-xs font-bold text-foreground group-hover:text-primary transition-colors">{fw.name}</span>
+                            <CheckCircle2 size={10} className={fw.color} />
+                          </div>
+                          <p className="text-[10px] font-mono text-muted-foreground leading-tight mt-0.5">{fw.desc}</p>
+                          <Badge
+                            className={`mt-1 text-[9px] px-1.5 py-0 font-mono border ${
+                              fw.status === "Compliant"
+                                ? "bg-[#1D9E75]/10 text-[#1D9E75] border-[#1D9E75]/20"
+                                : fw.status === "Verified"
+                                ? "bg-[#1D9E75]/10 text-[#1D9E75] border-[#1D9E75]/20"
+                                : "bg-primary/10 text-primary border-primary/20"
+                            }`}
+                          >
+                            {fw.status}
+                          </Badge>
+                        </div>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-0 bg-card border-border" side="bottom" align="start">
+                      <div className="p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className={fw.color}>{fw.icon}</div>
+                            <span className="font-display text-sm font-bold text-foreground">{fw.name}</span>
+                            <Badge
+                              className={`text-[9px] px-1.5 py-0 font-mono border ${
+                                fw.status === "Aligned"
+                                  ? "bg-primary/10 text-primary border-primary/20"
+                                  : "bg-[#1D9E75]/10 text-[#1D9E75] border-[#1D9E75]/20"
+                              }`}
+                            >
+                              {fw.status}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-muted-foreground leading-relaxed">{fw.detail}</p>
+
+                        <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
+                          <Calendar size={10} />
+                          <span>Last Audit: {new Date(fw.lastAudit).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Key Controls</span>
+                          <div className="flex flex-wrap gap-1">
+                            {fw.controls.map((ctrl) => (
+                              <span key={ctrl} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-accent/10 text-accent border border-accent/20">
+                                {ctrl}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <Link
+                          to={fw.certLink}
+                          className="flex items-center gap-1.5 text-[10px] font-mono text-primary hover:text-primary/80 transition-colors"
+                        >
+                          <Link2 size={10} />
+                          View Certification Details
+                        </Link>
                       </div>
-                      <p className="text-[10px] font-mono text-muted-foreground leading-tight mt-0.5">{fw.desc}</p>
-                      <Badge
-                        className={`mt-1 text-[9px] px-1.5 py-0 font-mono border ${
-                          fw.status === "Compliant"
-                            ? "bg-[#1D9E75]/10 text-[#1D9E75] border-[#1D9E75]/20"
-                            : fw.status === "Verified"
-                            ? "bg-[#1D9E75]/10 text-[#1D9E75] border-[#1D9E75]/20"
-                            : "bg-primary/10 text-primary border-primary/20"
-                        }`}
-                      >
-                        {fw.status}
-                      </Badge>
-                    </div>
-                  </div>
+                    </PopoverContent>
+                  </Popover>
                 ))}
               </div>
               <div className="px-5 py-2.5 border-t border-border flex items-center gap-2">
