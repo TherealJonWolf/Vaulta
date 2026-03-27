@@ -4,6 +4,7 @@ import InstitutionalDashboard from "./pages/InstitutionalDashboard";
 import InstitutionalIntake from "./pages/InstitutionalIntake";
 import InstitutionalActivity from "./pages/InstitutionalActivity";
 import InstitutionalReporting from "./pages/InstitutionalReporting";
+import InstitutionalSettings from "./pages/InstitutionalSettings";
 
 export const InstitutionalRoutes = () => (
   <InstitutionalLayout>
@@ -12,6 +13,7 @@ export const InstitutionalRoutes = () => (
       <Route path="intake" element={<InstitutionalIntake />} />
       <Route path="activity" element={<InstitutionalActivity />} />
       <Route path="reporting" element={<InstitutionalReporting />} />
+      <Route path="settings" element={<InstitutionalSettings />} />
       <Route path="*" element={<Navigate to="/institutional/dashboard" replace />} />
     </Routes>
   </InstitutionalLayout>
