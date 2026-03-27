@@ -88,6 +88,18 @@ const Vault = () => {
     }
   }, [user, loading, checkPassphraseExists]);
 
+  // Fetch vault personalization settings
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("vault_display_name, vault_accent_color").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setVaultDisplayName((data as any).vault_display_name || null);
+          setVaultAccentColor((data as any).vault_accent_color || null);
+        }
+      });
+  }, [user]);
+
   // Handle subscription success/cancel from Stripe redirect
   useEffect(() => {
     const subscription = searchParams.get("subscription");
