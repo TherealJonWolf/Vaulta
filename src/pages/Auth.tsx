@@ -32,12 +32,22 @@ const Auth = () => {
   const { toast } = useToast();
   const { user, mfaRequired, currentLevel, signIn, signUp, checkMFAStatus } = useAuth();
 
-  // Only redirect if user was already authenticated when the page first loaded
+  // Only redirect if user has a valid server-side session
   useEffect(() => {
     const checkExisting = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user && !mfaRequired) {
-        roleRedirect(session.user.id);
+      if (!session) return;
+
+      // Validate session is still valid server-side
+      const { data: { user: validUser }, error } = await supabase.auth.getUser();
+      if (error || !validUser) {
+        // Stale/invalid session — clear it locally without hitting server
+        await supabase.auth.signOut({ scope: 'local' });
+        return;
+      }
+
+      if (!mfaRequired) {
+        roleRedirect(validUser.id);
       }
     };
     checkExisting();

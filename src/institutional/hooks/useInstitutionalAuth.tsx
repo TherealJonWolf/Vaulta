@@ -59,9 +59,13 @@ export const InstitutionalAuthProvider = ({ children }: { children: ReactNode })
         user_id: user.id,
         event_type: 'Logout',
         detail: 'User signed out',
-      });
+      }).catch(() => {});
     }
-    await supabase.auth.signOut({ scope: 'local' });
+    // Try global signout first, fall back to local if session is already gone server-side
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      await supabase.auth.signOut({ scope: 'local' });
+    }
     navigate("/auth");
   };
 
