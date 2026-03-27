@@ -192,7 +192,13 @@ const Vault = () => {
                 <ShieldCheck size={18} />
               </Button>
               <NotificationCenter />
+              <Button variant="ghost" onClick={() => setDocRequestsOpen(true)} className="text-muted-foreground" title="Document Requests">
+                <FolderInput size={18} />
+              </Button>
               <ShareVaultButton />
+              <Button variant="ghost" onClick={() => setProfileOpen(true)} className="text-muted-foreground" title="Profile">
+                <User size={18} />
+              </Button>
               <Button variant="ghost" onClick={() => setSettingsOpen(true)} className="text-muted-foreground" title="Settings">
                 <Settings size={18} />
               </Button>
