@@ -1,0 +1,147 @@
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useInstitutionalAuth } from "../hooks/useInstitutionalAuth";
+import { ApplicantDetailDrawer } from "../components/ApplicantDetailDrawer";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Users } from "lucide-react";
+import { format } from "date-fns";
+
+interface Submission {
+  id: string;
+  intake_link_id: string;
+  institution_id: string;
+  applicant_name: string;
+  reference_id: string;
+  document_count: number;
+  trust_score: number | null;
+  score_state: string;
+  assessment_narrative: string | null;
+  document_types: string[];
+  submitted_at: string;
+  assessed_at: string | null;
+  created_at: string;
+}
+
+const columns = [
+  { key: "flag", label: "Flagged", dotColor: "bg-red-500", badgeBg: "bg-red-50 text-red-700" },
+  { key: "review", label: "Under Review", dotColor: "bg-amber-500", badgeBg: "bg-amber-50 text-amber-700" },
+  { key: "insufficient", label: "Insufficient", dotColor: "bg-slate-400", badgeBg: "bg-slate-100 text-slate-600" },
+  { key: "clear", label: "Clear", dotColor: "bg-emerald-500", badgeBg: "bg-emerald-50 text-emerald-700" },
+];
+
+const scoreBadge: Record<string, { label: string; className: string }> = {
+  clear: { label: "Clear", className: "bg-emerald-100 text-emerald-800" },
+  review: { label: "Review", className: "bg-amber-100 text-amber-800" },
+  flag: { label: "Flagged", className: "bg-red-100 text-red-800" },
+  insufficient: { label: "Insufficient", className: "bg-slate-100 text-slate-600" },
+};
+
+const InstitutionalDashboard = () => {
+  const { institutionId, institutionName } = useInstitutionalAuth();
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Submission | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const fetchSubmissions = useCallback(async () => {
+    if (!institutionId) return;
+    const { data, error: err } = await (supabase.from as any)('intake_submissions')
+      .select('*')
+      .eq('institution_id', institutionId)
+      .order('submitted_at', { ascending: false });
+    if (err) {
+      setError("Failed to load pipeline data. Please refresh the page.");
+      return;
+    }
+    setSubmissions(data || []);
+    setLoading(false);
+    setError(null);
+  }, [institutionId]);
+
+  useEffect(() => {
+    fetchSubmissions();
+    const interval = setInterval(fetchSubmissions, 60000);
+    return () => clearInterval(interval);
+  }, [fetchSubmissions]);
+
+  const grouped = columns.map(col => ({
+    ...col,
+    items: submissions.filter(s => s.score_state === col.key),
+  }));
+
+  return (
+    <div className="p-8">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-900">{institutionName}</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Applicant Pipeline</p>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-slate-500">
+          <Users className="h-4 w-4" />
+          <span>{submissions.length} total applicants</span>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">{error}</div>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-4 gap-4 h-[calc(100vh-180px)]">
+          {grouped.map(col => (
+            <div key={col.key} className="flex flex-col border border-slate-200 rounded-lg overflow-hidden">
+              <div className="flex items-center justify-between p-3 border-b border-slate-200 bg-slate-50">
+                <div className="flex items-center gap-2">
+                  <div className={`h-2.5 w-2.5 rounded-full ${col.dotColor}`} />
+                  <span className="text-sm font-medium text-slate-700">{col.label}</span>
+                </div>
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${col.badgeBg}`}>
+                  {col.items.length}
+                </span>
+              </div>
+              <div className="flex-1 overflow-auto p-2 space-y-2">
+                {col.items.length === 0 && (
+                  <p className="text-xs text-slate-400 text-center py-8">No applicants</p>
+                )}
+                {col.items.map(sub => {
+                  const badge = scoreBadge[sub.score_state] || scoreBadge.insufficient;
+                  return (
+                    <button
+                      key={sub.id}
+                      onClick={() => { setSelected(sub); setDrawerOpen(true); }}
+                      className="w-full text-left p-3 rounded-md border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-colors"
+                    >
+                      <p className="text-sm font-medium text-slate-900 truncate">{sub.applicant_name}</p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {format(new Date(sub.submitted_at), "MMM d, yyyy HH:mm")}
+                      </p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-slate-400">{sub.document_count} docs</span>
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${badge.className}`}>
+                          {sub.trust_score ?? "—"}
+                        </Badge>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <ApplicantDetailDrawer
+        submission={selected}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+      />
+    </div>
+  );
+};
+
+export default InstitutionalDashboard;
