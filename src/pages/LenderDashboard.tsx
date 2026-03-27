@@ -62,6 +62,51 @@ const fcraControls: ComplianceControl[] = [
   { id: "FCRA-PER", name: "Permissible Purpose", description: "Consumer reports may only be obtained for a legally permissible purpose.", status: "met", framework: "FCRA" },
 ];
 
+const lenderComplianceFrameworks = [
+  {
+    label: "SOX", desc: "Sarbanes-Oxley", color: "text-primary", icon: <Scale size={14} />,
+    status: "Compliant", lastAudit: "2026-03-01",
+    detail: "Sarbanes-Oxley Act compliance ensures accurate financial reporting, internal control assessment, and record retention. Vaulta's immutable audit trail and cryptographic document verification support SOX Sections 302, 404, 409, and 802.",
+    controls: ["§302 Officer Certification", "§404 Internal Controls", "§409 Real-Time Disclosure", "§802 Record Retention"],
+    certLink: "/documentation#sox",
+  },
+  {
+    label: "GLBA", desc: "Gramm-Leach-Bliley", color: "text-emerald-500", icon: <Lock size={14} />,
+    status: "Compliant", lastAudit: "2026-01-15",
+    detail: "Full compliance with GLBA Safeguards Rule, Financial Privacy Rule, and Pretexting protections. AES-256-GCM encryption, zero-knowledge architecture, and strict access controls protect all nonpublic personal financial information.",
+    controls: ["Financial Privacy Rule", "Safeguards Rule", "Pretexting Protection", "Opt-Out Provisions"],
+    certLink: "/documentation#glba",
+  },
+  {
+    label: "FCRA", desc: "Fair Credit Reporting", color: "text-amber-500", icon: <FileCheck size={14} />,
+    status: "Compliant", lastAudit: "2026-03-01",
+    detail: "Vaulta does not act as a Consumer Reporting Agency. Trust narratives are informational assessments — not credit reports — and do not trigger adverse action requirements under FCRA §604. Accuracy and dispute resolution standards are maintained.",
+    controls: ["Accuracy Standards", "Disclosure Obligations", "Dispute Resolution", "Permissible Purpose"],
+    certLink: "/documentation#fcra",
+  },
+  {
+    label: "SOC 2", desc: "Type II Controls", color: "text-violet-400", icon: <ShieldCheck size={14} />,
+    status: "Compliant", lastAudit: "2026-02-15",
+    detail: "SOC 2 Type II certification validates that Vaulta's security controls operate effectively over time. Covers all five Trust Service Criteria: Security, Availability, Processing Integrity, Confidentiality, and Privacy.",
+    controls: ["Security", "Availability", "Processing Integrity", "Confidentiality & Privacy"],
+    certLink: "/documentation#soc2",
+  },
+  {
+    label: "GDPR", desc: "EU Data Protection", color: "text-[#1D9E75]", icon: <Globe size={14} />,
+    status: "Compliant", lastAudit: "2026-01-20",
+    detail: "Full compliance with the EU General Data Protection Regulation. Vaulta enforces data minimization, supports data subject rights including erasure and portability, and processes data under lawful basis.",
+    controls: ["Right to Erasure", "Data Portability", "Consent Management", "DPO Appointed"],
+    certLink: "/privacy",
+  },
+  {
+    label: "NIST 800-53", desc: "Federal Security", color: "text-[#1D9E75]", icon: <Fingerprint size={14} />,
+    status: "Verified", lastAudit: "2026-03-10",
+    detail: "Controls from NIST SP 800-53 Rev. 5 implemented across four control families: Access Control (AC), Audit & Accountability (AU), Identification & Authentication (IA), and System & Communications Protection (SC).",
+    controls: ["AC — Access Control", "AU — Audit & Accountability", "IA — Identification & Auth", "SC — Sys & Comms Protection"],
+    certLink: "/documentation#nist",
+  },
+];
+
 const LenderDashboard = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
