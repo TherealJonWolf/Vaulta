@@ -61,7 +61,7 @@ export const InstitutionalAuthProvider = ({ children }: { children: ReactNode })
         detail: 'User signed out',
       });
     }
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'local' });
     navigate("/auth");
   };
 
