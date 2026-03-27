@@ -43,6 +43,18 @@ const InstitutionalDashboard = () => {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Submission | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!institutionId) return;
+    (supabase.from as any)("institution_settings")
+      .select("display_name")
+      .eq("institution_id", institutionId)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (data?.display_name) setDisplayName(data.display_name);
+      });
+  }, [institutionId]);
 
   const fetchSubmissions = useCallback(async () => {
     if (!institutionId) return;
