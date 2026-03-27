@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, ArrowLeft, Users, Shield, ShieldCheck, ShieldAlert,
   Clock, Trash2, ExternalLink, RefreshCw, Search, StickyNote, BookmarkPlus,
-  CheckCircle2, Lock, Globe, FileCheck, Scale, Landmark, Eye
+  CheckCircle2, Lock, Globe, FileCheck, Scale, Landmark, Eye, X, Calendar, Link2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,10 +12,78 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ApplicantNarratives, ApplicantScoreIndicator } from "@/components/ApplicantNarratives";
+
+const complianceFrameworks = [
+  {
+    name: "SOC 2", status: "Compliant", icon: <ShieldCheck size={14} />, color: "text-[#1D9E75]",
+    desc: "Service Organization Control",
+    lastAudit: "2026-02-15",
+    detail: "SOC 2 Type II certification validates that Vaulta's security controls operate effectively over time. Covers Trust Service Criteria: Security, Availability, Processing Integrity, Confidentiality, and Privacy.",
+    controls: ["Access Controls", "Encryption at Rest & Transit", "Continuous Monitoring", "Incident Response"],
+    certLink: "/documentation#soc2",
+  },
+  {
+    name: "GDPR", status: "Compliant", icon: <Globe size={14} />, color: "text-[#1D9E75]",
+    desc: "EU Data Protection",
+    lastAudit: "2026-01-20",
+    detail: "Full compliance with the EU General Data Protection Regulation. Vaulta processes data under lawful basis, enforces data minimization, and supports data subject rights including erasure and portability.",
+    controls: ["Right to Erasure", "Data Portability", "Consent Management", "DPO Appointed"],
+    certLink: "/privacy",
+  },
+  {
+    name: "FCRA", status: "Compliant", icon: <Scale size={14} />, color: "text-[#1D9E75]",
+    desc: "Fair Credit Reporting Act",
+    lastAudit: "2026-03-01",
+    detail: "Vaulta does not act as a Consumer Reporting Agency. Assessments are informational trust narratives — not credit reports — and do not constitute adverse action triggers under FCRA §604.",
+    controls: ["No Adverse Action", "Permissible Purpose Docs", "Dispute Resolution", "Accuracy Standards"],
+    certLink: "/documentation#fcra",
+  },
+  {
+    name: "FHA", status: "Aligned", icon: <Landmark size={14} />, color: "text-primary",
+    desc: "Fair Housing Act",
+    lastAudit: "2026-02-28",
+    detail: "Vaulta's assessment engine is designed to avoid discrimination based on race, color, religion, sex, national origin, disability, or familial status. No protected-class data is used in scoring.",
+    controls: ["Bias-Free Scoring", "No Protected Class Inputs", "Equal Treatment Protocols", "Audit Trail"],
+    certLink: "/documentation#fha",
+  },
+  {
+    name: "ECOA", status: "Aligned", icon: <Scale size={14} />, color: "text-primary",
+    desc: "Equal Credit Opportunity",
+    lastAudit: "2026-02-28",
+    detail: "Alignment with the Equal Credit Opportunity Act ensures Vaulta's trust scoring does not discriminate on prohibited bases. All applicants receive identical evaluation criteria.",
+    controls: ["Uniform Criteria", "No Demographic Scoring", "Transparency Requirements", "Record Retention"],
+    certLink: "/documentation#ecoa",
+  },
+  {
+    name: "GLBA", status: "Compliant", icon: <Lock size={14} />, color: "text-[#1D9E75]",
+    desc: "Gramm-Leach-Bliley Act",
+    lastAudit: "2026-01-15",
+    detail: "Financial data shared through Vaulta is protected under GLBA Safeguards Rule. AES-256-GCM encryption, zero-knowledge architecture, and strict access controls protect nonpublic personal information.",
+    controls: ["Safeguards Rule", "Privacy Notices", "Information Security Program", "Third-Party Oversight"],
+    certLink: "/documentation#glba",
+  },
+  {
+    name: "CCPA", status: "Compliant", icon: <Eye size={14} />, color: "text-[#1D9E75]",
+    desc: "CA Consumer Privacy Act",
+    lastAudit: "2026-01-20",
+    detail: "California residents have full rights under CCPA including right to know, right to delete, and right to opt-out. Vaulta does not sell personal information.",
+    controls: ["Right to Know", "Right to Delete", "Opt-Out Rights", "No Data Sales"],
+    certLink: "/privacy#ccpa",
+  },
+  {
+    name: "NIST 800-53", status: "Verified", icon: <FileCheck size={14} />, color: "text-[#1D9E75]",
+    desc: "Federal Security Controls",
+    lastAudit: "2026-03-10",
+    detail: "Vaulta implements controls from NIST SP 800-53 Rev. 5 across four control families: Access Control (AC), Audit & Accountability (AU), Identification & Authentication (IA), and System & Communications Protection (SC).",
+    controls: ["AC — Access Control", "AU — Audit & Accountability", "IA — Identification & Auth", "SC — System & Comms Protection"],
+    certLink: "/documentation#nist",
+  },
+];
 
 interface SavedApplicant {
   id: string;
@@ -181,37 +249,77 @@ const LandlordDashboard = () => {
                 <span className="text-[10px] font-mono text-muted-foreground ml-auto">All assessments comply with:</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-border">
-                {[
-                  { name: "SOC 2", status: "Compliant", icon: <ShieldCheck size={14} />, color: "text-[#1D9E75]", desc: "Service Organization Control" },
-                  { name: "GDPR", status: "Compliant", icon: <Globe size={14} />, color: "text-[#1D9E75]", desc: "EU Data Protection" },
-                  { name: "FCRA", status: "Compliant", icon: <Scale size={14} />, color: "text-[#1D9E75]", desc: "Fair Credit Reporting Act" },
-                  { name: "FHA", status: "Aligned", icon: <Landmark size={14} />, color: "text-primary", desc: "Fair Housing Act" },
-                  { name: "ECOA", status: "Aligned", icon: <Scale size={14} />, color: "text-primary", desc: "Equal Credit Opportunity" },
-                  { name: "GLBA", status: "Compliant", icon: <Lock size={14} />, color: "text-[#1D9E75]", desc: "Gramm-Leach-Bliley Act" },
-                  { name: "CCPA", status: "Compliant", icon: <Eye size={14} />, color: "text-[#1D9E75]", desc: "CA Consumer Privacy Act" },
-                  { name: "NIST 800-53", status: "Verified", icon: <FileCheck size={14} />, color: "text-[#1D9E75]", desc: "Federal Security Controls" },
-                ].map((fw) => (
-                  <div key={fw.name} className="bg-card p-3 flex items-start gap-2.5">
-                    <div className={`mt-0.5 shrink-0 ${fw.color}`}>{fw.icon}</div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-display text-xs font-bold text-foreground">{fw.name}</span>
-                        <CheckCircle2 size={10} className={fw.color} />
+                {complianceFrameworks.map((fw) => (
+                  <Popover key={fw.name}>
+                    <PopoverTrigger asChild>
+                      <button className="bg-card p-3 flex items-start gap-2.5 text-left w-full hover:bg-accent/5 transition-colors cursor-pointer group">
+                        <div className={`mt-0.5 shrink-0 ${fw.color}`}>{fw.icon}</div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-display text-xs font-bold text-foreground group-hover:text-primary transition-colors">{fw.name}</span>
+                            <CheckCircle2 size={10} className={fw.color} />
+                          </div>
+                          <p className="text-[10px] font-mono text-muted-foreground leading-tight mt-0.5">{fw.desc}</p>
+                          <Badge
+                            className={`mt-1 text-[9px] px-1.5 py-0 font-mono border ${
+                              fw.status === "Compliant"
+                                ? "bg-[#1D9E75]/10 text-[#1D9E75] border-[#1D9E75]/20"
+                                : fw.status === "Verified"
+                                ? "bg-[#1D9E75]/10 text-[#1D9E75] border-[#1D9E75]/20"
+                                : "bg-primary/10 text-primary border-primary/20"
+                            }`}
+                          >
+                            {fw.status}
+                          </Badge>
+                        </div>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-0 bg-card border-border" side="bottom" align="start">
+                      <div className="p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className={fw.color}>{fw.icon}</div>
+                            <span className="font-display text-sm font-bold text-foreground">{fw.name}</span>
+                            <Badge
+                              className={`text-[9px] px-1.5 py-0 font-mono border ${
+                                fw.status === "Aligned"
+                                  ? "bg-primary/10 text-primary border-primary/20"
+                                  : "bg-[#1D9E75]/10 text-[#1D9E75] border-[#1D9E75]/20"
+                              }`}
+                            >
+                              {fw.status}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-muted-foreground leading-relaxed">{fw.detail}</p>
+
+                        <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
+                          <Calendar size={10} />
+                          <span>Last Audit: {new Date(fw.lastAudit).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Key Controls</span>
+                          <div className="flex flex-wrap gap-1">
+                            {fw.controls.map((ctrl) => (
+                              <span key={ctrl} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-accent/10 text-accent border border-accent/20">
+                                {ctrl}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <Link
+                          to={fw.certLink}
+                          className="flex items-center gap-1.5 text-[10px] font-mono text-primary hover:text-primary/80 transition-colors"
+                        >
+                          <Link2 size={10} />
+                          View Certification Details
+                        </Link>
                       </div>
-                      <p className="text-[10px] font-mono text-muted-foreground leading-tight mt-0.5">{fw.desc}</p>
-                      <Badge
-                        className={`mt-1 text-[9px] px-1.5 py-0 font-mono border ${
-                          fw.status === "Compliant"
-                            ? "bg-[#1D9E75]/10 text-[#1D9E75] border-[#1D9E75]/20"
-                            : fw.status === "Verified"
-                            ? "bg-[#1D9E75]/10 text-[#1D9E75] border-[#1D9E75]/20"
-                            : "bg-primary/10 text-primary border-primary/20"
-                        }`}
-                      >
-                        {fw.status}
-                      </Badge>
-                    </div>
-                  </div>
+                    </PopoverContent>
+                  </Popover>
                 ))}
               </div>
               <div className="px-5 py-2.5 border-t border-border flex items-center gap-2">
