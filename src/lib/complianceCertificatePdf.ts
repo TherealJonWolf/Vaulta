@@ -260,9 +260,10 @@ export function exportComplianceCertificatePdf(institutionName?: string) {
     doc.setFontSize(7);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(100, 100, 100);
-    doc.text("Controls: ", margin + 2, y);
+    const controlsLabel = "Controls:  ";
+    doc.text(controlsLabel, margin + 2, y);
     doc.setFont("helvetica", "normal");
-    doc.text(fw.controls.join("  •  "), margin + 2 + doc.getTextWidth("Controls: "), y);
+    doc.text(fw.controls.join("  •  "), margin + 2 + doc.getTextWidth(controlsLabel), y);
     y += 7;
   });
 
