@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Shield, ArrowLeft, Users, Activity, AlertTriangle, TrendingDown, Eye, RefreshCw, Lock, Unlock, FileWarning, Upload, ClipboardCheck } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Shield, ArrowLeft, Users, Activity, AlertTriangle, TrendingDown, Eye, RefreshCw, Lock, Unlock, FileWarning, Upload, ClipboardCheck, Bell, BellRing, CheckCircle2, XCircle, Clock, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -82,6 +82,22 @@ interface AdminDocument {
   created_at: string;
 }
 
+type AlertSeverity = "critical" | "high" | "medium" | "info";
+type AlertCategory = "fraud" | "auth" | "upload" | "trust" | "system";
+
+interface AdminAlert {
+  id: string;
+  severity: AlertSeverity;
+  category: AlertCategory;
+  title: string;
+  detail: string;
+  timestamp: string;
+  sourceId: string;
+  acknowledged: boolean;
+}
+
+const SEVERITY_ORDER: Record<AlertSeverity, number> = { critical: 0, high: 1, medium: 2, info: 3 };
+
 const AdminSecurity = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -96,6 +112,8 @@ const AdminSecurity = () => {
   const [adminDocs, setAdminDocs] = useState<AdminDocument[]>([]);
   const [selectedAuditDoc, setSelectedAuditDoc] = useState<AdminDocument | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [acknowledgedAlerts, setAcknowledgedAlerts] = useState<Set<string>>(new Set());
+  const [alertFilter, setAlertFilter] = useState<AlertCategory | "all">("all");
 
   useEffect(() => {
     if (!authLoading && !roleLoading) {
@@ -126,6 +144,158 @@ const AdminSecurity = () => {
     if (uploadEventsRes.data) setUploadEvents(uploadEventsRes.data);
     if (docsRes.data) setAdminDocs(docsRes.data);
     setRefreshing(false);
+  };
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    if (!isAdmin) return;
+    const interval = setInterval(fetchAll, 30000);
+    return () => clearInterval(interval);
+  }, [isAdmin]);
+
+  // Generate alerts from all data sources
+  const alerts = useMemo<AdminAlert[]>(() => {
+    const result: AdminAlert[] = [];
+
+    // Locked accounts → critical auth alerts
+    profiles.filter(p => p.account_locked_at).forEach(p => {
+      result.push({
+        id: `locked-${p.user_id}`,
+        severity: "critical",
+        category: "auth",
+        title: "Account Locked",
+        detail: `${p.email} locked after ${p.failed_login_attempts} failed attempts`,
+        timestamp: p.account_locked_at!,
+        sourceId: p.user_id,
+        acknowledged: acknowledgedAlerts.has(`locked-${p.user_id}`),
+      });
+    });
+
+    // Near-lockout accounts (4-5 failed attempts) → high auth alerts
+    profiles.filter(p => p.failed_login_attempts >= 4 && !p.account_locked_at).forEach(p => {
+      result.push({
+        id: `near-lock-${p.user_id}`,
+        severity: "high",
+        category: "auth",
+        title: "Near Lockout",
+        detail: `${p.email} has ${p.failed_login_attempts}/6 failed login attempts`,
+        timestamp: new Date().toISOString(),
+        sourceId: p.user_id,
+        acknowledged: acknowledgedAlerts.has(`near-lock-${p.user_id}`),
+      });
+    });
+
+    // High-severity cross-account signals → critical fraud alerts
+    crossSignals.filter(s => s.severity === "high").forEach(s => {
+      result.push({
+        id: `signal-${s.id}`,
+        severity: "critical",
+        category: "fraud",
+        title: "High-Severity Cluster Detected",
+        detail: `${s.signal_type}: ${s.account_count} accounts, ${(s.confidence_score * 100).toFixed(0)}% confidence`,
+        timestamp: s.last_seen_at,
+        sourceId: s.id,
+        acknowledged: acknowledgedAlerts.has(`signal-${s.id}`),
+      });
+    });
+
+    // Medium cross-account signals → medium fraud alerts
+    crossSignals.filter(s => s.severity === "medium").forEach(s => {
+      result.push({
+        id: `signal-${s.id}`,
+        severity: "medium",
+        category: "fraud",
+        title: "Cross-Account Signal",
+        detail: `${s.signal_type}: ${s.account_count} accounts linked`,
+        timestamp: s.last_seen_at,
+        sourceId: s.id,
+        acknowledged: acknowledgedAlerts.has(`signal-${s.id}`),
+      });
+    });
+
+    // Security upload failures → high upload alerts
+    uploadEvents.filter(e => e.event_type === "security_failure").slice(0, 20).forEach(e => {
+      result.push({
+        id: `upload-${e.id}`,
+        severity: "high",
+        category: "upload",
+        title: "Security Upload Failure",
+        detail: `${e.file_name} rejected: ${e.failure_reason || "security violation"}`,
+        timestamp: e.created_at,
+        sourceId: e.id,
+        acknowledged: acknowledgedAlerts.has(`upload-${e.id}`),
+      });
+    });
+
+    // Boundary huggers (score > 50) → medium trust alerts
+    evalMeta.filter(e => e.boundary_hugging_score > 50).forEach(e => {
+      const email = profiles.find(p => p.user_id === e.user_id)?.email || e.user_id.substring(0, 8);
+      result.push({
+        id: `boundary-${e.id}`,
+        severity: e.boundary_hugging_score > 75 ? "high" : "medium",
+        category: "trust",
+        title: "Boundary Hugging Detected",
+        detail: `${email}: score ${e.boundary_hugging_score.toFixed(0)}, ${e.boundary_events} events`,
+        timestamp: e.updated_at,
+        sourceId: e.id,
+        acknowledged: acknowledgedAlerts.has(`boundary-${e.id}`),
+      });
+    });
+
+    // Major trust drops → high trust alerts
+    trustHistory.filter(h => h.trust_delta < -10).slice(0, 10).forEach(h => {
+      const email = profiles.find(p => p.user_id === h.user_id)?.email || h.user_id.substring(0, 8);
+      result.push({
+        id: `trust-drop-${h.id}`,
+        severity: h.trust_delta < -20 ? "critical" : "high",
+        category: "trust",
+        title: "Significant Trust Drop",
+        detail: `${email}: ${h.trust_delta} points (now ${h.trust_score_at_time})`,
+        timestamp: h.created_at,
+        sourceId: h.id,
+        acknowledged: acknowledgedAlerts.has(`trust-drop-${h.id}`),
+      });
+    });
+
+    // Sort by severity, then timestamp
+    result.sort((a, b) => {
+      if (a.acknowledged !== b.acknowledged) return a.acknowledged ? 1 : -1;
+      const sevDiff = SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity];
+      if (sevDiff !== 0) return sevDiff;
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
+
+    return result;
+  }, [profiles, crossSignals, uploadEvents, evalMeta, trustHistory, acknowledgedAlerts]);
+
+  const unacknowledgedCount = alerts.filter(a => !a.acknowledged).length;
+  const filteredAlerts = alertFilter === "all" ? alerts : alerts.filter(a => a.category === alertFilter);
+
+  const acknowledgeAlert = useCallback((alertId: string) => {
+    setAcknowledgedAlerts(prev => new Set([...prev, alertId]));
+  }, []);
+
+  const acknowledgeAll = useCallback(() => {
+    setAcknowledgedAlerts(new Set(alerts.map(a => a.id)));
+  }, [alerts]);
+
+  const severityBadgeClass = (s: AlertSeverity) => {
+    switch (s) {
+      case "critical": return "bg-destructive/15 text-destructive border-destructive/30";
+      case "high": return "bg-[hsl(var(--warning-amber))]/15 text-[hsl(var(--warning-amber))] border-[hsl(var(--warning-amber))]/30";
+      case "medium": return "bg-secondary text-secondary-foreground";
+      default: return "bg-muted text-muted-foreground";
+    }
+  };
+
+  const categoryIcon = (c: AlertCategory) => {
+    switch (c) {
+      case "fraud": return <AlertTriangle size={14} />;
+      case "auth": return <Lock size={14} />;
+      case "upload": return <FileWarning size={14} />;
+      case "trust": return <TrendingDown size={14} />;
+      case "system": return <Zap size={14} />;
+    }
   };
 
   const getEmail = (userId: string) => {
@@ -243,6 +413,7 @@ const AdminSecurity = () => {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           {[
+            { icon: BellRing, label: "ACTIVE ALERTS", value: unacknowledgedCount, color: unacknowledgedCount > 0 ? "text-destructive" : "text-primary" },
             { icon: Users, label: "USERS TRACKED", value: uniqueUsersTracked, color: "text-primary" },
             { icon: Lock, label: "LOCKED ACCOUNTS", value: lockedAccounts.length, color: "text-destructive" },
             { icon: AlertTriangle, label: "HIGH-SEV CLUSTERS", value: highSeverityClusters, color: "text-destructive" },
@@ -263,8 +434,15 @@ const AdminSecurity = () => {
           ))}
         </div>
 
-        <Tabs defaultValue="locked" className="space-y-6">
+        <Tabs defaultValue="alerts" className="space-y-6">
           <TabsList className="bg-card border border-border flex-wrap">
+            <TabsTrigger value="alerts" className="font-mono text-xs gap-1.5">
+              <Bell size={12} />
+              ALERTS
+              {unacknowledgedCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">{unacknowledgedCount}</span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="locked" className="font-mono text-xs">LOCKED ACCOUNTS</TabsTrigger>
             <TabsTrigger value="doc-audits" className="font-mono text-xs">DOC AUDITS</TabsTrigger>
             <TabsTrigger value="uploads" className="font-mono text-xs">UPLOAD EVENTS</TabsTrigger>
@@ -272,6 +450,97 @@ const AdminSecurity = () => {
             <TabsTrigger value="boundary" className="font-mono text-xs">BOUNDARY HUGGING</TabsTrigger>
             <TabsTrigger value="timeline" className="font-mono text-xs">TRUST TIMELINE</TabsTrigger>
           </TabsList>
+
+          {/* ALERTS TAB */}
+          <TabsContent value="alerts">
+            <Card className="cyber-border">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="font-display text-lg gradient-text flex items-center gap-2">
+                    <BellRing size={18} />
+                    AUTOMATED ALERTS
+                    <span className="text-muted-foreground font-mono text-[10px] font-normal ml-2">Auto-refreshes every 30s</span>
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={alertFilter}
+                      onChange={(e) => setAlertFilter(e.target.value as AlertCategory | "all")}
+                      className="bg-card border border-border rounded px-2 py-1 font-mono text-xs text-foreground"
+                    >
+                      <option value="all">ALL CATEGORIES</option>
+                      <option value="fraud">FRAUD</option>
+                      <option value="auth">AUTH</option>
+                      <option value="upload">UPLOAD</option>
+                      <option value="trust">TRUST</option>
+                    </select>
+                    {unacknowledgedCount > 0 && (
+                      <Button size="sm" variant="outline" className="font-mono text-xs" onClick={acknowledgeAll}>
+                        <CheckCircle2 size={12} className="mr-1" />
+                        ACK ALL
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {filteredAlerts.length === 0 ? (
+                  <div className="text-center py-12">
+                    <CheckCircle2 size={48} className="mx-auto text-[hsl(var(--secure-green))] mb-3 opacity-50" />
+                    <p className="text-muted-foreground font-mono text-sm">ALL CLEAR — NO ACTIVE ALERTS</p>
+                    <p className="text-muted-foreground font-mono text-[10px] mt-1">System is monitoring continuously</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <AnimatePresence>
+                      {filteredAlerts.map((alert) => (
+                        <motion.div
+                          key={alert.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: alert.acknowledged ? 0.5 : 1, x: 0 }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className={`flex items-center gap-3 p-3 rounded-lg border ${
+                            alert.acknowledged
+                              ? "border-border bg-muted/30"
+                              : alert.severity === "critical"
+                              ? "border-destructive/40 bg-destructive/5"
+                              : alert.severity === "high"
+                              ? "border-[hsl(var(--warning-amber))]/40 bg-[hsl(var(--warning-amber))]/5"
+                              : "border-border bg-card"
+                          }`}
+                        >
+                          <div className="shrink-0">{categoryIcon(alert.category)}</div>
+                          <Badge className={`shrink-0 font-mono text-[10px] ${severityBadgeClass(alert.severity)}`}>
+                            {alert.severity.toUpperCase()}
+                          </Badge>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-mono text-xs font-semibold text-foreground">{alert.title}</p>
+                            <p className="font-mono text-[11px] text-muted-foreground truncate">{alert.detail}</p>
+                          </div>
+                          <div className="shrink-0 flex items-center gap-2">
+                            <span className="font-mono text-[10px] text-muted-foreground flex items-center gap-1">
+                              <Clock size={10} />
+                              {new Date(alert.timestamp).toLocaleString()}
+                            </span>
+                            {!alert.acknowledged && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0"
+                                onClick={() => acknowledgeAlert(alert.id)}
+                                title="Acknowledge"
+                              >
+                                <CheckCircle2 size={14} className="text-muted-foreground hover:text-primary" />
+                              </Button>
+                            )}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Locked Accounts */}
           <TabsContent value="locked">
