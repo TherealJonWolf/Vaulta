@@ -220,21 +220,67 @@ const LenderDashboard = () => {
               <div className="flex items-center gap-3 mb-3">
                 <ShieldCheck size={20} className="text-emerald-500" />
                 <span className="font-display text-sm font-bold text-foreground">REGULATORY COMPLIANCE STATUS</span>
+                <span className="text-[10px] font-mono text-muted-foreground ml-auto">Click any framework for details</span>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {[
-                  { label: "SOX", desc: "Sarbanes-Oxley", color: "text-primary" },
-                  { label: "GLBA", desc: "Gramm-Leach-Bliley", color: "text-emerald-500" },
-                  { label: "FCRA", desc: "Fair Credit Reporting", color: "text-amber-500" },
-                  { label: "SOC 2", desc: "Type II Controls", color: "text-violet-400" },
-                ].map(fw => (
-                  <div key={fw.label} className="p-3 rounded-lg border border-border bg-muted/20 text-center">
-                    <p className={`font-display text-sm font-bold ${fw.color}`}>{fw.label}</p>
-                    <p className="text-[10px] text-muted-foreground font-mono">{fw.desc}</p>
-                    <Badge className="mt-1 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-mono text-[9px]">
-                      COMPLIANT
-                    </Badge>
-                  </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                {lenderComplianceFrameworks.map(fw => (
+                  <Popover key={fw.label}>
+                    <PopoverTrigger asChild>
+                      <button className="p-3 rounded-lg border border-border bg-muted/20 text-center hover:bg-accent/10 hover:border-primary/30 transition-colors cursor-pointer group w-full">
+                        <div className={`${fw.color} mx-auto mb-1`}>{fw.icon}</div>
+                        <p className={`font-display text-sm font-bold ${fw.color} group-hover:brightness-125 transition-all`}>{fw.label}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono">{fw.desc}</p>
+                        <Badge className={`mt-1 font-mono text-[9px] border ${
+                          fw.status === "Verified"
+                            ? "bg-[#1D9E75]/10 text-[#1D9E75] border-[#1D9E75]/20"
+                            : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                        }`}>
+                          {fw.status.toUpperCase()}
+                        </Badge>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-0 bg-card border-border" side="bottom" align="center">
+                      <div className="p-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <div className={fw.color}>{fw.icon}</div>
+                          <span className="font-display text-sm font-bold text-foreground">{fw.label}</span>
+                          <Badge className={`text-[9px] px-1.5 py-0 font-mono border ${
+                            fw.status === "Verified"
+                              ? "bg-[#1D9E75]/10 text-[#1D9E75] border-[#1D9E75]/20"
+                              : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                          }`}>
+                            {fw.status.toUpperCase()}
+                          </Badge>
+                        </div>
+
+                        <p className="text-xs text-muted-foreground leading-relaxed">{fw.detail}</p>
+
+                        <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
+                          <Calendar size={10} />
+                          <span>Last Audit: {new Date(fw.lastAudit).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Key Controls</span>
+                          <div className="flex flex-wrap gap-1">
+                            {fw.controls.map((ctrl) => (
+                              <span key={ctrl} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-accent/10 text-accent border border-accent/20">
+                                {ctrl}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <Link
+                          to={fw.certLink}
+                          className="flex items-center gap-1.5 text-[10px] font-mono text-primary hover:text-primary/80 transition-colors"
+                        >
+                          <Link2 size={10} />
+                          View Certification Details
+                        </Link>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 ))}
               </div>
             </CardContent>
