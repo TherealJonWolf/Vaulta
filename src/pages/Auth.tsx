@@ -32,12 +32,17 @@ const Auth = () => {
   const { toast } = useToast();
   const { user, mfaRequired, currentLevel, signIn, signUp, checkMFAStatus } = useAuth();
 
-  // Redirect already-authenticated users based on role
+  // Only redirect if user was already authenticated when the page first loaded
   useEffect(() => {
-    if (user && !mfaRequired) {
-      roleRedirect(user.id);
-    }
-  }, [user, mfaRequired]);
+    const checkExisting = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user && !mfaRequired) {
+        roleRedirect(session.user.id);
+      }
+    };
+    checkExisting();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const roleRedirect = async (userId: string) => {
     const { data } = await supabase
