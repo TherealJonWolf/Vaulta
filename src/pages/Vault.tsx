@@ -7,6 +7,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useVaultEncryption } from "@/hooks/useVaultEncryption";
+import { supabase } from "@/integrations/supabase/client";
 import AIOracle from "@/components/AIOracle";
 import ShareVaultButton from "@/components/ShareVaultButton";
 import DocumentUpload from "@/components/DocumentUpload";
