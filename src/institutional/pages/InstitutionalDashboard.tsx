@@ -86,7 +86,7 @@ const InstitutionalDashboard = () => {
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">{institutionName}</h1>
+          <h1 className="text-xl font-semibold text-slate-900">{displayName || institutionName}</h1>
           <p className="text-sm text-slate-500 mt-0.5">Applicant Pipeline</p>
         </div>
         <div className="flex items-center gap-2 text-sm text-slate-500">
