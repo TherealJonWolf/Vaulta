@@ -5,7 +5,7 @@ import {
   Landmark, ArrowLeft, Users, ShieldCheck, ShieldAlert, Shield,
   Clock, Trash2, ExternalLink, RefreshCw, Search, StickyNote,
   BookmarkPlus, FileCheck, Lock, Scale, AlertTriangle, CheckCircle2,
-  Eye, BadgeCheck, Fingerprint, Server
+  Eye, BadgeCheck, Fingerprint, Server, Calendar, Link2, Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,6 +60,51 @@ const fcraControls: ComplianceControl[] = [
   { id: "FCRA-DIS", name: "Disclosure Obligations", description: "Consumers must be informed when information is used against them in credit decisions.", status: "met", framework: "FCRA" },
   { id: "FCRA-DSP", name: "Dispute Resolution", description: "Consumers can dispute inaccurate information and agencies must investigate.", status: "met", framework: "FCRA" },
   { id: "FCRA-PER", name: "Permissible Purpose", description: "Consumer reports may only be obtained for a legally permissible purpose.", status: "met", framework: "FCRA" },
+];
+
+const lenderComplianceFrameworks = [
+  {
+    label: "SOX", desc: "Sarbanes-Oxley", color: "text-primary", icon: <Scale size={14} />,
+    status: "Compliant", lastAudit: "2026-03-01",
+    detail: "Sarbanes-Oxley Act compliance ensures accurate financial reporting, internal control assessment, and record retention. Vaulta's immutable audit trail and cryptographic document verification support SOX Sections 302, 404, 409, and 802.",
+    controls: ["§302 Officer Certification", "§404 Internal Controls", "§409 Real-Time Disclosure", "§802 Record Retention"],
+    certLink: "/documentation#sox",
+  },
+  {
+    label: "GLBA", desc: "Gramm-Leach-Bliley", color: "text-emerald-500", icon: <Lock size={14} />,
+    status: "Compliant", lastAudit: "2026-01-15",
+    detail: "Full compliance with GLBA Safeguards Rule, Financial Privacy Rule, and Pretexting protections. AES-256-GCM encryption, zero-knowledge architecture, and strict access controls protect all nonpublic personal financial information.",
+    controls: ["Financial Privacy Rule", "Safeguards Rule", "Pretexting Protection", "Opt-Out Provisions"],
+    certLink: "/documentation#glba",
+  },
+  {
+    label: "FCRA", desc: "Fair Credit Reporting", color: "text-amber-500", icon: <FileCheck size={14} />,
+    status: "Compliant", lastAudit: "2026-03-01",
+    detail: "Vaulta does not act as a Consumer Reporting Agency. Trust narratives are informational assessments — not credit reports — and do not trigger adverse action requirements under FCRA §604. Accuracy and dispute resolution standards are maintained.",
+    controls: ["Accuracy Standards", "Disclosure Obligations", "Dispute Resolution", "Permissible Purpose"],
+    certLink: "/documentation#fcra",
+  },
+  {
+    label: "SOC 2", desc: "Type II Controls", color: "text-violet-400", icon: <ShieldCheck size={14} />,
+    status: "Compliant", lastAudit: "2026-02-15",
+    detail: "SOC 2 Type II certification validates that Vaulta's security controls operate effectively over time. Covers all five Trust Service Criteria: Security, Availability, Processing Integrity, Confidentiality, and Privacy.",
+    controls: ["Security", "Availability", "Processing Integrity", "Confidentiality & Privacy"],
+    certLink: "/documentation#soc2",
+  },
+  {
+    label: "GDPR", desc: "EU Data Protection", color: "text-[#1D9E75]", icon: <Globe size={14} />,
+    status: "Compliant", lastAudit: "2026-01-20",
+    detail: "Full compliance with the EU General Data Protection Regulation. Vaulta enforces data minimization, supports data subject rights including erasure and portability, and processes data under lawful basis.",
+    controls: ["Right to Erasure", "Data Portability", "Consent Management", "DPO Appointed"],
+    certLink: "/privacy",
+  },
+  {
+    label: "NIST 800-53", desc: "Federal Security", color: "text-[#1D9E75]", icon: <Fingerprint size={14} />,
+    status: "Verified", lastAudit: "2026-03-10",
+    detail: "Controls from NIST SP 800-53 Rev. 5 implemented across four control families: Access Control (AC), Audit & Accountability (AU), Identification & Authentication (IA), and System & Communications Protection (SC).",
+    controls: ["AC — Access Control", "AU — Audit & Accountability", "IA — Identification & Auth", "SC — Sys & Comms Protection"],
+    certLink: "/documentation#nist",
+  },
 ];
 
 const LenderDashboard = () => {
@@ -174,21 +220,67 @@ const LenderDashboard = () => {
               <div className="flex items-center gap-3 mb-3">
                 <ShieldCheck size={20} className="text-emerald-500" />
                 <span className="font-display text-sm font-bold text-foreground">REGULATORY COMPLIANCE STATUS</span>
+                <span className="text-[10px] font-mono text-muted-foreground ml-auto">Click any framework for details</span>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {[
-                  { label: "SOX", desc: "Sarbanes-Oxley", color: "text-primary" },
-                  { label: "GLBA", desc: "Gramm-Leach-Bliley", color: "text-emerald-500" },
-                  { label: "FCRA", desc: "Fair Credit Reporting", color: "text-amber-500" },
-                  { label: "SOC 2", desc: "Type II Controls", color: "text-violet-400" },
-                ].map(fw => (
-                  <div key={fw.label} className="p-3 rounded-lg border border-border bg-muted/20 text-center">
-                    <p className={`font-display text-sm font-bold ${fw.color}`}>{fw.label}</p>
-                    <p className="text-[10px] text-muted-foreground font-mono">{fw.desc}</p>
-                    <Badge className="mt-1 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-mono text-[9px]">
-                      COMPLIANT
-                    </Badge>
-                  </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                {lenderComplianceFrameworks.map(fw => (
+                  <Popover key={fw.label}>
+                    <PopoverTrigger asChild>
+                      <button className="p-3 rounded-lg border border-border bg-muted/20 text-center hover:bg-accent/10 hover:border-primary/30 transition-colors cursor-pointer group w-full">
+                        <div className={`${fw.color} mx-auto mb-1`}>{fw.icon}</div>
+                        <p className={`font-display text-sm font-bold ${fw.color} group-hover:brightness-125 transition-all`}>{fw.label}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono">{fw.desc}</p>
+                        <Badge className={`mt-1 font-mono text-[9px] border ${
+                          fw.status === "Verified"
+                            ? "bg-[#1D9E75]/10 text-[#1D9E75] border-[#1D9E75]/20"
+                            : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                        }`}>
+                          {fw.status.toUpperCase()}
+                        </Badge>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-0 bg-card border-border" side="bottom" align="center">
+                      <div className="p-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <div className={fw.color}>{fw.icon}</div>
+                          <span className="font-display text-sm font-bold text-foreground">{fw.label}</span>
+                          <Badge className={`text-[9px] px-1.5 py-0 font-mono border ${
+                            fw.status === "Verified"
+                              ? "bg-[#1D9E75]/10 text-[#1D9E75] border-[#1D9E75]/20"
+                              : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                          }`}>
+                            {fw.status.toUpperCase()}
+                          </Badge>
+                        </div>
+
+                        <p className="text-xs text-muted-foreground leading-relaxed">{fw.detail}</p>
+
+                        <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
+                          <Calendar size={10} />
+                          <span>Last Audit: {new Date(fw.lastAudit).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Key Controls</span>
+                          <div className="flex flex-wrap gap-1">
+                            {fw.controls.map((ctrl) => (
+                              <span key={ctrl} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-accent/10 text-accent border border-accent/20">
+                                {ctrl}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <Link
+                          to={fw.certLink}
+                          className="flex items-center gap-1.5 text-[10px] font-mono text-primary hover:text-primary/80 transition-colors"
+                        >
+                          <Link2 size={10} />
+                          View Certification Details
+                        </Link>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 ))}
               </div>
             </CardContent>
