@@ -53,15 +53,19 @@ export const InstitutionalAuthProvider = ({ children }: { children: ReactNode })
   }, [navigate]);
 
   const signOut = async () => {
-    if (institutionId && user) {
-      await (supabase.from as any)('institutional_activity_log').insert({
-        institution_id: institutionId,
-        user_id: user.id,
-        event_type: 'Logout',
-        detail: 'User signed out',
-      }).catch(() => {});
+    try {
+      if (institutionId && user) {
+        await (supabase.from as any)('institutional_activity_log').insert({
+          institution_id: institutionId,
+          user_id: user.id,
+          event_type: 'Logout',
+          detail: 'User signed out',
+        });
+      }
+    } catch (_) {
+      // Ignore activity log errors
     }
-    // Try global signout first, fall back to local if session is already gone server-side
+    // Try global signout first, fall back to local if session is already gone
     const { error } = await supabase.auth.signOut();
     if (error) {
       await supabase.auth.signOut({ scope: 'local' });
