@@ -149,9 +149,19 @@ const SubmitDocuments = () => {
     <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8">
       <div className="w-full max-w-lg">
         <div className="text-center mb-8">
-          <span className="text-xl font-semibold text-slate-900 tracking-tight">Vaulta</span>
+          {branding?.logo_url ? (
+            <img src={branding.logo_url} alt="Logo" className="h-12 w-12 mx-auto mb-3 rounded object-contain" />
+          ) : null}
+          <span className="text-xl font-semibold text-slate-900 tracking-tight">
+            {branding?.display_name || tokenData?.institution_name || "Vaulta"}
+          </span>
+          {branding?.welcome_message && (
+            <p className="text-sm text-slate-600 mt-3 border-l-2 pl-3 text-left" style={{ borderColor: branding.accent_color }}>
+              {branding.welcome_message}
+            </p>
+          )}
           <p className="text-sm text-slate-500 mt-3">
-            Securely upload your documents for {tokenData?.institution_name || "your institution"}.
+            Securely upload your documents for {branding?.display_name || tokenData?.institution_name || "your institution"}.
             All files are encrypted before transmission and stored securely.
           </p>
           <p className="text-xs text-slate-400 mt-1">Accepted: PDF, JPG, PNG · Max 25MB per file · Up to 20 documents</p>
