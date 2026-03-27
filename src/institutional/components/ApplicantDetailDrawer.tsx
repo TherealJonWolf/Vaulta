@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, X, FileText } from "lucide-react";
+import { Download, X, FileText, FolderInput } from "lucide-react";
 import { format } from "date-fns";
 import { useInstitutionalAuth } from "../hooks/useInstitutionalAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { DocumentPossessionRequest } from "./DocumentPossessionRequest";
+import { DocumentsOnFile } from "./DocumentsOnFile";
 
 interface Submission {
   id: string;
@@ -35,6 +38,7 @@ const scoreConfig: Record<string, { label: string; className: string }> = {
 
 export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
   const { institutionId, user } = useInstitutionalAuth();
+  const [requestOpen, setRequestOpen] = useState(false);
 
   const handleExportPdf = async () => {
     if (!submission) return;
@@ -81,73 +85,90 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
   const config = scoreConfig[submission.score_state] || scoreConfig.insufficient;
 
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="w-[480px] sm:w-[540px] bg-white border-l border-slate-200 p-0">
-        <div className="flex items-center justify-between p-6 border-b border-slate-200">
-          <SheetHeader className="p-0">
-            <SheetTitle className="text-lg font-semibold text-slate-900">
-              {submission.applicant_name}
-            </SheetTitle>
-          </SheetHeader>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <>
+      <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+        <SheetContent className="w-[480px] sm:w-[540px] bg-white border-l border-slate-200 p-0">
+          <div className="flex items-center justify-between p-6 border-b border-slate-200">
+            <SheetHeader className="p-0">
+              <SheetTitle className="text-lg font-semibold text-slate-900">
+                {submission.applicant_name}
+              </SheetTitle>
+            </SheetHeader>
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
 
-        <div className="p-6 space-y-6 overflow-auto" style={{ maxHeight: "calc(100vh - 160px)" }}>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Reference ID</p>
-              <p className="text-sm font-medium text-slate-900">{submission.reference_id}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Submitted</p>
-              <p className="text-sm font-medium text-slate-900">
-                {format(new Date(submission.submitted_at), "MMM d, yyyy HH:mm")}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Documents</p>
-              <p className="text-sm font-medium text-slate-900">{submission.document_count}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Trust Score</p>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-slate-900">{submission.trust_score ?? "—"}</span>
-                <Badge variant="outline" className={config.className}>{config.label}</Badge>
+          <div className="p-6 space-y-6 overflow-auto" style={{ maxHeight: "calc(100vh - 160px)" }}>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-xs text-slate-500 uppercase tracking-wider">Reference ID</p>
+                <p className="text-sm font-medium text-slate-900">{submission.reference_id}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-slate-500 uppercase tracking-wider">Submitted</p>
+                <p className="text-sm font-medium text-slate-900">
+                  {format(new Date(submission.submitted_at), "MMM d, yyyy HH:mm")}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-slate-500 uppercase tracking-wider">Documents</p>
+                <p className="text-sm font-medium text-slate-900">{submission.document_count}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-slate-500 uppercase tracking-wider">Trust Score</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-900">{submission.trust_score ?? "—"}</span>
+                  <Badge variant="outline" className={config.className}>{config.label}</Badge>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <p className="text-xs text-slate-500 uppercase tracking-wider">Assessment Narrative</p>
-            <p className="text-sm text-slate-700 leading-relaxed">
-              {submission.assessment_narrative || "Assessment pending."}
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-xs text-slate-500 uppercase tracking-wider">Document Types Received</p>
-            <div className="flex flex-wrap gap-1.5">
-              {(submission.document_types || []).map((type, i) => (
-                <Badge key={i} variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200">
-                  <FileText className="h-3 w-3 mr-1" />{type}
-                </Badge>
-              ))}
-              {(!submission.document_types || submission.document_types.length === 0) && (
-                <p className="text-sm text-slate-400">No document types recorded</p>
-              )}
+            <div className="space-y-2">
+              <p className="text-xs text-slate-500 uppercase tracking-wider">Assessment Narrative</p>
+              <p className="text-sm text-slate-700 leading-relaxed">
+                {submission.assessment_narrative || "Assessment pending."}
+              </p>
             </div>
-          </div>
-        </div>
 
-        <div className="p-6 border-t border-slate-200">
-          <Button onClick={handleExportPdf} className="w-full bg-slate-900 hover:bg-slate-800 text-white">
-            <Download className="h-4 w-4 mr-2" />
-            Export PDF Assessment Record
-          </Button>
-        </div>
-      </SheetContent>
-    </Sheet>
+            <div className="space-y-2">
+              <p className="text-xs text-slate-500 uppercase tracking-wider">Document Types Received</p>
+              <div className="flex flex-wrap gap-1.5">
+                {(submission.document_types || []).map((type, i) => (
+                  <Badge key={i} variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200">
+                    <FileText className="h-3 w-3 mr-1" />{type}
+                  </Badge>
+                ))}
+                {(!submission.document_types || submission.document_types.length === 0) && (
+                  <p className="text-sm text-slate-400">No document types recorded</p>
+                )}
+              </div>
+            </div>
+
+            {/* Documents on File section */}
+            <DocumentsOnFile submissionId={submission.id} applicantName={submission.applicant_name} />
+          </div>
+
+          <div className="p-6 border-t border-slate-200 space-y-2">
+            <Button onClick={() => setRequestOpen(true)} variant="outline" className="w-full gap-2 border-slate-300">
+              <FolderInput className="h-4 w-4" />
+              Request Documents
+            </Button>
+            <Button onClick={handleExportPdf} className="w-full bg-slate-900 hover:bg-slate-800 text-white">
+              <Download className="h-4 w-4 mr-2" />
+              Export PDF Assessment Record
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <DocumentPossessionRequest
+        open={requestOpen}
+        onClose={() => setRequestOpen(false)}
+        applicantName={submission.applicant_name}
+        submissionId={submission.id}
+        referenceId={submission.reference_id}
+      />
+    </>
   );
 };
