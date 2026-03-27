@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { exportComplianceCertificatePdf } from "@/lib/complianceCertificatePdf";
 import {
   Landmark, ArrowLeft, Users, ShieldCheck, ShieldAlert, Shield,
   Clock, Trash2, ExternalLink, RefreshCw, Search, StickyNote,
