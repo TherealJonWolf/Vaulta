@@ -146,6 +146,158 @@ const AdminSecurity = () => {
     setRefreshing(false);
   };
 
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    if (!isAdmin) return;
+    const interval = setInterval(fetchAll, 30000);
+    return () => clearInterval(interval);
+  }, [isAdmin]);
+
+  // Generate alerts from all data sources
+  const alerts = useMemo<AdminAlert[]>(() => {
+    const result: AdminAlert[] = [];
+
+    // Locked accounts → critical auth alerts
+    profiles.filter(p => p.account_locked_at).forEach(p => {
+      result.push({
+        id: `locked-${p.user_id}`,
+        severity: "critical",
+        category: "auth",
+        title: "Account Locked",
+        detail: `${p.email} locked after ${p.failed_login_attempts} failed attempts`,
+        timestamp: p.account_locked_at!,
+        sourceId: p.user_id,
+        acknowledged: acknowledgedAlerts.has(`locked-${p.user_id}`),
+      });
+    });
+
+    // Near-lockout accounts (4-5 failed attempts) → high auth alerts
+    profiles.filter(p => p.failed_login_attempts >= 4 && !p.account_locked_at).forEach(p => {
+      result.push({
+        id: `near-lock-${p.user_id}`,
+        severity: "high",
+        category: "auth",
+        title: "Near Lockout",
+        detail: `${p.email} has ${p.failed_login_attempts}/6 failed login attempts`,
+        timestamp: new Date().toISOString(),
+        sourceId: p.user_id,
+        acknowledged: acknowledgedAlerts.has(`near-lock-${p.user_id}`),
+      });
+    });
+
+    // High-severity cross-account signals → critical fraud alerts
+    crossSignals.filter(s => s.severity === "high").forEach(s => {
+      result.push({
+        id: `signal-${s.id}`,
+        severity: "critical",
+        category: "fraud",
+        title: "High-Severity Cluster Detected",
+        detail: `${s.signal_type}: ${s.account_count} accounts, ${(s.confidence_score * 100).toFixed(0)}% confidence`,
+        timestamp: s.last_seen_at,
+        sourceId: s.id,
+        acknowledged: acknowledgedAlerts.has(`signal-${s.id}`),
+      });
+    });
+
+    // Medium cross-account signals → medium fraud alerts
+    crossSignals.filter(s => s.severity === "medium").forEach(s => {
+      result.push({
+        id: `signal-${s.id}`,
+        severity: "medium",
+        category: "fraud",
+        title: "Cross-Account Signal",
+        detail: `${s.signal_type}: ${s.account_count} accounts linked`,
+        timestamp: s.last_seen_at,
+        sourceId: s.id,
+        acknowledged: acknowledgedAlerts.has(`signal-${s.id}`),
+      });
+    });
+
+    // Security upload failures → high upload alerts
+    uploadEvents.filter(e => e.event_type === "security_failure").slice(0, 20).forEach(e => {
+      result.push({
+        id: `upload-${e.id}`,
+        severity: "high",
+        category: "upload",
+        title: "Security Upload Failure",
+        detail: `${e.file_name} rejected: ${e.failure_reason || "security violation"}`,
+        timestamp: e.created_at,
+        sourceId: e.id,
+        acknowledged: acknowledgedAlerts.has(`upload-${e.id}`),
+      });
+    });
+
+    // Boundary huggers (score > 50) → medium trust alerts
+    evalMeta.filter(e => e.boundary_hugging_score > 50).forEach(e => {
+      const email = profiles.find(p => p.user_id === e.user_id)?.email || e.user_id.substring(0, 8);
+      result.push({
+        id: `boundary-${e.id}`,
+        severity: e.boundary_hugging_score > 75 ? "high" : "medium",
+        category: "trust",
+        title: "Boundary Hugging Detected",
+        detail: `${email}: score ${e.boundary_hugging_score.toFixed(0)}, ${e.boundary_events} events`,
+        timestamp: e.updated_at,
+        sourceId: e.id,
+        acknowledged: acknowledgedAlerts.has(`boundary-${e.id}`),
+      });
+    });
+
+    // Major trust drops → high trust alerts
+    trustHistory.filter(h => h.trust_delta < -10).slice(0, 10).forEach(h => {
+      const email = profiles.find(p => p.user_id === h.user_id)?.email || h.user_id.substring(0, 8);
+      result.push({
+        id: `trust-drop-${h.id}`,
+        severity: h.trust_delta < -20 ? "critical" : "high",
+        category: "trust",
+        title: "Significant Trust Drop",
+        detail: `${email}: ${h.trust_delta} points (now ${h.trust_score_at_time})`,
+        timestamp: h.created_at,
+        sourceId: h.id,
+        acknowledged: acknowledgedAlerts.has(`trust-drop-${h.id}`),
+      });
+    });
+
+    // Sort by severity, then timestamp
+    result.sort((a, b) => {
+      if (a.acknowledged !== b.acknowledged) return a.acknowledged ? 1 : -1;
+      const sevDiff = SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity];
+      if (sevDiff !== 0) return sevDiff;
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
+
+    return result;
+  }, [profiles, crossSignals, uploadEvents, evalMeta, trustHistory, acknowledgedAlerts]);
+
+  const unacknowledgedCount = alerts.filter(a => !a.acknowledged).length;
+  const filteredAlerts = alertFilter === "all" ? alerts : alerts.filter(a => a.category === alertFilter);
+
+  const acknowledgeAlert = useCallback((alertId: string) => {
+    setAcknowledgedAlerts(prev => new Set([...prev, alertId]));
+  }, []);
+
+  const acknowledgeAll = useCallback(() => {
+    setAcknowledgedAlerts(new Set(alerts.map(a => a.id)));
+  }, [alerts]);
+
+  const severityBadgeClass = (s: AlertSeverity) => {
+    switch (s) {
+      case "critical": return "bg-destructive/15 text-destructive border-destructive/30";
+      case "high": return "bg-[hsl(var(--warning-amber))]/15 text-[hsl(var(--warning-amber))] border-[hsl(var(--warning-amber))]/30";
+      case "medium": return "bg-secondary text-secondary-foreground";
+      default: return "bg-muted text-muted-foreground";
+    }
+  };
+
+  const categoryIcon = (c: AlertCategory) => {
+    switch (c) {
+      case "fraud": return <AlertTriangle size={14} />;
+      case "auth": return <Lock size={14} />;
+      case "upload": return <FileWarning size={14} />;
+      case "trust": return <TrendingDown size={14} />;
+      case "system": return <Zap size={14} />;
+    }
+  };
+
   const getEmail = (userId: string) => {
     const p = profiles.find((pr) => pr.user_id === userId);
     return p?.email ?? userId.substring(0, 8) + "…";
