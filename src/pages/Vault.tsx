@@ -47,6 +47,10 @@ const Vault = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [passphraseLoading, setPassphraseLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [docRequestsOpen, setDocRequestsOpen] = useState(false);
+  const [vaultDisplayName, setVaultDisplayName] = useState<string | null>(null);
+  const [vaultAccentColor, setVaultAccentColor] = useState<string | null>(null);
 
   const {
     isUnlocked,
