@@ -452,6 +452,18 @@ const AdminSecurity = () => {
             <TabsTrigger value="clusters" className="font-mono text-xs">CROSS-ACCOUNT CLUSTERS</TabsTrigger>
             <TabsTrigger value="boundary" className="font-mono text-xs">BOUNDARY HUGGING</TabsTrigger>
             <TabsTrigger value="timeline" className="font-mono text-xs">TRUST TIMELINE</TabsTrigger>
+            <TabsTrigger value="incidents" className="font-mono text-xs gap-1.5">
+              <Shield size={12} />
+              INCIDENTS
+            </TabsTrigger>
+            <TabsTrigger value="alert-history" className="font-mono text-xs gap-1.5">
+              <History size={12} />
+              ALERT LOG
+            </TabsTrigger>
+            <TabsTrigger value="soc-settings" className="font-mono text-xs gap-1.5">
+              <Settings size={12} />
+              SOC SETTINGS
+            </TabsTrigger>
           </TabsList>
 
           {/* ALERTS TAB */}
