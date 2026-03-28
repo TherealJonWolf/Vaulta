@@ -1435,7 +1435,41 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      institution_public_info: {
+        Row: {
+          accent_color: string | null
+          display_name: string | null
+          institution_id: string | null
+          institution_type: string | null
+          logo_path: string | null
+          welcome_message: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          display_name?: string | null
+          institution_id?: string | null
+          institution_type?: string | null
+          logo_path?: string | null
+          welcome_message?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          display_name?: string | null
+          institution_id?: string | null
+          institution_type?: string | null
+          logo_path?: string | null
+          welcome_message?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institution_settings_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: true
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       assign_user_role: {
