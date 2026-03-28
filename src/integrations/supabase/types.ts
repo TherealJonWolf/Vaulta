@@ -1493,6 +1493,17 @@ export type Database = {
         Args: { p_hash: string; p_reason: string }
         Returns: undefined
       }
+      get_institution_branding: {
+        Args: { p_institution_id: string }
+        Returns: {
+          accent_color: string
+          display_name: string
+          institution_id: string
+          institution_type: string
+          logo_path: string
+          welcome_message: string
+        }[]
+      }
       get_user_institution: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
