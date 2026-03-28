@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, ArrowLeft, Users, Activity, AlertTriangle, TrendingDown, Eye, RefreshCw, Lock, Unlock, FileWarning, Upload, ClipboardCheck, Bell, BellRing, CheckCircle2, XCircle, Clock, Zap } from "lucide-react";
+import { Shield, ArrowLeft, Users, Activity, AlertTriangle, TrendingDown, Eye, RefreshCw, Lock, Unlock, FileWarning, Upload, ClipboardCheck, Bell, BellRing, CheckCircle2, XCircle, Clock, Zap, Settings, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,6 +13,9 @@ import { useAdminRole } from "@/hooks/useAdminRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import DocumentVerificationAudit, { DEFAULT_CHECK_EXPLANATIONS, type DocumentAuditData } from "@/components/DocumentVerificationAudit";
+import { IncidentQueue } from "@/components/soc/IncidentQueue";
+import { AlertHistory } from "@/components/soc/AlertHistory";
+import { AdminAlertSettings } from "@/components/soc/AdminAlertSettings";
 
 interface CrossAccountSignal {
   id: string;
