@@ -903,6 +903,21 @@ const AdminSecurity = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* SOC: Incident Queue */}
+          <TabsContent value="incidents">
+            <IncidentQueue profiles={profiles} />
+          </TabsContent>
+
+          {/* SOC: Alert History & Delivery */}
+          <TabsContent value="alert-history">
+            <AlertHistory />
+          </TabsContent>
+
+          {/* SOC: Admin Alert Settings */}
+          <TabsContent value="soc-settings">
+            <AdminAlertSettings />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
