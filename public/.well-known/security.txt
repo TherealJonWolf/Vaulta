@@ -1,0 +1,5 @@
+Contact: mailto:security@tryvaulta.com
+Expires: 2027-03-28T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://tryvaulta.com/.well-known/security.txt
+Policy: https://tryvaulta.com/privacy
