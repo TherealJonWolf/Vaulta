@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, ArrowLeft, Users, Activity, AlertTriangle, TrendingDown, Eye, RefreshCw, Lock, Unlock, FileWarning, Upload, ClipboardCheck, Bell, BellRing, CheckCircle2, XCircle, Clock, Zap } from "lucide-react";
+import { Shield, ArrowLeft, Users, Activity, AlertTriangle, TrendingDown, Eye, RefreshCw, Lock, Unlock, FileWarning, Upload, ClipboardCheck, Bell, BellRing, CheckCircle2, XCircle, Clock, Zap, Settings, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,6 +13,9 @@ import { useAdminRole } from "@/hooks/useAdminRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import DocumentVerificationAudit, { DEFAULT_CHECK_EXPLANATIONS, type DocumentAuditData } from "@/components/DocumentVerificationAudit";
+import { IncidentQueue } from "@/components/soc/IncidentQueue";
+import { AlertHistory } from "@/components/soc/AlertHistory";
+import { AdminAlertSettings } from "@/components/soc/AdminAlertSettings";
 
 interface CrossAccountSignal {
   id: string;
@@ -449,6 +452,18 @@ const AdminSecurity = () => {
             <TabsTrigger value="clusters" className="font-mono text-xs">CROSS-ACCOUNT CLUSTERS</TabsTrigger>
             <TabsTrigger value="boundary" className="font-mono text-xs">BOUNDARY HUGGING</TabsTrigger>
             <TabsTrigger value="timeline" className="font-mono text-xs">TRUST TIMELINE</TabsTrigger>
+            <TabsTrigger value="incidents" className="font-mono text-xs gap-1.5">
+              <Shield size={12} />
+              INCIDENTS
+            </TabsTrigger>
+            <TabsTrigger value="alert-history" className="font-mono text-xs gap-1.5">
+              <History size={12} />
+              ALERT LOG
+            </TabsTrigger>
+            <TabsTrigger value="soc-settings" className="font-mono text-xs gap-1.5">
+              <Settings size={12} />
+              SOC SETTINGS
+            </TabsTrigger>
           </TabsList>
 
           {/* ALERTS TAB */}
@@ -887,6 +902,21 @@ const AdminSecurity = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* SOC: Incident Queue */}
+          <TabsContent value="incidents">
+            <IncidentQueue profiles={profiles} />
+          </TabsContent>
+
+          {/* SOC: Alert History & Delivery */}
+          <TabsContent value="alert-history">
+            <AlertHistory />
+          </TabsContent>
+
+          {/* SOC: Admin Alert Settings */}
+          <TabsContent value="soc-settings">
+            <AdminAlertSettings />
           </TabsContent>
         </Tabs>
       </div>

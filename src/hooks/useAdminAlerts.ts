@@ -50,6 +50,17 @@ export const useAdminAlerts = () => {
     });
   }, [isAdmin]);
 
+  // Fire SOC email alert for critical events
+  const fireSocAlert = useCallback(async (severity: string, category: string, title: string, detail: string, sourceId?: string) => {
+    try {
+      await supabase.functions.invoke("soc-alert-email", {
+        body: { mode: "immediate", severity, category, title, detail, source_id: sourceId },
+      });
+    } catch {
+      // Silent fail — don't block UI for alert delivery
+    }
+  }, []);
+
   // Subscribe to real-time changes on critical tables
   useEffect(() => {
     if (!isAdmin || !user) return;
@@ -64,11 +75,10 @@ export const useAdminAlerts = () => {
           const newRow = payload.new as any;
           const oldRow = payload.old as any;
           if (newRow.account_locked_at && !oldRow.account_locked_at) {
-            showNotification(
-              "🔒 Account Locked",
-              `${newRow.email} has been locked after ${newRow.failed_login_attempts} failed attempts`,
-              `locked-${newRow.user_id}`
-            );
+            const title = "Account Locked";
+            const detail = `${newRow.email} has been locked after ${newRow.failed_login_attempts} failed attempts`;
+            showNotification("🔒 " + title, detail, `locked-${newRow.user_id}`);
+            fireSocAlert("critical", "auth", title, detail, newRow.user_id);
           }
         }
       )
@@ -79,11 +89,10 @@ export const useAdminAlerts = () => {
         (payload) => {
           const row = payload.new as any;
           if (row.event_type === "security_failure") {
-            showNotification(
-              "⚠️ Security Upload Failure",
-              `File "${row.file_name}" rejected: ${row.failure_reason || "security violation"}`,
-              `upload-${row.id}`
-            );
+            const title = "Security Upload Failure";
+            const detail = `File "${row.file_name}" rejected: ${row.failure_reason || "security violation"}`;
+            showNotification("⚠️ " + title, detail, `upload-${row.id}`);
+            fireSocAlert("high", "upload", title, detail, row.id);
           }
         }
       )
@@ -94,11 +103,10 @@ export const useAdminAlerts = () => {
         (payload) => {
           const row = payload.new as any;
           if (row.severity === "high") {
-            showNotification(
-              "🚨 High-Severity Fraud Signal",
-              `${row.signal_type}: ${row.account_count} accounts linked (${(row.confidence_score * 100).toFixed(0)}% confidence)`,
-              `signal-${row.id}`
-            );
+            const title = "High-Severity Fraud Signal";
+            const detail = `${row.signal_type}: ${row.account_count} accounts linked (${(row.confidence_score * 100).toFixed(0)}% confidence)`;
+            showNotification("🚨 " + title, detail, `signal-${row.id}`);
+            fireSocAlert("critical", "fraud", title, detail, row.id);
           }
         }
       )
@@ -108,11 +116,10 @@ export const useAdminAlerts = () => {
         { event: "INSERT", schema: "public", table: "account_flags" },
         (payload) => {
           const row = payload.new as any;
-          showNotification(
-            "🛑 Account Flagged",
-            `Account flagged (${row.flag_type}): ${row.reason}`,
-            `flag-${row.id}`
-          );
+          const title = "Account Flagged";
+          const detail = `Account flagged (${row.flag_type}): ${row.reason}`;
+          showNotification("🛑 " + title, detail, `flag-${row.id}`);
+          fireSocAlert("high", "fraud", title, detail, row.id);
         }
       )
       // Major trust score drops
@@ -122,11 +129,10 @@ export const useAdminAlerts = () => {
         (payload) => {
           const row = payload.new as any;
           if (row.trust_delta < -20) {
-            showNotification(
-              "📉 Critical Trust Drop",
-              `User trust dropped ${row.trust_delta} points (now ${row.trust_score_at_time})`,
-              `trust-${row.id}`
-            );
+            const title = "Critical Trust Drop";
+            const detail = `User trust dropped ${row.trust_delta} points (now ${row.trust_score_at_time})`;
+            showNotification("📉 " + title, detail, `trust-${row.id}`);
+            fireSocAlert("critical", "trust", title, detail, row.id);
           }
         }
       )
@@ -135,5 +141,5 @@ export const useAdminAlerts = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isAdmin, user]);
+  }, [isAdmin, user, fireSocAlert]);
 };

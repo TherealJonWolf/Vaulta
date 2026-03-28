@@ -83,6 +83,110 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_alert_settings: {
+        Row: {
+          admin_user_id: string
+          alert_email: string | null
+          alert_phone_encrypted: string | null
+          categories_enabled: string[]
+          created_at: string
+          daily_digest_enabled: boolean
+          daily_digest_hour: number
+          id: string
+          min_severity_email: string
+          updated_at: string
+        }
+        Insert: {
+          admin_user_id: string
+          alert_email?: string | null
+          alert_phone_encrypted?: string | null
+          categories_enabled?: string[]
+          created_at?: string
+          daily_digest_enabled?: boolean
+          daily_digest_hour?: number
+          id?: string
+          min_severity_email?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_user_id?: string
+          alert_email?: string | null
+          alert_phone_encrypted?: string | null
+          categories_enabled?: string[]
+          created_at?: string
+          daily_digest_enabled?: boolean
+          daily_digest_hour?: number
+          id?: string
+          min_severity_email?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      alert_history: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          category: string
+          created_at: string
+          delivered_at: string | null
+          delivery_channel: string
+          delivery_status: string
+          detail: string | null
+          id: string
+          incident_id: string | null
+          metadata: Json | null
+          recipient_admin_id: string
+          severity: string
+          source_id: string | null
+          title: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: string
+          category?: string
+          created_at?: string
+          delivered_at?: string | null
+          delivery_channel?: string
+          delivery_status?: string
+          detail?: string | null
+          id?: string
+          incident_id?: string | null
+          metadata?: Json | null
+          recipient_admin_id: string
+          severity?: string
+          source_id?: string | null
+          title: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          category?: string
+          created_at?: string
+          delivered_at?: string | null
+          delivery_channel?: string
+          delivery_status?: string
+          detail?: string | null
+          id?: string
+          incident_id?: string | null
+          metadata?: Json | null
+          recipient_admin_id?: string
+          severity?: string
+          source_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_history_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "security_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blacklisted_emails: {
         Row: {
           associated_user_id: string | null
@@ -581,6 +685,65 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      incident_events: {
+        Row: {
+          created_at: string
+          detail: string | null
+          device_info: string | null
+          event_source: string
+          event_type: string
+          id: string
+          incident_id: string
+          ip_address: string | null
+          metadata: Json | null
+          occurred_at: string
+          severity: string
+          source_id: string | null
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          device_info?: string | null
+          event_source: string
+          event_type: string
+          id?: string
+          incident_id: string
+          ip_address?: string | null
+          metadata?: Json | null
+          occurred_at?: string
+          severity?: string
+          source_id?: string | null
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          device_info?: string | null
+          event_source?: string
+          event_type?: string
+          id?: string
+          incident_id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          occurred_at?: string
+          severity?: string
+          source_id?: string | null
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_events_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "security_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       institution_documents: {
         Row: {
@@ -1142,6 +1305,57 @@ export type Database = {
           metadata?: Json | null
           user_agent?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      security_incidents: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
