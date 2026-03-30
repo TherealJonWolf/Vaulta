@@ -73,7 +73,7 @@ export const HousingQualificationSection = () => {
             to="/what-vaulta-is"
             className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-rajdhani transition-colors"
           >
-            Learn more about what Vaulta does — and does not do
+            See how it works
             <ArrowRight size={14} />
           </Link>
         </motion.div>
