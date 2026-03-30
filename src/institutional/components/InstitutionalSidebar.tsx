@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { LayoutDashboard, Link2, Activity, BarChart3, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Link2, Activity, BarChart3, Settings, LogOut, ClipboardCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useInstitutionalAuth } from "../hooks/useInstitutionalAuth";
 
