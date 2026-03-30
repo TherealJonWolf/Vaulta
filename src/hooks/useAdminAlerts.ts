@@ -34,7 +34,7 @@ const showNotification = (title: string, body: string, tag: string) => {
 
 /**
  * Hook that monitors critical security events in real-time via Supabase Realtime
- * and fires browser notifications for admins, even when the admin tab isn't open.
+ * and fires browser notifications + SOC email alerts for admins.
  * Mount this once at the app root level.
  */
 export const useAdminAlerts = () => {
