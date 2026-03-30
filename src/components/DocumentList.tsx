@@ -183,22 +183,39 @@ const DocumentList = ({ refreshTrigger, encryptFile, decryptFile }: DocumentList
         .download(doc.file_path);
       if (fileError) throw fileError;
 
-      let textContent: string;
+      let rawBuffer: ArrayBuffer;
       if (doc.encrypted_iv) {
         const encryptedBuffer = await fileData.arrayBuffer();
-        const decryptedBuffer = await decryptFile(encryptedBuffer, doc.encrypted_iv);
-        textContent = new TextDecoder().decode(decryptedBuffer);
+        rawBuffer = await decryptFile(encryptedBuffer, doc.encrypted_iv);
       } else {
-        textContent = await fileData.text();
+        rawBuffer = await fileData.arrayBuffer();
       }
 
-      if (!textContent || textContent.length < 5) {
-        toast({ variant: "destructive", title: "Cannot Translate", description: "Document content could not be extracted as text." });
-        return;
+      const isBinary = ["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(doc.mime_type);
+
+      let requestBody: Record<string, any>;
+
+      if (isBinary) {
+        // Convert binary to base64 and send for vision-based OCR + translation
+        const uint8 = new Uint8Array(rawBuffer);
+        let binary = "";
+        for (let i = 0; i < uint8.length; i++) {
+          binary += String.fromCharCode(uint8[i]);
+        }
+        const base64 = btoa(binary);
+        requestBody = { base64Content: base64, mimeType: doc.mime_type, targetLanguage };
+      } else {
+        // Plain text documents
+        const textContent = new TextDecoder().decode(rawBuffer);
+        if (!textContent || textContent.length < 5) {
+          toast({ variant: "destructive", title: "Cannot Translate", description: "Document content could not be extracted as text." });
+          return;
+        }
+        requestBody = { text: textContent.substring(0, 10000), targetLanguage };
       }
 
       const { data, error } = await supabase.functions.invoke("translate-document", {
-        body: { text: textContent.substring(0, 10000), targetLanguage },
+        body: requestBody,
       });
 
       if (error) throw error;
