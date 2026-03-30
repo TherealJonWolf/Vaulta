@@ -47,7 +47,7 @@ export const HeroSection = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
-            Empowering Global Citizens with Reusable Trust Profiles
+            Stop starting your financial life from scratch every time you cross a border.
           </motion.p>
 
           <motion.p
@@ -56,7 +56,7 @@ export const HeroSection = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.35 }}
           >
-            Vaulta helps individuals document and demonstrate consistent identity, income, and housing history — building trust that travels across borders.
+            Vaulta turns your documentation into a portable trust profile that landlords actually accept.
           </motion.p>
 
           <motion.p
