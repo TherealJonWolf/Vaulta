@@ -5,11 +5,13 @@ import InstitutionalIntake from "./pages/InstitutionalIntake";
 import InstitutionalActivity from "./pages/InstitutionalActivity";
 import InstitutionalReporting from "./pages/InstitutionalReporting";
 import InstitutionalSettings from "./pages/InstitutionalSettings";
+import { ManualReviewQueue } from "./components/ManualReviewQueue";
 
 export const InstitutionalRoutes = () => (
   <InstitutionalLayout>
     <Routes>
       <Route path="dashboard" element={<InstitutionalDashboard />} />
+      <Route path="review-queue" element={<ManualReviewQueue />} />
       <Route path="intake" element={<InstitutionalIntake />} />
       <Route path="activity" element={<InstitutionalActivity />} />
       <Route path="reporting" element={<InstitutionalReporting />} />

@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { LayoutDashboard, Link2, Activity, BarChart3, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Link2, Activity, BarChart3, Settings, LogOut, ClipboardCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useInstitutionalAuth } from "../hooks/useInstitutionalAuth";
 
 const navItems = [
   { path: "/institutional/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { path: "/institutional/review-queue", label: "Review Queue", icon: ClipboardCheck },
   { path: "/institutional/intake", label: "Intake", icon: Link2 },
   { path: "/institutional/activity", label: "Activity Log", icon: Activity },
   { path: "/institutional/reporting", label: "Reporting", icon: BarChart3 },
