@@ -34,10 +34,10 @@ export const HousingQualificationSection = () => {
               <Home size={24} className="text-primary" />
             </div>
             <h3 className="font-display text-lg font-semibold text-foreground mb-4">
-              For Applicants
+              Move in without the "Newcomer" Tax
             </h3>
             <p className="text-muted-foreground font-rajdhani leading-relaxed">
-              Vaulta supports international housing applicants by documenting consistent identity, income, and rental behavior. Applicants presenting at least twelve (12) months of documented foreign rent history, a valid passport with active visa enrollment, an income source, and no adverse background within available records may qualify for standard leasing terms.
+              Stop letting borders reset your financial life. Vaulta helps you securely prove your identity, income, and rental history so you can qualify for standard leasing terms—without the stress of finding a US guarantor or paying massive deposits.
             </p>
           </motion.div>
 
