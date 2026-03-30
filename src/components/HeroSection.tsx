@@ -65,7 +65,7 @@ export const HeroSection = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.38 }}
           >
-            Vaulta. Your world, secured.
+            Your reputation, anywhere you go.
           </motion.p>
 
           {/* CTA Buttons */}
