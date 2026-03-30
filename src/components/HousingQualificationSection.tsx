@@ -58,6 +58,13 @@ export const HousingQualificationSection = () => {
             <p className="text-muted-foreground font-rajdhani leading-relaxed">
               Stop turning away qualified international residents due to a lack of local credit history. Vaulta provides documented Trust Signals based on global behavior, allowing you to fill vacancies faster while maintaining a low-risk profile.
             </p>
+            <Link
+              to="/institutional"
+              className="inline-flex items-center gap-2 text-sm text-accent hover:text-accent/80 font-rajdhani transition-colors mt-4"
+            >
+              View Partnership Options
+              <ArrowRight size={14} />
+            </Link>
           </motion.div>
         </div>
 
