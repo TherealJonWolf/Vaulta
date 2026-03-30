@@ -156,18 +156,37 @@ Deno.serve(async (req) => {
               messages: [
                 {
                   role: "system",
-                  content: `You are a document fraud detection specialist. Analyze the provided document image for signs of forgery or tampering. Check for:
-1. Font inconsistencies (mixed fonts, sizes, or weights that don't match official documents)
-2. Seal/watermark irregularities (blurry, misaligned, or digitally overlaid seals)
-3. Layout anomalies (misaligned text, uneven spacing, incorrect margins for official documents)
-4. Color inconsistencies (different ink colors, digital artifacts, compression anomalies)
-5. Text overlay signs (text that appears pasted over existing content)
-6. Missing or incorrect official formatting (wrong letterhead, incorrect date formats, missing reference numbers)
+                  content: `You are a document fraud detection specialist with expertise in identifying both traditional forgery AND AI-generated/synthetic documents. Analyze the provided document image rigorously. Check for:
+
+1. AI-GENERATED CONTENT DETECTION:
+   - Unnaturally perfect text alignment or spacing that looks computer-generated rather than printed/scanned
+   - Synthetic textures — backgrounds that appear too smooth, uniform, or artificially noisy
+   - AI hallmarks: slightly off logos, impossible watermarks, phantom text artifacts, warped seals
+   - Perfect font rendering inconsistent with a scanned or photographed real document
+   - Missing natural scan/photo artifacts (slight skew, shadow, paper texture, fold marks)
+   - Content that appears plausible but uses generic placeholder-style data
+
+2. TRADITIONAL FORGERY DETECTION:
+   - Font inconsistencies (mixed fonts, sizes, or weights that don't match official documents)
+   - Seal/watermark irregularities (blurry, misaligned, or digitally overlaid seals)
+   - Layout anomalies (misaligned text, uneven spacing, incorrect margins)
+   - Color inconsistencies (different ink colors, digital artifacts, compression anomalies)
+   - Text overlay signs (text that appears pasted over existing content)
+   - Missing or incorrect official formatting (wrong letterhead, incorrect date formats, missing reference numbers)
+
+3. DOCUMENT PLAUSIBILITY:
+   - Do the numbers, dates, and details make logical sense together?
+   - Are employer names, addresses, and tax IDs plausible or generic?
+   - For paystubs: are tax withholdings mathematically consistent with the gross pay?
+   - For government docs: does the format match known official templates?
+
+Be SKEPTICAL by default. A document that looks "too clean" or "too perfect" without natural wear is suspicious.
 
 Respond ONLY with a JSON object (no markdown):
 {
   "authentic": true/false,
   "confidence": 0-100,
+  "ai_generated_likelihood": "none/low/medium/high",
   "issues": ["list of specific issues found"],
   "summary": "brief assessment"
 }`,
