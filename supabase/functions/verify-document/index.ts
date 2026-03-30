@@ -258,6 +258,26 @@ Respond ONLY with a JSON object (no markdown):
 
     // Overall verdict
     const allPassed = Object.values(results).every((r: any) => r.passed !== false);
+
+    // Queue borderline documents (60-75% AI confidence) for manual review
+    const aiConf = results.aiAnalysis?.confidence;
+    const needsManualReview = aiConf && aiConf >= 60 && aiConf <= 75 && allPassed;
+    if (needsManualReview) {
+      const { documentId, institutionId } = metadata || {};
+      await serviceClient.from("manual_review_queue").insert({
+        document_id: documentId || sha256Hash,
+        user_id: user.id,
+        institution_id: institutionId || null,
+        file_name: fileName,
+        mime_type: mimeType || null,
+        ai_confidence: aiConf,
+        ai_summary: results.aiAnalysis?.summary || null,
+        ai_issues: results.aiAnalysis?.issues || [],
+        ai_generated_likelihood: results.aiAnalysis?.ai_generated_likelihood || "none",
+        verification_result: results,
+        status: "pending",
+      });
+    }
     const criticalFailures = Object.entries(results)
       .filter(([, r]: any) => r.passed === false)
       .map(([key, r]: any) => ({ check: key, reason: r.reason }));
