@@ -53,10 +53,10 @@ export const HousingQualificationSection = () => {
               <Building2 size={24} className="text-accent" />
             </div>
             <h3 className="font-display text-lg font-semibold text-foreground mb-4">
-              For Property Companies
+              Approve Global Renters with Confidence
             </h3>
             <p className="text-muted-foreground font-rajdhani leading-relaxed">
-              Vaulta enables property companies to approve qualified international renters with standard security deposits instead of guarantors — increasing occupancy without increasing residual risk. Final lease approval decisions remain solely with the property company.
+              Stop turning away qualified international residents due to a lack of local credit history. Vaulta provides documented Trust Signals based on global behavior, allowing you to fill vacancies faster while maintaining a low-risk profile.
             </p>
           </motion.div>
         </div>
