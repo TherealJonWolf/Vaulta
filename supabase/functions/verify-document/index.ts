@@ -220,9 +220,14 @@ Respond ONLY with a JSON object (no markdown):
             const jsonMatch = content.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
               const analysis = JSON.parse(jsonMatch[0]);
+              const aiGenLikelihood = (analysis.ai_generated_likelihood || "none").toLowerCase();
+              const isAiGenerated = aiGenLikelihood === "high" || aiGenLikelihood === "medium";
+              // Document fails if: explicitly not authentic, OR high/medium AI-generated likelihood
+              const passed = analysis.authentic === true && !isAiGenerated && analysis.confidence >= 60;
               results.aiAnalysis = {
-                passed: analysis.authentic !== false || analysis.confidence > 70,
+                passed,
                 confidence: analysis.confidence,
+                ai_generated_likelihood: aiGenLikelihood,
                 issues: analysis.issues || [],
                 summary: analysis.summary,
                 authentic: analysis.authentic,
