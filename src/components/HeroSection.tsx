@@ -37,7 +37,7 @@ export const HeroSection = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <span className="gradient-text">SOVEREIGN SECTOR</span>
+            <span className="gradient-text">MOVE WITHOUT LIMITS</span>
           </motion.h1>
 
           {/* Subheading */}
@@ -47,7 +47,7 @@ export const HeroSection = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
-            Empowering Global Citizens with Reusable Trust Profiles
+            Stop starting your financial life from scratch every time you cross a border.
           </motion.p>
 
           <motion.p
@@ -56,7 +56,7 @@ export const HeroSection = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.35 }}
           >
-            Vaulta helps individuals document and demonstrate consistent identity, income, and housing history — building trust that travels across borders.
+            Vaulta turns your documentation into a portable trust profile that landlords actually accept.
           </motion.p>
 
           <motion.p
@@ -65,7 +65,7 @@ export const HeroSection = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.38 }}
           >
-            Vaulta. Your world, secured.
+            Your reputation, anywhere you go.
           </motion.p>
 
           {/* CTA Buttons */}
