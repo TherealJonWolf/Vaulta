@@ -55,13 +55,17 @@ const AIOracle = ({ isOpen, onClose }: AIOracleProps) => {
   const endpoint = isPremium ? "ai-oracle-premium" : "ai-oracle";
 
   const streamChat = async (userMessages: Message[]) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const accessToken = session?.access_token;
+    if (!accessToken) throw new Error("You must be logged in to use the Oracle");
+
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${endpoint}`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ messages: userMessages }),
       }
