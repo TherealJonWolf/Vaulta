@@ -1161,6 +1161,77 @@ export type Database = {
         }
         Relationships: []
       }
+      manual_review_queue: {
+        Row: {
+          ai_confidence: number
+          ai_generated_likelihood: string | null
+          ai_issues: Json | null
+          ai_summary: string | null
+          created_at: string
+          document_id: string
+          file_name: string
+          id: string
+          institution_id: string | null
+          mime_type: string | null
+          review_decision: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          verification_result: Json | null
+        }
+        Insert: {
+          ai_confidence: number
+          ai_generated_likelihood?: string | null
+          ai_issues?: Json | null
+          ai_summary?: string | null
+          created_at?: string
+          document_id: string
+          file_name: string
+          id?: string
+          institution_id?: string | null
+          mime_type?: string | null
+          review_decision?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          verification_result?: Json | null
+        }
+        Update: {
+          ai_confidence?: number
+          ai_generated_likelihood?: string | null
+          ai_issues?: Json | null
+          ai_summary?: string | null
+          created_at?: string
+          document_id?: string
+          file_name?: string
+          id?: string
+          institution_id?: string | null
+          mime_type?: string | null
+          review_decision?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          verification_result?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_review_queue_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mfa_recovery_codes: {
         Row: {
           code_hash: string
