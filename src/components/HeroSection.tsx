@@ -37,7 +37,7 @@ export const HeroSection = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <span className="gradient-text">SOVEREIGN SECTOR</span>
+            <span className="gradient-text">MOVE WITHOUT LIMITS</span>
           </motion.h1>
 
           {/* Subheading */}
