@@ -76,7 +76,7 @@ const PricingSection = () => {
       monthlyPeriod: "/month",
       annualPeriod: "/year",
       savings: "Save 17%",
-      description: "Unlimited storage for power users",
+      description: "Unlimited Portability for Global Citizens",
       icon: Crown,
       features: [
         "Unlimited documents",

@@ -34,10 +34,10 @@ export const HousingQualificationSection = () => {
               <Home size={24} className="text-primary" />
             </div>
             <h3 className="font-display text-lg font-semibold text-foreground mb-4">
-              For Applicants
+              Move in without the "Newcomer" Tax
             </h3>
             <p className="text-muted-foreground font-rajdhani leading-relaxed">
-              Vaulta supports international housing applicants by documenting consistent identity, income, and rental behavior. Applicants presenting at least twelve (12) months of documented foreign rent history, a valid passport with active visa enrollment, an income source, and no adverse background within available records may qualify for standard leasing terms.
+              Stop letting borders reset your financial life. Vaulta helps you securely prove your identity, income, and rental history so you can qualify for standard leasing terms—without the stress of finding a US guarantor or paying massive deposits.
             </p>
           </motion.div>
 
@@ -53,10 +53,10 @@ export const HousingQualificationSection = () => {
               <Building2 size={24} className="text-accent" />
             </div>
             <h3 className="font-display text-lg font-semibold text-foreground mb-4">
-              For Property Companies
+              Approve Global Renters with Confidence
             </h3>
             <p className="text-muted-foreground font-rajdhani leading-relaxed">
-              Vaulta enables property companies to approve qualified international renters with standard security deposits instead of guarantors — increasing occupancy without increasing residual risk. Final lease approval decisions remain solely with the property company.
+              Stop turning away qualified international residents due to a lack of local credit history. Vaulta provides documented Trust Signals based on global behavior, allowing you to fill vacancies faster while maintaining a low-risk profile.
             </p>
           </motion.div>
         </div>
@@ -73,7 +73,7 @@ export const HousingQualificationSection = () => {
             to="/what-vaulta-is"
             className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-rajdhani transition-colors"
           >
-            Learn more about what Vaulta does — and does not do
+            See how it works
             <ArrowRight size={14} />
           </Link>
         </motion.div>
