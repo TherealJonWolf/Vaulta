@@ -6,6 +6,7 @@ import {
   CheckCircle2, XCircle, FileText, Clock, User, Fingerprint,
   TrendingUp, Star, BookmarkPlus, ArrowLeft, Lock, Building2
 } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
