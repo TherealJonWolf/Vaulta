@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     // Fetch applicant profile
     const { data: profile } = await serviceClient
       .from("profiles")
-      .select("email, full_name, created_at, mfa_enabled")
+      .select("email, full_name, created_at, mfa_enabled, profile_photo_url")
       .eq("user_id", applicantUserId)
       .single();
 
