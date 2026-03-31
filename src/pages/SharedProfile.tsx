@@ -254,9 +254,18 @@ const SharedProfile = () => {
           className="mb-8"
         >
           <div className="flex items-start gap-4 mb-4">
-            <div className="w-16 h-16 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center">
-              <User size={32} className="text-primary" />
-            </div>
+            {data.applicant.profilePhotoUrl ? (
+              <Avatar className="w-16 h-16 rounded-xl border border-primary/30">
+                <AvatarImage src={data.applicant.profilePhotoUrl} alt={data.applicant.name} />
+                <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-display text-lg">
+                  {data.applicant.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            ) : (
+              <div className="w-16 h-16 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center">
+                <User size={32} className="text-primary" />
+              </div>
+            )}
             <div>
               <h1 className="font-display text-2xl font-bold text-foreground">
                 {data.applicant.name}
