@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     // Fetch applicant profile
     const { data: profile } = await serviceClient
       .from("profiles")
-      .select("email, full_name, created_at, mfa_enabled")
+      .select("email, full_name, created_at, mfa_enabled, profile_photo_url")
       .eq("user_id", applicantUserId)
       .single();
 
@@ -95,11 +95,13 @@ Deno.serve(async (req) => {
 
     const result = {
       tokenId: tokenData.id,
+      applicantUserId,
       applicant: {
         name: profile?.full_name || "Anonymous Applicant",
         email: profile?.email ? maskEmail(profile.email) : null,
         memberSince: profile?.created_at,
         mfaEnabled: profile?.mfa_enabled || false,
+        profilePhotoUrl: profile?.profile_photo_url || null,
       },
       trustScore: trustScore || null,
       documents: (documents || []).map((doc: any) => ({

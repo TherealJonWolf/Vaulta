@@ -6,6 +6,7 @@ import {
   CheckCircle2, XCircle, FileText, Clock, User, Fingerprint,
   TrendingUp, Star, BookmarkPlus, ArrowLeft, Lock, Building2
 } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,11 +20,13 @@ import DocumentVerificationAudit, { DEFAULT_CHECK_EXPLANATIONS, type DocumentAud
 
 interface SharedProfileData {
   tokenId: string;
+  applicantUserId: string;
   applicant: {
     name: string;
     email: string | null;
     memberSince: string;
     mfaEnabled: boolean;
+    profilePhotoUrl: string | null;
   };
   trustScore: {
     trust_score: number;
@@ -104,7 +107,7 @@ const SharedProfile = () => {
     try {
       const { error } = await (supabase.from("landlord_saved_applicants") as any).insert({
         landlord_user_id: user.id,
-        applicant_user_id: data.applicant.email, // We use tokenId for reference
+        applicant_user_id: data.applicantUserId,
         shared_token_id: data.tokenId,
       });
       if (error && error.code === "23505") {
@@ -251,9 +254,18 @@ const SharedProfile = () => {
           className="mb-8"
         >
           <div className="flex items-start gap-4 mb-4">
-            <div className="w-16 h-16 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center">
-              <User size={32} className="text-primary" />
-            </div>
+            {data.applicant.profilePhotoUrl ? (
+              <Avatar className="w-16 h-16 rounded-xl border border-primary/30">
+                <AvatarImage src={data.applicant.profilePhotoUrl} alt={data.applicant.name} />
+                <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-display text-lg">
+                  {data.applicant.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            ) : (
+              <div className="w-16 h-16 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center">
+                <User size={32} className="text-primary" />
+              </div>
+            )}
             <div>
               <h1 className="font-display text-2xl font-bold text-foreground">
                 {data.applicant.name}
