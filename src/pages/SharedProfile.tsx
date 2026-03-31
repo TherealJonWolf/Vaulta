@@ -20,11 +20,13 @@ import DocumentVerificationAudit, { DEFAULT_CHECK_EXPLANATIONS, type DocumentAud
 
 interface SharedProfileData {
   tokenId: string;
+  applicantUserId: string;
   applicant: {
     name: string;
     email: string | null;
     memberSince: string;
     mfaEnabled: boolean;
+    profilePhotoUrl: string | null;
   };
   trustScore: {
     trust_score: number;
