@@ -95,11 +95,13 @@ Deno.serve(async (req) => {
 
     const result = {
       tokenId: tokenData.id,
+      applicantUserId,
       applicant: {
         name: profile?.full_name || "Anonymous Applicant",
         email: profile?.email ? maskEmail(profile.email) : null,
         memberSince: profile?.created_at,
         mfaEnabled: profile?.mfa_enabled || false,
+        profilePhotoUrl: profile?.profile_photo_url || null,
       },
       trustScore: trustScore || null,
       documents: (documents || []).map((doc: any) => ({
