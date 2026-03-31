@@ -107,7 +107,7 @@ const SharedProfile = () => {
     try {
       const { error } = await (supabase.from("landlord_saved_applicants") as any).insert({
         landlord_user_id: user.id,
-        applicant_user_id: data.applicant.email, // We use tokenId for reference
+        applicant_user_id: data.applicantUserId,
         shared_token_id: data.tokenId,
       });
       if (error && error.code === "23505") {
