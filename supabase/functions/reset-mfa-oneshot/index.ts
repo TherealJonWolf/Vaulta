@@ -18,26 +18,31 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     const userId = "71806196-ec7c-43f0-bf04-77c4e36d8c34";
     const factorId = "af27352b-34d9-4f23-83fa-b5af7f5ac92a";
 
-    // Delete the specific factor
-    const { data, error } = await adminClient.auth.admin.mfa.deleteFactor({
-      userId: userId,
-      factorId: factorId,
+    // Use REST API directly to delete the factor
+    const res = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}/factors/${factorId}`, {
+      method: "DELETE",
+      headers: {
+        "Authorization": `Bearer ${serviceRoleKey}`,
+        "apikey": serviceRoleKey,
+      },
     });
 
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message, code: error.status }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const body = await res.text();
+
+    if (!res.ok) {
+      return new Response(JSON.stringify({ error: body, status: res.status }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Clear recovery codes and mfa flag
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
     await adminClient.from("mfa_recovery_codes").delete().eq("user_id", userId);
     await adminClient.from("profiles").update({ mfa_enabled: false }).eq("user_id", userId);
 
-    return new Response(JSON.stringify({ success: true, deleted_factor: factorId }), {
+    return new Response(JSON.stringify({ success: true, deleted_factor: factorId, auth_response: body }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
