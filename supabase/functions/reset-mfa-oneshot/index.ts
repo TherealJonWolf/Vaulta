@@ -5,10 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const TARGET_USER_ID = "71806196-ec7c-43f0-bf04-77c4e36d8c34";
-// One-time use token to prevent replay
-const ONE_TIME_TOKEN = "mfa-reset-2026-04-13-vaulta";
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -16,7 +12,7 @@ Deno.serve(async (req) => {
 
   try {
     const { token } = await req.json();
-    if (token !== ONE_TIME_TOKEN) {
+    if (token !== "mfa-reset-2026-04-13-vaulta") {
       return new Response(JSON.stringify({ error: "Invalid token" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -24,30 +20,24 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // List MFA factors
-    const { data: factorsData, error: factorsError } = await adminClient.auth.admin.mfa.listFactors({
-      userId: TARGET_USER_ID,
+    const userId = "71806196-ec7c-43f0-bf04-77c4e36d8c34";
+    const factorId = "af27352b-34d9-4f23-83fa-b5af7f5ac92a";
+
+    // Delete the specific factor
+    const { data, error } = await adminClient.auth.admin.mfa.deleteFactor({
+      userId: userId,
+      factorId: factorId,
     });
 
-    if (factorsError) {
-      return new Response(JSON.stringify({ error: factorsError.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    const factors = factorsData?.factors ?? [];
-    const results = [];
-    for (const factor of factors) {
-      const { error: deleteError } = await adminClient.auth.admin.mfa.deleteFactor({
-        userId: TARGET_USER_ID,
-        factorId: factor.id,
-      });
-      results.push({ factorId: factor.id, deleted: !deleteError, error: deleteError?.message ?? null });
+    if (error) {
+      return new Response(JSON.stringify({ error: error.message, code: error.status }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Clear recovery codes and mfa flag
-    await adminClient.from("mfa_recovery_codes").delete().eq("user_id", TARGET_USER_ID);
-    await adminClient.from("profiles").update({ mfa_enabled: false }).eq("user_id", TARGET_USER_ID);
+    await adminClient.from("mfa_recovery_codes").delete().eq("user_id", userId);
+    await adminClient.from("profiles").update({ mfa_enabled: false }).eq("user_id", userId);
 
-    return new Response(JSON.stringify({ success: true, factors_found: factors.length, results }), {
+    return new Response(JSON.stringify({ success: true, deleted_factor: factorId }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
