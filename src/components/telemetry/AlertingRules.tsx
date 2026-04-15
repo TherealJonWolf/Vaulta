@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface TelemetryAlert {
   id: string;
   device_id: string;
+  user_id?: string;
   alert_type: string;
   severity: string;
   rule_name: string;
