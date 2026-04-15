@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, ArrowLeft, Users, Activity, AlertTriangle, TrendingDown, Eye, RefreshCw, Lock, Unlock, FileWarning, Upload, ClipboardCheck, Bell, BellRing, CheckCircle2, XCircle, Clock, Zap, Settings, History } from "lucide-react";
+import { Shield, ArrowLeft, Users, Activity, AlertTriangle, TrendingDown, Eye, RefreshCw, Lock, Unlock, FileWarning, Upload, ClipboardCheck, Bell, BellRing, CheckCircle2, XCircle, Clock, Zap, Settings, History, Smartphone, ShieldAlert, BarChart3 } from "lucide-react";
+import { PhoneSensorIngestion } from "@/components/telemetry/PhoneSensorIngestion";
+import { AlertingRules } from "@/components/telemetry/AlertingRules";
+import { TraceabilityDashboard } from "@/components/telemetry/TraceabilityDashboard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -464,6 +467,18 @@ const AdminSecurity = () => {
               <Settings size={12} />
               SOC SETTINGS
             </TabsTrigger>
+            <TabsTrigger value="sensor-ingestion" className="font-mono text-xs gap-1.5">
+              <Smartphone size={12} />
+              SENSOR
+            </TabsTrigger>
+            <TabsTrigger value="alerting-rules" className="font-mono text-xs gap-1.5">
+              <ShieldAlert size={12} />
+              DEVICE ALERTS
+            </TabsTrigger>
+            <TabsTrigger value="traceability" className="font-mono text-xs gap-1.5">
+              <BarChart3 size={12} />
+              TRACEABILITY
+            </TabsTrigger>
           </TabsList>
 
           {/* ALERTS TAB */}
@@ -917,6 +932,21 @@ const AdminSecurity = () => {
           {/* SOC: Admin Alert Settings */}
           <TabsContent value="soc-settings">
             <AdminAlertSettings />
+          </TabsContent>
+
+          {/* Telemetry: Phone Sensor Ingestion */}
+          <TabsContent value="sensor-ingestion">
+            <PhoneSensorIngestion />
+          </TabsContent>
+
+          {/* Telemetry: Alerting Rules */}
+          <TabsContent value="alerting-rules">
+            <AlertingRules />
+          </TabsContent>
+
+          {/* Telemetry: Traceability Dashboard */}
+          <TabsContent value="traceability">
+            <TraceabilityDashboard />
           </TabsContent>
         </Tabs>
       </div>
