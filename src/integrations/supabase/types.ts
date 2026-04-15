@@ -385,6 +385,128 @@ export type Database = {
         }
         Relationships: []
       }
+      device_telemetry_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          description: string
+          device_id: string
+          id: string
+          metadata: Json | null
+          resolved: boolean
+          resolved_at: string | null
+          rule_name: string
+          severity: string
+          telemetry_event_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          description: string
+          device_id: string
+          id?: string
+          metadata?: Json | null
+          resolved?: boolean
+          resolved_at?: string | null
+          rule_name: string
+          severity?: string
+          telemetry_event_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          description?: string
+          device_id?: string
+          id?: string
+          metadata?: Json | null
+          resolved?: boolean
+          resolved_at?: string | null
+          rule_name?: string
+          severity?: string
+          telemetry_event_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_telemetry_alerts_telemetry_event_id_fkey"
+            columns: ["telemetry_event_id"]
+            isOneToOne: false
+            referencedRelation: "device_telemetry_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_telemetry_events: {
+        Row: {
+          accuracy: number | null
+          alpha: number | null
+          altitude: number | null
+          beta: number | null
+          client_timestamp: string
+          created_at: string
+          device_id: string
+          event_type: string
+          gamma: number | null
+          heading: number | null
+          id: string
+          is_valid: boolean
+          latitude: number | null
+          longitude: number | null
+          metadata: Json | null
+          processing_latency_ms: number | null
+          server_timestamp: string
+          speed: number | null
+          user_id: string
+          validation_errors: string[] | null
+        }
+        Insert: {
+          accuracy?: number | null
+          alpha?: number | null
+          altitude?: number | null
+          beta?: number | null
+          client_timestamp?: string
+          created_at?: string
+          device_id: string
+          event_type?: string
+          gamma?: number | null
+          heading?: number | null
+          id?: string
+          is_valid?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          metadata?: Json | null
+          processing_latency_ms?: number | null
+          server_timestamp?: string
+          speed?: number | null
+          user_id: string
+          validation_errors?: string[] | null
+        }
+        Update: {
+          accuracy?: number | null
+          alpha?: number | null
+          altitude?: number | null
+          beta?: number | null
+          client_timestamp?: string
+          created_at?: string
+          device_id?: string
+          event_type?: string
+          gamma?: number | null
+          heading?: number | null
+          id?: string
+          is_valid?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          metadata?: Json | null
+          processing_latency_ms?: number | null
+          server_timestamp?: string
+          speed?: number | null
+          user_id?: string
+          validation_errors?: string[] | null
+        }
+        Relationships: []
+      }
       document_access_log: {
         Row: {
           access_type: string
