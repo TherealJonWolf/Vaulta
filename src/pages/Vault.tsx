@@ -27,6 +27,7 @@ import NotificationCenter from "@/components/NotificationCenter";
 import OnboardingTour, { ONBOARDING_STORAGE_KEY } from "@/components/OnboardingTour";
 import UserProfileSettings from "@/components/UserProfileSettings";
 import DocumentPossessionReview from "@/components/DocumentPossessionReview";
+import { TrustedDevicesPanel } from "@/components/telemetry/TrustedDevicesPanel";
 
 const Vault = () => {
   const navigate = useNavigate();
@@ -286,6 +287,10 @@ const Vault = () => {
             <h3 className="font-display font-bold text-primary mb-1">Documents</h3>
             <p className="text-xs text-muted-foreground font-rajdhani">View collection</p>
           </motion.div>
+        </div>
+
+        <div className="max-w-6xl mx-auto mb-8">
+          <TrustedDevicesPanel />
         </div>
 
         <DocumentList refreshTrigger={refreshTrigger} encryptFile={encryptFile} decryptFile={decryptFile} />
