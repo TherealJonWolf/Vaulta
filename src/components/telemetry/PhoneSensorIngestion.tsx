@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 interface SensorReading {
   id: string;
+  trace_id: string | null;
   timestamp: string;
   latitude: number | null;
   longitude: number | null;
@@ -19,6 +20,7 @@ interface SensorReading {
   isValid: boolean;
   validationErrors: string[];
   latencyMs: number;
+  alertsGenerated: number;
 }
 
 const generateDeviceId = (): string => {
