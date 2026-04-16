@@ -105,11 +105,44 @@ export const PhoneSensorIngestion = () => {
 
     const validationErrors = validateReading(partial);
     const isValid = validationErrors.length === 0;
-    const serverTs = new Date();
-    const latencyMs = serverTs.getTime() - clientTs.getTime();
+
+    // Backend is source of truth — POST to edge function which assigns trace_id,
+    // persists, evaluates rules, generates alerts, and updates device health.
+    const t0 = Date.now();
+    let serverTraceId: string | null = null;
+    let serverValid = isValid;
+    let serverErrors = validationErrors;
+    let alertsGenerated = 0;
+    let success = true;
+
+    try {
+      const { data, error } = await supabase.functions.invoke("ingest-device-telemetry", {
+        body: {
+          device_id: deviceId.current,
+          client_timestamp: clientTs.toISOString(),
+          latitude: geo.lat,
+          longitude: geo.lng,
+          accuracy: geo.acc,
+          alpha: orient.alpha,
+          beta: orient.beta,
+          gamma: orient.gamma,
+          speed: geo.speed,
+        },
+      });
+      if (error) throw error;
+      serverTraceId = data?.trace_id ?? null;
+      serverValid = data?.is_valid ?? isValid;
+      serverErrors = data?.validation_errors ?? validationErrors;
+      alertsGenerated = data?.alerts_generated ?? 0;
+    } catch {
+      success = false;
+    }
+
+    const latencyMs = Date.now() - t0;
 
     const reading: SensorReading = {
       id: crypto.randomUUID(),
+      trace_id: serverTraceId,
       timestamp: clientTs.toISOString(),
       latitude: geo.lat,
       longitude: geo.lng,
@@ -118,36 +151,15 @@ export const PhoneSensorIngestion = () => {
       beta: orient.beta,
       gamma: orient.gamma,
       speed: geo.speed,
-      isValid,
-      validationErrors,
+      isValid: serverValid,
+      validationErrors: serverErrors,
       latencyMs,
+      alertsGenerated,
     };
 
     setReadings((prev) => [reading, ...prev].slice(0, 50));
     setEventCount((c) => c + 1);
-    if (!isValid) setErrorCount((c) => c + 1);
-
-    try {
-      await (supabase.from("device_telemetry_events") as any).insert({
-        user_id: user.id,
-        device_id: deviceId.current,
-        event_type: "sensor_reading",
-        latitude: geo.lat,
-        longitude: geo.lng,
-        accuracy: geo.acc,
-        alpha: orient.alpha,
-        beta: orient.beta,
-        gamma: orient.gamma,
-        speed: geo.speed,
-        is_valid: isValid,
-        validation_errors: validationErrors,
-        client_timestamp: clientTs.toISOString(),
-        server_timestamp: serverTs.toISOString(),
-        processing_latency_ms: latencyMs,
-      });
-    } catch {
-      setErrorCount((c) => c + 1);
-    }
+    if (!success || !serverValid) setErrorCount((c) => c + 1);
   }, [user]);
 
   const startStreaming = useCallback(() => {
