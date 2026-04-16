@@ -17,6 +17,7 @@ interface DeviceSummary {
 interface RecentEvent {
   id: string;
   device_id: string;
+  trace_id: string | null;
   event_type: string;
   is_valid: boolean;
   validation_errors: string[];
@@ -29,6 +30,7 @@ interface RecentEvent {
 export const TraceabilityDashboard = () => {
   const [devices, setDevices] = useState<DeviceSummary[]>([]);
   const [recentEvents, setRecentEvents] = useState<RecentEvent[]>([]);
+  const [filter, setFilter] = useState("");
   const [totalEvents, setTotalEvents] = useState(0);
   const [totalErrors, setTotalErrors] = useState(0);
   const [totalAlerts, setTotalAlerts] = useState(0);
@@ -152,11 +154,21 @@ export const TraceabilityDashboard = () => {
         )}
 
         {/* Recent events table */}
+        <div>
+          <input
+            type="text"
+            placeholder="Filter by device_id or trace_id…"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="w-full px-3 py-1.5 text-xs font-mono bg-card border border-border rounded text-foreground placeholder:text-muted-foreground"
+          />
+        </div>
         <div className="max-h-64 overflow-y-auto border border-border rounded bg-card/50">
           <table className="w-full text-[11px] font-mono">
             <thead className="sticky top-0 bg-card border-b border-border">
               <tr>
                 <th className="text-left p-1.5 text-muted-foreground">TIME</th>
+                <th className="text-left p-1.5 text-muted-foreground">TRACE</th>
                 <th className="text-left p-1.5 text-muted-foreground">DEVICE</th>
                 <th className="text-left p-1.5 text-muted-foreground">TYPE</th>
                 <th className="text-left p-1.5 text-muted-foreground">VALID</th>
@@ -165,9 +177,12 @@ export const TraceabilityDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {recentEvents.map((e) => (
+              {recentEvents
+                .filter((e) => !filter || e.device_id.includes(filter) || (e.trace_id ?? "").includes(filter))
+                .map((e) => (
                 <tr key={e.id} className={`border-b border-border/50 ${!e.is_valid ? "bg-destructive/5" : ""}`}>
                   <td className="p-1.5">{new Date(e.created_at).toLocaleTimeString()}</td>
+                  <td className="p-1.5"><code className="text-[9px]">{e.trace_id?.slice(0, 8) ?? "—"}</code></td>
                   <td className="p-1.5"><code>{e.device_id.slice(0, 16)}</code></td>
                   <td className="p-1.5">{e.event_type}</td>
                   <td className="p-1.5">{e.is_valid ? "✓" : "✗"}</td>
@@ -180,7 +195,7 @@ export const TraceabilityDashboard = () => {
                 </tr>
               ))}
               {recentEvents.length === 0 && (
-                <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">No telemetry events recorded yet.</td></tr>
+                <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">No telemetry events recorded yet.</td></tr>
               )}
             </tbody>
           </table>

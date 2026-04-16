@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 interface SensorReading {
   id: string;
+  trace_id: string | null;
   timestamp: string;
   latitude: number | null;
   longitude: number | null;
@@ -19,6 +20,7 @@ interface SensorReading {
   isValid: boolean;
   validationErrors: string[];
   latencyMs: number;
+  alertsGenerated: number;
 }
 
 const generateDeviceId = (): string => {
@@ -103,11 +105,44 @@ export const PhoneSensorIngestion = () => {
 
     const validationErrors = validateReading(partial);
     const isValid = validationErrors.length === 0;
-    const serverTs = new Date();
-    const latencyMs = serverTs.getTime() - clientTs.getTime();
+
+    // Backend is source of truth — POST to edge function which assigns trace_id,
+    // persists, evaluates rules, generates alerts, and updates device health.
+    const t0 = Date.now();
+    let serverTraceId: string | null = null;
+    let serverValid = isValid;
+    let serverErrors = validationErrors;
+    let alertsGenerated = 0;
+    let success = true;
+
+    try {
+      const { data, error } = await supabase.functions.invoke("ingest-device-telemetry", {
+        body: {
+          device_id: deviceId.current,
+          client_timestamp: clientTs.toISOString(),
+          latitude: geo.lat,
+          longitude: geo.lng,
+          accuracy: geo.acc,
+          alpha: orient.alpha,
+          beta: orient.beta,
+          gamma: orient.gamma,
+          speed: geo.speed,
+        },
+      });
+      if (error) throw error;
+      serverTraceId = data?.trace_id ?? null;
+      serverValid = data?.is_valid ?? isValid;
+      serverErrors = data?.validation_errors ?? validationErrors;
+      alertsGenerated = data?.alerts_generated ?? 0;
+    } catch {
+      success = false;
+    }
+
+    const latencyMs = Date.now() - t0;
 
     const reading: SensorReading = {
       id: crypto.randomUUID(),
+      trace_id: serverTraceId,
       timestamp: clientTs.toISOString(),
       latitude: geo.lat,
       longitude: geo.lng,
@@ -116,36 +151,15 @@ export const PhoneSensorIngestion = () => {
       beta: orient.beta,
       gamma: orient.gamma,
       speed: geo.speed,
-      isValid,
-      validationErrors,
+      isValid: serverValid,
+      validationErrors: serverErrors,
       latencyMs,
+      alertsGenerated,
     };
 
     setReadings((prev) => [reading, ...prev].slice(0, 50));
     setEventCount((c) => c + 1);
-    if (!isValid) setErrorCount((c) => c + 1);
-
-    try {
-      await (supabase.from("device_telemetry_events") as any).insert({
-        user_id: user.id,
-        device_id: deviceId.current,
-        event_type: "sensor_reading",
-        latitude: geo.lat,
-        longitude: geo.lng,
-        accuracy: geo.acc,
-        alpha: orient.alpha,
-        beta: orient.beta,
-        gamma: orient.gamma,
-        speed: geo.speed,
-        is_valid: isValid,
-        validation_errors: validationErrors,
-        client_timestamp: clientTs.toISOString(),
-        server_timestamp: serverTs.toISOString(),
-        processing_latency_ms: latencyMs,
-      });
-    } catch {
-      setErrorCount((c) => c + 1);
-    }
+    if (!success || !serverValid) setErrorCount((c) => c + 1);
   }, [user]);
 
   const startStreaming = useCallback(() => {
@@ -248,30 +262,34 @@ export const PhoneSensorIngestion = () => {
             <thead className="sticky top-0 bg-card border-b border-border">
               <tr>
                 <th className="text-left p-1.5 text-muted-foreground">TIME</th>
+                <th className="text-left p-1.5 text-muted-foreground">TRACE</th>
                 <th className="text-left p-1.5 text-muted-foreground">LAT</th>
                 <th className="text-left p-1.5 text-muted-foreground">LNG</th>
                 <th className="text-left p-1.5 text-muted-foreground">α</th>
                 <th className="text-left p-1.5 text-muted-foreground">β</th>
                 <th className="text-left p-1.5 text-muted-foreground">γ</th>
                 <th className="text-left p-1.5 text-muted-foreground">VALID</th>
-                <th className="text-left p-1.5 text-muted-foreground">LATENCY</th>
+                <th className="text-left p-1.5 text-muted-foreground">ALERTS</th>
+                <th className="text-left p-1.5 text-muted-foreground">RTT</th>
               </tr>
             </thead>
             <tbody>
               {readings.map((r) => (
                 <tr key={r.id} className={`border-b border-border/50 ${!r.isValid ? "bg-destructive/5" : ""}`}>
                   <td className="p-1.5">{new Date(r.timestamp).toLocaleTimeString()}</td>
+                  <td className="p-1.5"><code className="text-[9px]">{r.trace_id?.slice(0, 8) ?? "—"}</code></td>
                   <td className="p-1.5">{r.latitude?.toFixed(4) ?? "—"}</td>
                   <td className="p-1.5">{r.longitude?.toFixed(4) ?? "—"}</td>
                   <td className="p-1.5">{r.alpha?.toFixed(0) ?? "—"}</td>
                   <td className="p-1.5">{r.beta?.toFixed(0) ?? "—"}</td>
                   <td className="p-1.5">{r.gamma?.toFixed(0) ?? "—"}</td>
                   <td className="p-1.5">{r.isValid ? "✓" : "✗"}</td>
+                  <td className="p-1.5">{r.alertsGenerated > 0 ? <span className="text-destructive">{r.alertsGenerated}</span> : "—"}</td>
                   <td className="p-1.5">{r.latencyMs}ms</td>
                 </tr>
               ))}
               {readings.length === 0 && (
-                <tr><td colSpan={8} className="p-4 text-center text-muted-foreground">No events yet. Start streaming to see live telemetry.</td></tr>
+                <tr><td colSpan={10} className="p-4 text-center text-muted-foreground">No events yet. Start streaming to see live telemetry.</td></tr>
               )}
             </tbody>
           </table>
