@@ -385,6 +385,99 @@ export type Database = {
         }
         Relationships: []
       }
+      device_health: {
+        Row: {
+          consecutive_identical_readings: number
+          created_at: string
+          device_id: string
+          id: string
+          last_event_id: string | null
+          last_seen_at: string
+          last_trace_id: string | null
+          metadata: Json | null
+          status: string
+          total_alerts: number
+          total_dropped: number
+          total_events: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          consecutive_identical_readings?: number
+          created_at?: string
+          device_id: string
+          id?: string
+          last_event_id?: string | null
+          last_seen_at?: string
+          last_trace_id?: string | null
+          metadata?: Json | null
+          status?: string
+          total_alerts?: number
+          total_dropped?: number
+          total_events?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          consecutive_identical_readings?: number
+          created_at?: string
+          device_id?: string
+          id?: string
+          last_event_id?: string | null
+          last_seen_at?: string
+          last_trace_id?: string | null
+          metadata?: Json | null
+          status?: string
+          total_alerts?: number
+          total_dropped?: number
+          total_events?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      device_integrity_factors: {
+        Row: {
+          abnormal_movement_score: number
+          created_at: string
+          device_consistency_score: number
+          id: string
+          insight_summary: string | null
+          insights: Json | null
+          integrity_score: number
+          last_evaluated_at: string
+          session_integrity_score: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          abnormal_movement_score?: number
+          created_at?: string
+          device_consistency_score?: number
+          id?: string
+          insight_summary?: string | null
+          insights?: Json | null
+          integrity_score?: number
+          last_evaluated_at?: string
+          session_integrity_score?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          abnormal_movement_score?: number
+          created_at?: string
+          device_consistency_score?: number
+          id?: string
+          insight_summary?: string | null
+          insights?: Json | null
+          integrity_score?: number
+          last_evaluated_at?: string
+          session_integrity_score?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       device_telemetry_alerts: {
         Row: {
           alert_type: string
@@ -398,6 +491,7 @@ export type Database = {
           rule_name: string
           severity: string
           telemetry_event_id: string | null
+          trace_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -412,6 +506,7 @@ export type Database = {
           rule_name: string
           severity?: string
           telemetry_event_id?: string | null
+          trace_id?: string | null
           user_id?: string | null
         }
         Update: {
@@ -426,6 +521,7 @@ export type Database = {
           rule_name?: string
           severity?: string
           telemetry_event_id?: string | null
+          trace_id?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -456,8 +552,10 @@ export type Database = {
           longitude: number | null
           metadata: Json | null
           processing_latency_ms: number | null
+          received_at: string
           server_timestamp: string
           speed: number | null
+          trace_id: string
           user_id: string
           validation_errors: string[] | null
         }
@@ -478,8 +576,10 @@ export type Database = {
           longitude?: number | null
           metadata?: Json | null
           processing_latency_ms?: number | null
+          received_at?: string
           server_timestamp?: string
           speed?: number | null
+          trace_id?: string
           user_id: string
           validation_errors?: string[] | null
         }
@@ -500,8 +600,10 @@ export type Database = {
           longitude?: number | null
           metadata?: Json | null
           processing_latency_ms?: number | null
+          received_at?: string
           server_timestamp?: string
           speed?: number | null
+          trace_id?: string
           user_id?: string
           validation_errors?: string[] | null
         }
