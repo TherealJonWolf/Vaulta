@@ -188,7 +188,7 @@ export const TrustedDevicesPanel = () => {
             <h4 className="text-sm font-semibold flex items-center gap-2"><AlertCircle size={14} /> Recent insights</h4>
             <div className="space-y-2">
               {alerts.slice(0, 5).map((a) => (
-                <div key={a.id} className="border-l-2 border-amber-500 pl-3 py-1">
+                <div key={a.id} className="border-l-2 border-[hsl(var(--warning-amber))] pl-3 py-1">
                   <p className="text-sm font-medium">{a.rule_name}</p>
                   <p className="text-xs text-muted-foreground">
                     {ALERT_FRIENDLY[Object.keys(ALERT_FRIENDLY).find((k) => ALERT_FRIENDLY[k].title === a.rule_name) ?? ""]?.description ?? ""}

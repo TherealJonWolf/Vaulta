@@ -17,6 +17,7 @@ interface DeviceSummary {
 interface RecentEvent {
   id: string;
   device_id: string;
+  trace_id: string | null;
   event_type: string;
   is_valid: boolean;
   validation_errors: string[];
@@ -29,6 +30,7 @@ interface RecentEvent {
 export const TraceabilityDashboard = () => {
   const [devices, setDevices] = useState<DeviceSummary[]>([]);
   const [recentEvents, setRecentEvents] = useState<RecentEvent[]>([]);
+  const [filter, setFilter] = useState("");
   const [totalEvents, setTotalEvents] = useState(0);
   const [totalErrors, setTotalErrors] = useState(0);
   const [totalAlerts, setTotalAlerts] = useState(0);
