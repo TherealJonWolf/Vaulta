@@ -38,11 +38,29 @@ const ALERT_FRIENDLY: Record<string, { title: string; description: string }> = {
   },
 };
 
-const STATUS_FRIENDLY: Record<string, { label: string; color: string; icon: typeof ShieldCheck }> = {
-  healthy: { label: "Trusted", color: "text-primary", icon: ShieldCheck },
-  stale: { label: "Quiet", color: "text-[hsl(var(--warning-amber))]", icon: Clock },
-  unhealthy: { label: "Inactive", color: "text-destructive", icon: AlertCircle },
+const STATUS_FRIENDLY: Record<string, { label: string; color: string; icon: typeof ShieldCheck; insight: string }> = {
+  healthy: {
+    label: "Healthy",
+    color: "text-primary",
+    icon: ShieldCheck,
+    insight: "Active and behaving normally",
+  },
+  stale: {
+    label: "Stale",
+    color: "text-[hsl(var(--warning-amber))]",
+    icon: Clock,
+    insight: "No recent activity detected",
+  },
+  unhealthy: {
+    label: "Inactive",
+    color: "text-destructive",
+    icon: AlertCircle,
+    insight: "No recent activity detected",
+  },
 };
+
+const ANOMALY_INSIGHT = "Unusual behavior detected recently";
+const ANOMALY_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 
 export const TrustedDevicesPanel = () => {
   const { user } = useAuth();
@@ -152,6 +170,17 @@ export const TrustedDevicesPanel = () => {
           {devices.map((d) => {
             const s = STATUS_FRIENDLY[d.status];
             const Icon = s.icon;
+            const hasRecentAnomaly = alerts.some(
+              (a) =>
+                a.device_id === d.device_id &&
+                Date.now() - new Date(a.created_at).getTime() < ANOMALY_WINDOW_MS,
+            );
+            const insight = hasRecentAnomaly ? ANOMALY_INSIGHT : s.insight;
+            const insightColor = hasRecentAnomaly
+              ? "text-destructive"
+              : d.status === "healthy"
+                ? "text-primary"
+                : "text-muted-foreground";
             return (
               <div key={d.device_id} className="border border-border rounded-lg p-3 bg-card">
                 <div className="flex items-start justify-between mb-2">
@@ -164,6 +193,7 @@ export const TrustedDevicesPanel = () => {
                     {s.label}
                   </Badge>
                 </div>
+                <p className={`text-xs mb-2 ${insightColor}`}>{insight}</p>
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div>
                     <p className="text-muted-foreground">Last seen</p>
