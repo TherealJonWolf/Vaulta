@@ -262,30 +262,34 @@ export const PhoneSensorIngestion = () => {
             <thead className="sticky top-0 bg-card border-b border-border">
               <tr>
                 <th className="text-left p-1.5 text-muted-foreground">TIME</th>
+                <th className="text-left p-1.5 text-muted-foreground">TRACE</th>
                 <th className="text-left p-1.5 text-muted-foreground">LAT</th>
                 <th className="text-left p-1.5 text-muted-foreground">LNG</th>
                 <th className="text-left p-1.5 text-muted-foreground">α</th>
                 <th className="text-left p-1.5 text-muted-foreground">β</th>
                 <th className="text-left p-1.5 text-muted-foreground">γ</th>
                 <th className="text-left p-1.5 text-muted-foreground">VALID</th>
-                <th className="text-left p-1.5 text-muted-foreground">LATENCY</th>
+                <th className="text-left p-1.5 text-muted-foreground">ALERTS</th>
+                <th className="text-left p-1.5 text-muted-foreground">RTT</th>
               </tr>
             </thead>
             <tbody>
               {readings.map((r) => (
                 <tr key={r.id} className={`border-b border-border/50 ${!r.isValid ? "bg-destructive/5" : ""}`}>
                   <td className="p-1.5">{new Date(r.timestamp).toLocaleTimeString()}</td>
+                  <td className="p-1.5"><code className="text-[9px]">{r.trace_id?.slice(0, 8) ?? "—"}</code></td>
                   <td className="p-1.5">{r.latitude?.toFixed(4) ?? "—"}</td>
                   <td className="p-1.5">{r.longitude?.toFixed(4) ?? "—"}</td>
                   <td className="p-1.5">{r.alpha?.toFixed(0) ?? "—"}</td>
                   <td className="p-1.5">{r.beta?.toFixed(0) ?? "—"}</td>
                   <td className="p-1.5">{r.gamma?.toFixed(0) ?? "—"}</td>
                   <td className="p-1.5">{r.isValid ? "✓" : "✗"}</td>
+                  <td className="p-1.5">{r.alertsGenerated > 0 ? <span className="text-destructive">{r.alertsGenerated}</span> : "—"}</td>
                   <td className="p-1.5">{r.latencyMs}ms</td>
                 </tr>
               ))}
               {readings.length === 0 && (
-                <tr><td colSpan={8} className="p-4 text-center text-muted-foreground">No events yet. Start streaming to see live telemetry.</td></tr>
+                <tr><td colSpan={10} className="p-4 text-center text-muted-foreground">No events yet. Start streaming to see live telemetry.</td></tr>
               )}
             </tbody>
           </table>
