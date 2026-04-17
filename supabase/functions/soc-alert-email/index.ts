@@ -79,19 +79,20 @@ Deno.serve(async (req: Request) => {
           </div>
         `;
 
-        // Send email via Resend
-        const FROM_ADDRESS = Deno.env.get("ALERT_FROM_ADDRESS") || "Vaulta SOC <onboarding@resend.dev>";
+        // Send email via Resend (override sender via ALERT_FROM_ADDRESS until tryvaulta.com is verified)
+        const FROM_ADDRESS = Deno.env.get("ALERT_FROM_ADDRESS") || "security@tryvaulta.com";
         const emailRes = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             from: FROM_ADDRESS,
             to: [alertEmail],
-            reply_to: "security@tryvaulta.com",
             subject: `${emoji} [${severity.toUpperCase()}] ${title}`,
             html: htmlBody,
           }),
         });
+        let immErr: string | null = null;
+        if (!emailRes.ok) { try { immErr = (await emailRes.text()).slice(0, 500); } catch {} console.error("[soc-alert-email] immediate send failed", emailRes.status, immErr); }
 
         const deliveryStatus = emailRes.ok ? "sent" : "failed";
 
