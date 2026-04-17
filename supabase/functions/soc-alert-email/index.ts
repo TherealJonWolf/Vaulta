@@ -184,14 +184,13 @@ Deno.serve(async (req: Request) => {
           </div>
         `;
 
-        const FROM_ADDRESS = Deno.env.get("ALERT_FROM_ADDRESS") || "Vaulta SOC <onboarding@resend.dev>";
+        const FROM_ADDRESS = Deno.env.get("ALERT_FROM_ADDRESS") || "security@tryvaulta.com";
         const emailRes = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             from: FROM_ADDRESS,
             to: [alertEmail],
-            reply_to: "security@tryvaulta.com",
             subject: `${statusEmoji} Vaulta Daily Security Digest — ${statusLabel}`,
             html: htmlBody,
           }),
