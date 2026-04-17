@@ -181,18 +181,25 @@ Deno.serve(async (req: Request) => {
           </div>
         `;
 
+        const FROM_ADDRESS = Deno.env.get("ALERT_FROM_ADDRESS") || "Vaulta SOC <onboarding@resend.dev>";
         const emailRes = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            from: "security@tryvaulta.com",
+            from: FROM_ADDRESS,
             to: [alertEmail],
+            reply_to: "security@tryvaulta.com",
             subject: `${statusEmoji} Vaulta Daily Security Digest — ${statusLabel}`,
             html: htmlBody,
           }),
         });
 
         const deliveryStatus = emailRes.ok ? "sent" : "failed";
+        let errorDetail: string | null = null;
+        if (!emailRes.ok) {
+          try { errorDetail = (await emailRes.text()).slice(0, 500); } catch { /* ignore */ }
+          console.error("[soc-alert-email] digest send failed", emailRes.status, errorDetail);
+        }
 
         await supabase.from("alert_history").insert({
           alert_type: "daily_digest",
@@ -204,6 +211,7 @@ Deno.serve(async (req: Request) => {
           delivery_status: deliveryStatus,
           delivered_at: deliveryStatus === "sent" ? new Date().toISOString() : null,
           recipient_admin_id: settings.admin_user_id,
+          metadata: errorDetail ? { provider_error: errorDetail, http_status: emailRes.status } : {},
         });
 
         if (deliveryStatus === "sent") sentCount++;
