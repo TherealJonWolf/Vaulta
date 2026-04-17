@@ -79,17 +79,20 @@ Deno.serve(async (req: Request) => {
           </div>
         `;
 
-        // Send email via Resend
+        // Send email via Resend (override sender via ALERT_FROM_ADDRESS until tryvaulta.com is verified)
+        const FROM_ADDRESS = Deno.env.get("ALERT_FROM_ADDRESS") || "security@tryvaulta.com";
         const emailRes = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            from: "security@tryvaulta.com",
+            from: FROM_ADDRESS,
             to: [alertEmail],
             subject: `${emoji} [${severity.toUpperCase()}] ${title}`,
             html: htmlBody,
           }),
         });
+        let immErr: string | null = null;
+        if (!emailRes.ok) { try { immErr = (await emailRes.text()).slice(0, 500); } catch {} console.error("[soc-alert-email] immediate send failed", emailRes.status, immErr); }
 
         const deliveryStatus = emailRes.ok ? "sent" : "failed";
 
@@ -181,11 +184,12 @@ Deno.serve(async (req: Request) => {
           </div>
         `;
 
+        const FROM_ADDRESS = Deno.env.get("ALERT_FROM_ADDRESS") || "security@tryvaulta.com";
         const emailRes = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            from: "security@tryvaulta.com",
+            from: FROM_ADDRESS,
             to: [alertEmail],
             subject: `${statusEmoji} Vaulta Daily Security Digest — ${statusLabel}`,
             html: htmlBody,
@@ -193,6 +197,11 @@ Deno.serve(async (req: Request) => {
         });
 
         const deliveryStatus = emailRes.ok ? "sent" : "failed";
+        let errorDetail: string | null = null;
+        if (!emailRes.ok) {
+          try { errorDetail = (await emailRes.text()).slice(0, 500); } catch { /* ignore */ }
+          console.error("[soc-alert-email] digest send failed", emailRes.status, errorDetail);
+        }
 
         await supabase.from("alert_history").insert({
           alert_type: "daily_digest",
@@ -204,6 +213,7 @@ Deno.serve(async (req: Request) => {
           delivery_status: deliveryStatus,
           delivered_at: deliveryStatus === "sent" ? new Date().toISOString() : null,
           recipient_admin_id: settings.admin_user_id,
+          metadata: errorDetail ? { provider_error: errorDetail, http_status: emailRes.status } : {},
         });
 
         if (deliveryStatus === "sent") sentCount++;
