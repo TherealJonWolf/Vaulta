@@ -439,8 +439,10 @@ export type Database = {
       device_integrity_factors: {
         Row: {
           abnormal_movement_score: number
+          behavioral_consistency_score: number
           created_at: string
           device_consistency_score: number
+          geolocation_consistency_score: number
           id: string
           insight_summary: string | null
           insights: Json | null
@@ -452,8 +454,10 @@ export type Database = {
         }
         Insert: {
           abnormal_movement_score?: number
+          behavioral_consistency_score?: number
           created_at?: string
           device_consistency_score?: number
+          geolocation_consistency_score?: number
           id?: string
           insight_summary?: string | null
           insights?: Json | null
@@ -465,8 +469,10 @@ export type Database = {
         }
         Update: {
           abnormal_movement_score?: number
+          behavioral_consistency_score?: number
           created_at?: string
           device_consistency_score?: number
+          geolocation_consistency_score?: number
           id?: string
           insight_summary?: string | null
           insights?: Json | null
@@ -1687,6 +1693,45 @@ export type Database = {
         }
         Relationships: []
       }
+      signal_consents: {
+        Row: {
+          category: Database["public"]["Enums"]["signal_category"]
+          consent_text_hash: string
+          created_at: string
+          granted: boolean
+          granted_at: string | null
+          id: string
+          revoked_at: string | null
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["signal_category"]
+          consent_text_hash: string
+          created_at?: string
+          granted?: boolean
+          granted_at?: string | null
+          id?: string
+          revoked_at?: string | null
+          source?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["signal_category"]
+          consent_text_hash?: string
+          created_at?: string
+          granted?: boolean
+          granted_at?: string | null
+          id?: string
+          revoked_at?: string | null
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       testimonials: {
         Row: {
           approved: boolean
@@ -1855,6 +1900,57 @@ export type Database = {
           trust_level?: Database["public"]["Enums"]["trust_level"]
           trust_score?: number
           user_id?: string
+        }
+        Relationships: []
+      }
+      trust_signals: {
+        Row: {
+          category: Database["public"]["Enums"]["signal_category"]
+          confidence: number
+          created_at: string
+          direction: Database["public"]["Enums"]["signal_direction"]
+          evaluated_at: string
+          expires_at: string | null
+          id: string
+          metadata: Json
+          rule_id: string | null
+          source_id: string | null
+          source_table: string
+          summary: string
+          user_id: string
+          weight: number
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["signal_category"]
+          confidence?: number
+          created_at?: string
+          direction: Database["public"]["Enums"]["signal_direction"]
+          evaluated_at?: string
+          expires_at?: string | null
+          id?: string
+          metadata?: Json
+          rule_id?: string | null
+          source_id?: string | null
+          source_table: string
+          summary: string
+          user_id: string
+          weight?: number
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["signal_category"]
+          confidence?: number
+          created_at?: string
+          direction?: Database["public"]["Enums"]["signal_direction"]
+          evaluated_at?: string
+          expires_at?: string | null
+          id?: string
+          metadata?: Json
+          rule_id?: string | null
+          source_id?: string | null
+          source_table?: string
+          summary?: string
+          user_id?: string
+          weight?: number
         }
         Relationships: []
       }
@@ -2056,6 +2152,15 @@ export type Database = {
     Enums: {
       app_role: "admin" | "moderator" | "user" | "landlord"
       document_category: "identity" | "financial" | "general"
+      signal_category:
+        | "device_consistency"
+        | "geolocation_context"
+        | "behavioral_pattern"
+        | "utility_corroboration"
+        | "cross_account"
+        | "identity_verification"
+        | "document_consistency"
+      signal_direction: "positive" | "neutral" | "negative"
       trust_level:
         | "restricted"
         | "low_trust"
@@ -2191,6 +2296,16 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "user", "landlord"],
       document_category: ["identity", "financial", "general"],
+      signal_category: [
+        "device_consistency",
+        "geolocation_context",
+        "behavioral_pattern",
+        "utility_corroboration",
+        "cross_account",
+        "identity_verification",
+        "document_consistency",
+      ],
+      signal_direction: ["positive", "neutral", "negative"],
       trust_level: [
         "restricted",
         "low_trust",
