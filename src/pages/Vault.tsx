@@ -190,6 +190,9 @@ const Vault = () => {
               <Button variant="ghost" onClick={() => setSignalConsentsOpen(true)} className="text-muted-foreground" title="Trust Signal Consents">
                 <Shield size={18} />
               </Button>
+              <Button variant="ghost" onClick={() => setPrivacyAuditOpen(true)} className="text-muted-foreground" title="Privacy & Encryption Audit">
+                <ScanSearch size={18} />
+              </Button>
               <Button variant="ghost" onClick={() => setThreatSimOpen(true)} className="text-muted-foreground" title="Threat Simulation">
                 <Zap size={18} />
               </Button>
