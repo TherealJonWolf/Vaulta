@@ -54,6 +54,7 @@ const Vault = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [docRequestsOpen, setDocRequestsOpen] = useState(false);
   const [signalConsentsOpen, setSignalConsentsOpen] = useState(false);
+  const [privacyAuditOpen, setPrivacyAuditOpen] = useState(false);
   const [vaultDisplayName, setVaultDisplayName] = useState<string | null>(null);
   const [vaultAccentColor, setVaultAccentColor] = useState<string | null>(null);
 
