@@ -28,6 +28,7 @@ import OnboardingTour, { ONBOARDING_STORAGE_KEY } from "@/components/OnboardingT
 import UserProfileSettings from "@/components/UserProfileSettings";
 import DocumentPossessionReview from "@/components/DocumentPossessionReview";
 import { TrustedDevicesPanel } from "@/components/telemetry/TrustedDevicesPanel";
+import { SignalConsentPanel } from "@/components/SignalConsentPanel";
 
 const Vault = () => {
   const navigate = useNavigate();
@@ -51,6 +52,7 @@ const Vault = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [docRequestsOpen, setDocRequestsOpen] = useState(false);
+  const [signalConsentsOpen, setSignalConsentsOpen] = useState(false);
   const [vaultDisplayName, setVaultDisplayName] = useState<string | null>(null);
   const [vaultAccentColor, setVaultAccentColor] = useState<string | null>(null);
 
