@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShieldCheck, Lock, MapPin, Activity, Plug, Users, Fingerprint, FileCheck2 } from "lucide-react";
+import { ShieldCheck, Lock, MapPin, Activity, Plug, Users, Fingerprint, FileCheck2, type LucideIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   CONSENT_TEXT,
@@ -30,7 +30,7 @@ import {
 
 const CATEGORY_META: Record<
   SignalCategory,
-  { title: string; subtitle: string; icon: React.ComponentType<{ size?: number; className?: string }>; tone: "positive" | "negative" | "neutral" }
+  { title: string; subtitle: string; icon: LucideIcon; tone: "positive" | "negative" | "neutral" }
 > = {
   device_consistency: {
     title: "Device Consistency",
