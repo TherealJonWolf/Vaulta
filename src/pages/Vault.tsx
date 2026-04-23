@@ -333,6 +333,7 @@ const Vault = () => {
       />
       <DocumentPossessionReview open={docRequestsOpen} onClose={() => setDocRequestsOpen(false)} userId={user?.id} />
       <SignalConsentPanel open={signalConsentsOpen} onOpenChange={setSignalConsentsOpen} />
+      <PrivacyAuditPanel open={privacyAuditOpen} onOpenChange={setPrivacyAuditOpen} />
       {showOnboarding && <OnboardingTour onComplete={() => setShowOnboarding(false)} />}
     </div>
   );
