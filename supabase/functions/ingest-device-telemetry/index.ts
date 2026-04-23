@@ -99,6 +99,34 @@ Deno.serve(async (req) => {
     // Service-role client for writes that bypass RLS (alerts, health)
     const admin = createClient(supabaseUrl, serviceKey);
 
+    // Phase 3 privacy gate: enforce signal_consents server-side.
+    //   - Missing device_consistency consent  -> drop the entire payload.
+    //   - Missing geolocation_context consent -> strip lat/lon/altitude/heading/speed/accuracy.
+    // The consent ledger (signal_consents) is the single source of truth; the
+    // client cannot bypass this by lying about its own state.
+    const { data: consentRows } = await admin
+      .from("signal_consents")
+      .select("category, granted")
+      .eq("user_id", user_id)
+      .in("category", ["device_consistency", "geolocation_context"]);
+    const consentMap = new Map<string, boolean>(
+      (consentRows ?? []).map((r) => [r.category as string, Boolean(r.granted)]),
+    );
+    const deviceConsentGranted = consentMap.get("device_consistency") === true;
+    const geoConsentGranted = consentMap.get("geolocation_context") === true;
+
+    if (!deviceConsentGranted) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          dropped: "consent_required",
+          required_consent: "device_consistency",
+          trace_id,
+        }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // Parse + validate
     let payload: TelemetryPayload;
     try {
@@ -108,6 +136,15 @@ Deno.serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Redact location fields if geolocation consent has not been granted.
+    const redactedFields: string[] = [];
+    if (!geoConsentGranted) {
+      for (const k of ["latitude", "longitude", "altitude", "heading", "speed", "accuracy"] as const) {
+        if (payload[k] != null) redactedFields.push(k);
+        payload[k] = null;
+      }
     }
 
     const validation_errors = validate(payload);
@@ -144,7 +181,10 @@ Deno.serve(async (req) => {
         is_valid,
         validation_errors,
         processing_latency_ms: Date.now() - startedAt,
-        metadata: payload.metadata ?? {},
+        metadata: {
+          ...(payload.metadata ?? {}),
+          ...(redactedFields.length > 0 ? { redacted_fields: redactedFields } : {}),
+        },
       })
       .select("id, created_at")
       .single();

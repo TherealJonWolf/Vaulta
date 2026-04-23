@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { calculateTrustScore, saveTrustScore, getLatestTrustScore, TrustScoreResult } from "@/lib/trustScore";
 import { useToast } from "@/hooks/use-toast";
+import { ContributingSignalsCard } from "@/components/ContributingSignalsCard";
 
 interface TrustScoreDashboardProps {
   open: boolean;
@@ -302,6 +303,9 @@ export function TrustScoreDashboard({ open, onOpenChange }: TrustScoreDashboardP
                     Export Report
                   </Button>
                 </div>
+
+                {/* Phase 3: contextual signals contributing to the score */}
+                <ContributingSignalsCard />
               </motion.div>
             </AnimatePresence>
           )}
