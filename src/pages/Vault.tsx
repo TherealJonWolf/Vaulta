@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck, ClipboardCheck, TrendingUp, Zap, Fingerprint, LockOpen, ShieldAlert, User, FolderInput } from "lucide-react";
+import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck, ClipboardCheck, TrendingUp, Zap, Fingerprint, LockOpen, ShieldAlert, User, FolderInput, ScanSearch } from "lucide-react";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -29,6 +29,7 @@ import UserProfileSettings from "@/components/UserProfileSettings";
 import DocumentPossessionReview from "@/components/DocumentPossessionReview";
 import { TrustedDevicesPanel } from "@/components/telemetry/TrustedDevicesPanel";
 import { SignalConsentPanel } from "@/components/SignalConsentPanel";
+import { PrivacyAuditPanel } from "@/components/PrivacyAuditPanel";
 
 const Vault = () => {
   const navigate = useNavigate();
@@ -53,6 +54,7 @@ const Vault = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [docRequestsOpen, setDocRequestsOpen] = useState(false);
   const [signalConsentsOpen, setSignalConsentsOpen] = useState(false);
+  const [privacyAuditOpen, setPrivacyAuditOpen] = useState(false);
   const [vaultDisplayName, setVaultDisplayName] = useState<string | null>(null);
   const [vaultAccentColor, setVaultAccentColor] = useState<string | null>(null);
 
@@ -187,6 +189,9 @@ const Vault = () => {
               </Button>
               <Button variant="ghost" onClick={() => setSignalConsentsOpen(true)} className="text-muted-foreground" title="Trust Signal Consents">
                 <Shield size={18} />
+              </Button>
+              <Button variant="ghost" onClick={() => setPrivacyAuditOpen(true)} className="text-muted-foreground" title="Privacy & Encryption Audit">
+                <ScanSearch size={18} />
               </Button>
               <Button variant="ghost" onClick={() => setThreatSimOpen(true)} className="text-muted-foreground" title="Threat Simulation">
                 <Zap size={18} />
@@ -328,6 +333,7 @@ const Vault = () => {
       />
       <DocumentPossessionReview open={docRequestsOpen} onClose={() => setDocRequestsOpen(false)} userId={user?.id} />
       <SignalConsentPanel open={signalConsentsOpen} onOpenChange={setSignalConsentsOpen} />
+      <PrivacyAuditPanel open={privacyAuditOpen} onOpenChange={setPrivacyAuditOpen} />
       {showOnboarding && <OnboardingTour onComplete={() => setShowOnboarding(false)} />}
     </div>
   );
