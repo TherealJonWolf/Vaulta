@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { calculateTrustScore, saveTrustScore, getLatestTrustScore, TrustScoreResult } from "@/lib/trustScore";
 import { useToast } from "@/hooks/use-toast";
 import { ContributingSignalsCard } from "@/components/ContributingSignalsCard";
+import { TrustReportButton } from "@/components/TrustReportButton";
 
 interface TrustScoreDashboardProps {
   open: boolean;
@@ -302,6 +303,11 @@ export function TrustScoreDashboard({ open, onOpenChange }: TrustScoreDashboardP
                     <Download size={16} />
                     Export Report
                   </Button>
+                </div>
+
+                {/* Compliance-grade verified trust report (immutable snapshot + hash) */}
+                <div className="flex justify-center">
+                  <TrustReportButton />
                 </div>
 
                 {/* Phase 3: contextual signals contributing to the score */}

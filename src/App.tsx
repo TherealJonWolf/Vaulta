@@ -24,6 +24,7 @@ import LandlordDashboard from "./pages/LandlordDashboard";
 import LenderDashboard from "./pages/LenderDashboard";
 import NotFound from "./pages/NotFound";
 import SubmitDocuments from "./pages/SubmitDocuments";
+import VerifyTrustReport from "./pages/VerifyTrustReport";
 import { InstitutionalRoutes } from "./institutional/InstitutionalRoutes";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="/landlord" element={<LandlordDashboard />} />
             <Route path="/lender" element={<LenderDashboard />} />
             <Route path="/submit/:token" element={<SubmitDocuments />} />
+            <Route path="/verify/:hash" element={<VerifyTrustReport />} />
             <Route path="/institutional/*" element={<InstitutionalRoutes />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
