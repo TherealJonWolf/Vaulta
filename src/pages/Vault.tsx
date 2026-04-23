@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck, ClipboardCheck, TrendingUp, Zap, Fingerprint, LockOpen, ShieldAlert, User, FolderInput } from "lucide-react";
+import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck, ClipboardCheck, TrendingUp, Zap, Fingerprint, LockOpen, ShieldAlert, User, FolderInput, ScanSearch } from "lucide-react";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -29,6 +29,7 @@ import UserProfileSettings from "@/components/UserProfileSettings";
 import DocumentPossessionReview from "@/components/DocumentPossessionReview";
 import { TrustedDevicesPanel } from "@/components/telemetry/TrustedDevicesPanel";
 import { SignalConsentPanel } from "@/components/SignalConsentPanel";
+import { PrivacyAuditPanel } from "@/components/PrivacyAuditPanel";
 
 const Vault = () => {
   const navigate = useNavigate();
