@@ -185,6 +185,9 @@ const Vault = () => {
               <Button variant="ghost" onClick={() => setTrustScoreOpen(true)} className="text-muted-foreground" title="Trust Score">
                 <TrendingUp size={18} />
               </Button>
+              <Button variant="ghost" onClick={() => setSignalConsentsOpen(true)} className="text-muted-foreground" title="Trust Signal Consents">
+                <Shield size={18} />
+              </Button>
               <Button variant="ghost" onClick={() => setThreatSimOpen(true)} className="text-muted-foreground" title="Threat Simulation">
                 <Zap size={18} />
               </Button>
@@ -324,6 +327,7 @@ const Vault = () => {
         }}
       />
       <DocumentPossessionReview open={docRequestsOpen} onClose={() => setDocRequestsOpen(false)} userId={user?.id} />
+      <SignalConsentPanel open={signalConsentsOpen} onOpenChange={setSignalConsentsOpen} />
       {showOnboarding && <OnboardingTour onComplete={() => setShowOnboarding(false)} />}
     </div>
   );
