@@ -1861,6 +1861,48 @@ export type Database = {
         }
         Relationships: []
       }
+      trust_report_snapshots: {
+        Row: {
+          audit_metadata: Json
+          confidence: number
+          consent_snapshot: Json
+          generated_at: string
+          id: string
+          report_hash: string
+          signals_summary: Json
+          trust_level: Database["public"]["Enums"]["trust_level"]
+          trust_score: number
+          user_id: string
+          version: string
+        }
+        Insert: {
+          audit_metadata?: Json
+          confidence?: number
+          consent_snapshot?: Json
+          generated_at?: string
+          id?: string
+          report_hash: string
+          signals_summary?: Json
+          trust_level: Database["public"]["Enums"]["trust_level"]
+          trust_score: number
+          user_id: string
+          version?: string
+        }
+        Update: {
+          audit_metadata?: Json
+          confidence?: number
+          consent_snapshot?: Json
+          generated_at?: string
+          id?: string
+          report_hash?: string
+          signals_summary?: Json
+          trust_level?: Database["public"]["Enums"]["trust_level"]
+          trust_score?: number
+          user_id?: string
+          version?: string
+        }
+        Relationships: []
+      }
       trust_scores: {
         Row: {
           calculated_at: string
@@ -2147,6 +2189,16 @@ export type Database = {
       verify_recovery_code: {
         Args: { p_code_hash: string; p_user_id: string }
         Returns: boolean
+      }
+      verify_trust_report_by_hash: {
+        Args: { p_hash: string }
+        Returns: {
+          generated_at: string
+          trust_level: Database["public"]["Enums"]["trust_level"]
+          trust_score: number
+          valid: boolean
+          version: string
+        }[]
       }
     }
     Enums: {
