@@ -1160,6 +1160,54 @@ export type Database = {
           },
         ]
       }
+      institutional_review_logs: {
+        Row: {
+          action: string
+          badge_codes: string[]
+          created_at: string
+          id: string
+          institution_id: string
+          metadata: Json
+          notes: string | null
+          reviewer_name: string | null
+          reviewer_user_id: string
+          submission_id: string
+          target_id: string | null
+          target_name: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          badge_codes?: string[]
+          created_at?: string
+          id?: string
+          institution_id: string
+          metadata?: Json
+          notes?: string | null
+          reviewer_name?: string | null
+          reviewer_user_id: string
+          submission_id: string
+          target_id?: string | null
+          target_name?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          badge_codes?: string[]
+          created_at?: string
+          id?: string
+          institution_id?: string
+          metadata?: Json
+          notes?: string | null
+          reviewer_name?: string | null
+          reviewer_user_id?: string
+          submission_id?: string
+          target_id?: string | null
+          target_name?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
       institutional_users: {
         Row: {
           created_at: string
