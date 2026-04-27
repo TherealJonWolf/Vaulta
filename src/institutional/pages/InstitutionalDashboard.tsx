@@ -5,6 +5,7 @@ import { ApplicantDetailDrawer } from "../components/ApplicantDetailDrawer";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Users } from "lucide-react";
 import { format } from "date-fns";
+import { deriveRiskBadges, badgeStyle } from "@/lib/riskBadges";
 
 interface Submission {
   id: string;
@@ -122,6 +123,11 @@ const InstitutionalDashboard = () => {
                 )}
                 {col.items.map(sub => {
                   const badge = scoreBadge[sub.score_state] || scoreBadge.insufficient;
+                  const risks = deriveRiskBadges({
+                    trustScore: sub.trust_score,
+                    scoreState: sub.score_state,
+                    documentCount: sub.document_count,
+                  }).slice(0, 2);
                   return (
                     <button
                       key={sub.id}
@@ -138,6 +144,19 @@ const InstitutionalDashboard = () => {
                           {sub.trust_score ?? "—"}
                         </Badge>
                       </div>
+                      {risks.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {risks.map((r) => (
+                            <span
+                              key={r.code}
+                              className={`text-[9px] px-1.5 py-0.5 rounded border ${badgeStyle(r.severity)}`}
+                              title={r.detail}
+                            >
+                              {r.label}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </button>
                   );
                 })}
