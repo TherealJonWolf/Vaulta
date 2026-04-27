@@ -2,13 +2,16 @@ import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, X, FileText, FolderInput } from "lucide-react";
+import { Download, X, FileText, FolderInput, Eye, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { useInstitutionalAuth } from "../hooks/useInstitutionalAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DocumentPossessionRequest } from "./DocumentPossessionRequest";
 import { DocumentsOnFile } from "./DocumentsOnFile";
+import { JudgeBench } from "./JudgeBench";
+import { ReviewActivityLog } from "./ReviewActivityLog";
+import { deriveRiskBadges, badgeStyle } from "@/lib/riskBadges";
 
 interface Submission {
   id: string;
@@ -39,6 +42,7 @@ const scoreConfig: Record<string, { label: string; className: string }> = {
 export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
   const { institutionId, user } = useInstitutionalAuth();
   const [requestOpen, setRequestOpen] = useState(false);
+  const [judgeOpen, setJudgeOpen] = useState(false);
 
   const handleExportPdf = async () => {
     if (!submission) return;
@@ -83,6 +87,12 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
 
   if (!submission) return null;
   const config = scoreConfig[submission.score_state] || scoreConfig.insufficient;
+  const riskBadges = deriveRiskBadges({
+    trustScore: submission.trust_score,
+    scoreState: submission.score_state,
+    documentCount: submission.document_count,
+    documentTypes: submission.document_types,
+  });
 
   return (
     <>
@@ -131,6 +141,22 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
               </p>
             </div>
 
+            {riskBadges.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" /> Why this needs review
+                </p>
+                <div className="space-y-1.5">
+                  {riskBadges.map((b) => (
+                    <div key={b.code} className={`border rounded p-2 ${badgeStyle(b.severity)}`}>
+                      <p className="text-xs font-semibold">{b.label}</p>
+                      <p className="text-[11px] mt-0.5 opacity-90">{b.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <p className="text-xs text-slate-500 uppercase tracking-wider">Document Types Received</p>
               <div className="flex flex-wrap gap-1.5">
@@ -147,9 +173,16 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
 
             {/* Documents on File section */}
             <DocumentsOnFile submissionId={submission.id} applicantName={submission.applicant_name} />
+
+            {/* Reviewer audit trail */}
+            <ReviewActivityLog submissionId={submission.id} />
           </div>
 
           <div className="p-6 border-t border-slate-200 space-y-2">
+            <Button onClick={() => setJudgeOpen(true)} variant="outline" className="w-full gap-2 border-slate-300">
+              <Eye className="h-4 w-4" />
+              Open Judge's Bench
+            </Button>
             <Button onClick={() => setRequestOpen(true)} variant="outline" className="w-full gap-2 border-slate-300">
               <FolderInput className="h-4 w-4" />
               Request Documents
@@ -168,6 +201,13 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
         applicantName={submission.applicant_name}
         submissionId={submission.id}
         referenceId={submission.reference_id}
+      />
+
+      <JudgeBench
+        open={judgeOpen}
+        onClose={() => setJudgeOpen(false)}
+        submissionId={submission.id}
+        applicantName={submission.applicant_name}
       />
     </>
   );
