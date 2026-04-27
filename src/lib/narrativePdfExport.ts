@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
-import { type TrustNarrative, type ScoreState, getScoreStateConfig } from "@/lib/trustNarrative";
+import { type TrustNarrative, type ScoreState } from "@/lib/trustNarrative";
+import { deriveDecisionGrade, statusBadgeColor, impactColor } from "@/lib/decisionGrade";
 
 const COLORS = {
   brand: [0, 200, 200] as [number, number, number],       // Vaulta cyan
@@ -12,16 +13,6 @@ const COLORS = {
   flag: [239, 68, 68] as [number, number, number],         // red
   insufficient: [156, 163, 175] as [number, number, number], // gray
 };
-
-function getStateColor(state: ScoreState): [number, number, number] {
-  const map: Record<ScoreState, [number, number, number]> = {
-    clear: COLORS.clear,
-    review: COLORS.review,
-    flag: COLORS.flag,
-    insufficient: COLORS.insufficient,
-  };
-  return map[state];
-}
 
 function formatUtcDate(iso: string): string {
   const d = new Date(iso);
@@ -39,8 +30,15 @@ export function exportNarrativePdf(narrative: TrustNarrative) {
   const ph = doc.internal.pageSize.getHeight();
   const margin = 20;
   const contentWidth = pw - margin * 2;
-  const config = getScoreStateConfig(narrative.score_state as ScoreState);
-  const stateColor = getStateColor(narrative.score_state as ScoreState);
+  const decision = deriveDecisionGrade({
+    scoreState: narrative.score_state as ScoreState,
+    trustScore: narrative.trust_score,
+    documentCount: narrative.document_count,
+    historyMonths: narrative.history_months,
+    flagCount: narrative.flag_count,
+    institutionName: narrative.institution_name,
+  });
+  const statusColor = statusBadgeColor(decision.status).rgb;
 
   // ── Background ──
   doc.setFillColor(...COLORS.white);
@@ -64,9 +62,9 @@ export function exportNarrativePdf(narrative: TrustNarrative) {
   doc.setFontSize(7);
   doc.text("\u2122", margin + vaultaWidth + 1, y - 5);
 
-  // Right-aligned score state badge
-  doc.setFillColor(...stateColor);
-  const badgeText = config.label.toUpperCase();
+  // Right-aligned decision status badge
+  doc.setFillColor(...statusColor);
+  const badgeText = decision.status;
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
   const badgeWidth = doc.getTextWidth(badgeText) + 10;
@@ -80,7 +78,7 @@ export function exportNarrativePdf(narrative: TrustNarrative) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.muted);
-  doc.text("ASSESSMENT RECORD", margin, y);
+  doc.text("PROVISIONAL TRUST CLASSIFICATION", margin, y);
 
   // ── Divider ──
   y += 5;
@@ -100,22 +98,21 @@ export function exportNarrativePdf(narrative: TrustNarrative) {
   doc.text(disclaimerLines, margin, y);
   y += disclaimerLines.length * 3.5 + 4;
 
-  // ── Score state color bar on left ──
-  doc.setFillColor(...stateColor);
-  doc.rect(margin, y, 2.5, 40, "F");
+  // ── Status color bar on left ──
+  doc.setFillColor(...statusColor);
+  doc.rect(margin, y, 2.5, 56, "F");
 
   // ── Assessment details grid ──
   const detailX = margin + 7;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(...COLORS.muted);
 
   const details: [string, string][] = [
     ["INSTITUTION", narrative.institution_name ?? "N/A"],
     ["ASSESSMENT ID", narrative.assessment_id.slice(0, 8).toUpperCase()],
-    ["SCORE STATE", config.label],
+    ["STATUS", decision.status],
+    ["RISK LEVEL", decision.riskLevel],
     ["TRUST SCORE", narrative.trust_score !== null ? `${narrative.trust_score} / 100` : "N/A"],
     ["DOCUMENTS ASSESSED", String(narrative.document_count)],
+    ["HISTORY DEPTH", narrative.history_months !== null ? `${narrative.history_months} months` : "N/A"],
   ];
 
   details.forEach(([label, value], i) => {
@@ -132,23 +129,92 @@ export function exportNarrativePdf(narrative: TrustNarrative) {
 
   y += details.length * 7 + 8;
 
-  // ── Narrative section ──
+  // ── Action Guidance ──
   doc.setFillColor(245, 247, 250);
-  doc.roundedRect(margin, y, contentWidth, 1, 0, 0, "F"); // subtle divider
-  y += 6;
+  doc.roundedRect(margin, y, contentWidth, 12, 1, 1, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(...COLORS.dark);
+  doc.text("ACTION GUIDANCE", margin + 3, y + 4.5);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(decision.actionGuidance, margin + 3, y + 9);
+  y += 18;
 
+  // ── Signal Breakdown Table ──
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(...COLORS.dark);
-  doc.text("NARRATIVE", margin, y);
-  y += 7;
+  doc.text("SIGNAL BREAKDOWN", margin, y);
+  y += 5;
 
-  doc.setFont("helvetica", "normal");
+  // Table header
+  const colCategory = margin;
+  const colStatus = margin + 70;
+  const colImpact = margin + 130;
+  doc.setFillColor(240, 243, 247);
+  doc.rect(margin, y, contentWidth, 6, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...COLORS.muted);
+  doc.text("CATEGORY", colCategory + 2, y + 4);
+  doc.text("STATUS", colStatus, y + 4);
+  doc.text("IMPACT", colImpact, y + 4);
+  y += 6;
+
+  decision.signals.forEach((s) => {
+    doc.setDrawColor(225, 230, 235);
+    doc.setLineWidth(0.2);
+    doc.line(margin, y + 6, pw - margin, y + 6);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.text);
+    doc.text(s.category, colCategory + 2, y + 4);
+    doc.setFont("helvetica", "bold");
+    doc.text(s.status, colStatus, y + 4);
+    doc.setTextColor(...impactColor(s.impact));
+    doc.text(s.impact, colImpact, y + 4);
+    y += 6;
+  });
+  y += 6;
+
+  // ── Decision Interpretation ──
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
-  doc.setTextColor(...COLORS.text);
-  const narrativeLines = doc.splitTextToSize(narrative.narrative_text, contentWidth);
-  doc.text(narrativeLines, margin, y, { lineHeightFactor: 1.6 });
-  y += narrativeLines.length * 5 + 10;
+  doc.setTextColor(...COLORS.dark);
+  doc.text("DECISION INTERPRETATION", margin, y);
+  y += 6;
+
+  const interpRow = (label: string, value: string) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...COLORS.dark);
+    doc.text(label, margin, y);
+    y += 4;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.text);
+    const lines = doc.splitTextToSize(value, contentWidth);
+    doc.text(lines, margin, y, { lineHeightFactor: 1.5 });
+    y += lines.length * 4.5 + 3;
+  };
+
+  interpRow("System belief:", decision.interpretation.systemBelief);
+  interpRow("Source of uncertainty:", decision.interpretation.uncertaintyCause);
+  interpRow("Data that would change the outcome:", decision.interpretation.additionalDataNeeded);
+
+  y += 4;
+
+  // ── Compliance statement ──
+  doc.setFillColor(248, 250, 252);
+  const complianceLines = doc.splitTextToSize(decision.complianceStatement, contentWidth - 4);
+  const complianceHeight = complianceLines.length * 4 + 6;
+  doc.roundedRect(margin, y, contentWidth, complianceHeight, 1, 1, "F");
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(8);
+  doc.setTextColor(...COLORS.muted);
+  doc.text(complianceLines, margin + 2, y + 4);
+  y += complianceHeight + 4;
 
   // ── Timestamp section ──
   doc.setDrawColor(220, 225, 230);
