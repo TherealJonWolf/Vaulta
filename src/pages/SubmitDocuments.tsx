@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Upload, CheckCircle, AlertTriangle, Loader2, FileText, X } from "lucide-react";
+import { Upload, CheckCircle, AlertTriangle, Loader2, FileText, X, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
@@ -33,6 +33,13 @@ const SubmitDocuments = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [branding, setBranding] = useState<InstitutionBranding | null>(null);
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [now, setNow] = useState<number>(Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     const validate = async () => {
@@ -46,9 +53,10 @@ const SubmitDocuments = () => {
       // Fetch institution branding via the intake link
       const linkId = data[0].id;
       const { data: linkData } = await (supabase.from as any)('intake_links')
-        .select('institution_id')
+        .select('institution_id, expires_at')
         .eq('id', linkId)
         .maybeSingle();
+      if (linkData?.expires_at) setExpiresAt(linkData.expires_at);
 
       if (linkData?.institution_id) {
         const { data: settings } = await (supabase.from as any)('institution_settings')
@@ -75,6 +83,17 @@ const SubmitDocuments = () => {
     };
     validate();
   }, [token]);
+
+  const countdown = (() => {
+    if (!expiresAt) return null;
+    const diff = new Date(expiresAt).getTime() - now;
+    if (diff <= 0) return "00:00:00";
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  })();
+  const expired = expiresAt ? new Date(expiresAt).getTime() <= now : false;
 
   const addFiles = useCallback((newFiles: File[]) => {
     const valid = newFiles.filter(f => {
@@ -167,6 +186,22 @@ const SubmitDocuments = () => {
           <p className="text-xs text-slate-400 mt-1">Accepted: PDF, JPG, PNG · Max 25MB per file · Up to 20 documents</p>
         </div>
 
+        {countdown && !expired && (
+          <div className="mb-4 flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-md">
+            <Clock className="h-4 w-4 text-amber-700" />
+            <span className="text-xs text-amber-800">
+              Your secure window to upload documents expires in{" "}
+              <span className="font-mono font-semibold">{countdown}</span>
+            </span>
+          </div>
+        )}
+        {expired && (
+          <div className="mb-4 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-md">
+            <AlertTriangle className="h-4 w-4 text-red-700" />
+            <span className="text-xs text-red-800">This secure window has expired. Contact your institution for a new link.</span>
+          </div>
+        )}
+
         <div
           onDrop={handleDrop}
           onDragOver={e => e.preventDefault()}
@@ -203,7 +238,7 @@ const SubmitDocuments = () => {
           </div>
         )}
 
-        <Button onClick={handleSubmit} disabled={submitting || files.length === 0} className="w-full mt-6 bg-slate-900 hover:bg-slate-800 text-white">
+        <Button onClick={handleSubmit} disabled={submitting || files.length === 0 || expired} className="w-full mt-6 bg-slate-900 hover:bg-slate-800 text-white">
           {submitting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Encrypting & Submitting...</> : <><Upload className="h-4 w-4 mr-2" />Submit Documents Securely</>}
         </Button>
       </div>

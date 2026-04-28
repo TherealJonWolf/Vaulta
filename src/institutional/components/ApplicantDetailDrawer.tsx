@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, X, FileText, FolderInput, Eye, AlertTriangle } from "lucide-react";
+import { Download, X, FileText, FolderInput, Eye, AlertTriangle, FileWarning } from "lucide-react";
 import { format } from "date-fns";
 import { useInstitutionalAuth } from "../hooks/useInstitutionalAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,9 @@ import { DocumentsOnFile } from "./DocumentsOnFile";
 import { JudgeBench } from "./JudgeBench";
 import { ReviewActivityLog } from "./ReviewActivityLog";
 import { deriveRiskBadges, badgeStyle } from "@/lib/riskBadges";
+import { DecisionNarrativePanel } from "./DecisionNarrativePanel";
+import { VerifiedIncomeSeal } from "./VerifiedIncomeSeal";
+import { recordReviewAction } from "../lib/reviewLog";
 
 interface Submission {
   id: string;
@@ -43,6 +46,7 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
   const { institutionId, user } = useInstitutionalAuth();
   const [requestOpen, setRequestOpen] = useState(false);
   const [judgeOpen, setJudgeOpen] = useState(false);
+  const [adverseLoading, setAdverseLoading] = useState(false);
 
   const handleExportPdf = async () => {
     if (!submission) return;
@@ -85,6 +89,50 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
     }
   };
 
+  const handleAdverseActionPdf = async () => {
+    if (!submission || !institutionId || !user) return;
+    setAdverseLoading(true);
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/adverse-action-pdf`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ submission_id: submission.id }),
+        }
+      );
+      if (!res.ok) throw new Error("Failed to generate notice");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `adverse-action-notice-${submission.reference_id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      await recordReviewAction({
+        institution_id: institutionId,
+        submission_id: submission.id,
+        reviewer_user_id: user.id,
+        reviewer_name: user.email ?? null,
+        action: "adverse_action_notice_generated",
+        target_type: "submission",
+        target_id: submission.id,
+        target_name: submission.applicant_name,
+      });
+      toast.success("Adverse action notice generated");
+    } catch {
+      toast.error("Failed to generate adverse action notice.");
+    } finally {
+      setAdverseLoading(false);
+    }
+  };
+
   if (!submission) return null;
   const config = scoreConfig[submission.score_state] || scoreConfig.insufficient;
   const riskBadges = deriveRiskBadges({
@@ -110,6 +158,12 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
           </div>
 
           <div className="p-6 space-y-6 overflow-auto" style={{ maxHeight: "calc(100vh - 160px)" }}>
+            <VerifiedIncomeSeal
+              trustScore={submission.trust_score}
+              scoreState={submission.score_state}
+              documentTypes={submission.document_types || []}
+            />
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <p className="text-xs text-slate-500 uppercase tracking-wider">Reference ID</p>
@@ -134,12 +188,12 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Assessment Narrative</p>
-              <p className="text-sm text-slate-700 leading-relaxed">
-                {submission.assessment_narrative || "Assessment pending."}
-              </p>
-            </div>
+            <DecisionNarrativePanel
+              scoreState={submission.score_state}
+              trustScore={submission.trust_score}
+              documentCount={submission.document_count}
+              documentTypes={submission.document_types || []}
+            />
 
             {riskBadges.length > 0 && (
               <div className="space-y-2">
@@ -187,6 +241,17 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
               <FolderInput className="h-4 w-4" />
               Request Documents
             </Button>
+            {(submission.score_state === "flag" || submission.score_state === "review") && (
+              <Button
+                onClick={handleAdverseActionPdf}
+                disabled={adverseLoading}
+                variant="outline"
+                className="w-full gap-2 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+              >
+                <FileWarning className="h-4 w-4" />
+                {adverseLoading ? "Preparing notice..." : "Prepare Adverse Action Notice"}
+              </Button>
+            )}
             <Button onClick={handleExportPdf} className="w-full bg-slate-900 hover:bg-slate-800 text-white">
               <Download className="h-4 w-4 mr-2" />
               Export PDF Assessment Record
