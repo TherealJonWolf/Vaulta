@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
     // Institution branding
     const { data: settings } = await admin
       .from("institution_settings")
-      .select("display_name, contact_name, contact_email, contact_phone, business_address")
+      .select("display_name, contact_name, contact_email, contact_phone, business_address, signature_path")
       .eq("institution_id", sub.institution_id)
       .maybeSingle();
     const { data: institution } = await admin
@@ -191,6 +191,24 @@ Deno.serve(async (req) => {
     rule();
 
     text("Authorized Signature", { size: 11, weight: "bold", gap: 14 });
+    // Embed signature image if available
+    if (settings?.signature_path) {
+      try {
+        const sigRes = await fetch(settings.signature_path);
+        if (sigRes.ok) {
+          const sigBuf = await sigRes.arrayBuffer();
+          const ct = sigRes.headers.get("content-type") || "";
+          const fmt = ct.includes("png") ? "PNG" : ct.includes("jpeg") || ct.includes("jpg") ? "JPEG" : null;
+          if (fmt) {
+            const b64 = btoa(String.fromCharCode(...new Uint8Array(sigBuf)));
+            doc.addImage(`data:${ct};base64,${b64}`, fmt, margin, y - 6, 160, 40, undefined, "FAST");
+            y += 36;
+          }
+        }
+      } catch {
+        // Signature embed is best-effort; fall through to text-only signature line
+      }
+    }
     setFont(9);
     doc.line(margin, y, margin + 240, y); y += 12;
     doc.text(settings?.contact_name || "Authorized Representative", margin, y); y += 12;
