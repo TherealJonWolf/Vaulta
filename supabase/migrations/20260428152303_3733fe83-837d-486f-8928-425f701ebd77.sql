@@ -1,0 +1,1 @@
+ALTER TABLE public.institution_settings ADD COLUMN IF NOT EXISTS signature_path text;
