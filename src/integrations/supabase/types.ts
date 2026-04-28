@@ -1073,6 +1073,7 @@ export type Database = {
           institution_id: string
           institution_type: string | null
           logo_path: string | null
+          signature_path: string | null
           updated_at: string
           website_url: string | null
           welcome_message: string | null
@@ -1089,6 +1090,7 @@ export type Database = {
           institution_id: string
           institution_type?: string | null
           logo_path?: string | null
+          signature_path?: string | null
           updated_at?: string
           website_url?: string | null
           welcome_message?: string | null
@@ -1105,6 +1107,7 @@ export type Database = {
           institution_id?: string
           institution_type?: string | null
           logo_path?: string | null
+          signature_path?: string | null
           updated_at?: string
           website_url?: string | null
           welcome_message?: string | null

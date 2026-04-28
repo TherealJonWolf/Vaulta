@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useInstitutionalAuth } from "../hooks/useInstitutionalAuth";
 import { ApplicantDetailDrawer } from "../components/ApplicantDetailDrawer";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users } from "lucide-react";
+import { Loader2, Users, ShieldCheck, FileWarning } from "lucide-react";
 import { format } from "date-fns";
 import { deriveRiskBadges, badgeStyle } from "@/lib/riskBadges";
 
@@ -45,6 +45,7 @@ const InstitutionalDashboard = () => {
   const [selected, setSelected] = useState<Submission | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [noticeIssuedIds, setNoticeIssuedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!institutionId) return;
@@ -70,6 +71,15 @@ const InstitutionalDashboard = () => {
     setSubmissions(data || []);
     setLoading(false);
     setError(null);
+
+    // Fetch which submissions have had an adverse action notice issued
+    const { data: logs } = await (supabase.from as any)('institutional_review_logs')
+      .select('submission_id')
+      .eq('institution_id', institutionId)
+      .eq('action', 'adverse_action_notice_generated');
+    if (logs) {
+      setNoticeIssuedIds(new Set(logs.map((l: any) => l.submission_id)));
+    }
   }, [institutionId]);
 
   useEffect(() => {
@@ -128,13 +138,24 @@ const InstitutionalDashboard = () => {
                     scoreState: sub.score_state,
                     documentCount: sub.document_count,
                   }).slice(0, 2);
+                  const incomeKeywords = ["paystub","payslip","income","tax","w-2","w2","1099","salary","bank statement","employment"];
+                  const hasIncomeDoc = (sub.document_types || []).some((t: string) =>
+                    incomeKeywords.some((k) => t.toLowerCase().includes(k))
+                  );
+                  const verifiedIncome = sub.score_state === "clear" && hasIncomeDoc && (sub.trust_score ?? 0) >= 70;
+                  const noticeIssued = noticeIssuedIds.has(sub.id);
                   return (
                     <button
                       key={sub.id}
                       onClick={() => { setSelected(sub); setDrawerOpen(true); }}
                       className="w-full text-left p-3 rounded-md border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-colors"
                     >
-                      <p className="text-sm font-medium text-slate-900 truncate">{sub.applicant_name}</p>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-medium text-slate-900 truncate flex-1">{sub.applicant_name}</p>
+                        {verifiedIncome && (
+                          <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" aria-label="Vaulta Verified Income" />
+                        )}
+                      </div>
                       <p className="text-xs text-slate-500 mt-1">
                         {format(new Date(sub.submitted_at), "MMM d, yyyy HH:mm")}
                       </p>
@@ -155,6 +176,12 @@ const InstitutionalDashboard = () => {
                               {r.label}
                             </span>
                           ))}
+                        </div>
+                      )}
+                      {noticeIssued && (
+                        <div className="mt-2 flex items-center gap-1 text-[10px] text-red-700 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 w-fit">
+                          <FileWarning className="h-3 w-3" />
+                          Notice Issued
                         </div>
                       )}
                     </button>

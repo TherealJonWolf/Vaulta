@@ -36,6 +36,9 @@ const InstitutionalSettings = () => {
   const [logoPath, setLogoPath] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [signaturePath, setSignaturePath] = useState<string | null>(null);
+  const [signatureFile, setSignatureFile] = useState<File | null>(null);
+  const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
@@ -55,6 +58,7 @@ const InstitutionalSettings = () => {
       setAccentColor(data.accent_color || "#0f172a");
       setWelcomeMessage(data.welcome_message || "");
       setLogoPath(data.logo_path || null);
+      setSignaturePath(data.signature_path || null);
       setContactName(data.contact_name || "");
       setContactEmail(data.contact_email || "");
       setContactPhone(data.contact_phone || "");
@@ -86,12 +90,29 @@ const InstitutionalSettings = () => {
     setLogoPreview(URL.createObjectURL(file));
   };
 
+  const handleSignatureSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!["image/png", "image/jpeg", "image/svg+xml", "image/webp"].includes(file.type)) {
+      toast.error("Signature must be PNG, JPG, SVG, or WebP");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Signature must be under 2MB");
+      return;
+    }
+    setSignatureFile(file);
+    setSignaturePreview(URL.createObjectURL(file));
+  };
+
   const handleSave = async () => {
     if (!institutionId) return;
     setSaving(true);
 
     try {
       let finalLogoPath = logoPath;
+      let finalSignaturePath = signaturePath;
 
       if (logoFile) {
         setUploadProgress(10);
@@ -114,12 +135,24 @@ const InstitutionalSettings = () => {
         setUploadProgress(90);
       }
 
+      if (signatureFile) {
+        const ext = signatureFile.name.split(".").pop();
+        const path = `${institutionId}/signature-${Date.now()}.${ext}`;
+        const { error: sigErr } = await supabase.storage
+          .from("institution-logos")
+          .upload(path, signatureFile, { upsert: true, contentType: signatureFile.type });
+        if (sigErr) throw new Error(`Signature upload failed: ${sigErr.message}`);
+        const { data: sigUrl } = supabase.storage.from("institution-logos").getPublicUrl(path);
+        finalSignaturePath = sigUrl.publicUrl;
+      }
+
       const settings = {
         institution_id: institutionId,
         display_name: displayName.trim() || null,
         accent_color: accentColor,
         welcome_message: welcomeMessage.trim() || null,
         logo_path: finalLogoPath,
+        signature_path: finalSignaturePath,
         contact_name: contactName.trim() || null,
         contact_email: contactEmail.trim() || null,
         contact_phone: contactPhone.trim() || null,
@@ -138,6 +171,8 @@ const InstitutionalSettings = () => {
 
       setLogoPath(finalLogoPath);
       setLogoFile(null);
+      setSignaturePath(finalSignaturePath);
+      setSignatureFile(null);
       setUploadProgress(100);
       setTimeout(() => setUploadProgress(null), 1000);
       toast.success("Settings saved successfully");
@@ -159,6 +194,7 @@ const InstitutionalSettings = () => {
   }
 
   const previewUrl = logoPreview || logoPath || null;
+  const sigPreviewUrl = signaturePreview || signaturePath || null;
 
   return (
     <div className="p-8 max-w-2xl">
@@ -272,6 +308,28 @@ const InstitutionalSettings = () => {
           <Textarea id="welcome" value={welcomeMessage} onChange={(e) => setWelcomeMessage(e.target.value)}
             placeholder="Enter a message shown to applicants on the document submission page..." rows={4} className="max-w-md" />
           <p className="text-xs text-slate-400">Displayed to applicants when they open their submission link</p>
+        </div>
+
+        {/* Signature */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-slate-700">Authorized Signature Image</Label>
+          <p className="text-xs text-slate-500">Embedded on adverse action notices and other generated PDFs. Use a transparent PNG for best results.</p>
+          <div className="flex items-center gap-4 mt-2">
+            {sigPreviewUrl ? (
+              <div className="h-20 w-44 rounded border border-slate-200 bg-white flex items-center justify-center p-2">
+                <img src={sigPreviewUrl} alt="Signature" className="max-h-full max-w-full object-contain" />
+              </div>
+            ) : (
+              <div className="h-20 w-44 rounded border-2 border-dashed border-slate-200 flex items-center justify-center">
+                <Upload className="h-5 w-5 text-slate-300" />
+              </div>
+            )}
+            <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium border border-slate-200 rounded-md hover:bg-slate-50 transition-colors">
+              <Upload className="h-3.5 w-3.5" />
+              Upload signature
+              <input type="file" className="hidden" accept="image/png,image/jpeg,image/svg+xml,image/webp" onChange={handleSignatureSelect} />
+            </label>
+          </div>
         </div>
 
         {/* Preview */}
