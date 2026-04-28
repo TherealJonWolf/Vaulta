@@ -4,6 +4,7 @@ import { useInstitutionalAuth } from "../hooks/useInstitutionalAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Copy, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -22,6 +23,7 @@ const InstitutionalIntake = () => {
   const { institutionId, user } = useInstitutionalAuth();
   const [applicantName, setApplicantName] = useState("");
   const [referenceId, setReferenceId] = useState("");
+  const [expiryHours, setExpiryHours] = useState<string>("72");
   const [generating, setGenerating] = useState(false);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [links, setLinks] = useState<IntakeLink[]>([]);
@@ -49,7 +51,8 @@ const InstitutionalIntake = () => {
     setGenerating(true);
 
     const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
-    const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
+    const hours = parseInt(expiryHours, 10) || 72;
+    const expiresAt = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
 
     const { error } = await (supabase.from as any)('intake_links').insert({
       institution_id: institutionId,
@@ -103,7 +106,7 @@ const InstitutionalIntake = () => {
       <p className="text-sm text-slate-500 mt-1 mb-8">Generate applicant-specific document upload links.</p>
 
       <div className="border border-slate-200 rounded-lg p-6 mb-8">
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-3 gap-4 mb-4">
           <div>
             <label className="text-xs font-medium text-slate-600 uppercase tracking-wider mb-1.5 block">Applicant Name</label>
             <Input value={applicantName} onChange={(e) => setApplicantName(e.target.value)} placeholder="Jane Doe" className="border-slate-200" />
@@ -111,6 +114,17 @@ const InstitutionalIntake = () => {
           <div>
             <label className="text-xs font-medium text-slate-600 uppercase tracking-wider mb-1.5 block">Reference ID</label>
             <Input value={referenceId} onChange={(e) => setReferenceId(e.target.value)} placeholder="APP-2024-001" className="border-slate-200" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-slate-600 uppercase tracking-wider mb-1.5 block">Secure Window</label>
+            <Select value={expiryHours} onValueChange={setExpiryHours}>
+              <SelectTrigger className="border-slate-200"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="24">24 hours</SelectItem>
+                <SelectItem value="48">48 hours</SelectItem>
+                <SelectItem value="72">72 hours</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <Button onClick={generateLink} disabled={generating} className="bg-slate-900 hover:bg-slate-800 text-white">
@@ -120,7 +134,7 @@ const InstitutionalIntake = () => {
 
         {generatedLink && (
           <div className="mt-4 p-4 bg-slate-50 rounded-md border border-slate-200">
-            <p className="text-xs text-slate-500 mb-2">Share this link with the applicant. Expires in 72 hours.</p>
+            <p className="text-xs text-slate-500 mb-2">Share this link with the applicant. Expires in {expiryHours} hours.</p>
             <div className="flex items-center gap-2">
               <code className="flex-1 text-xs bg-white px-3 py-2 rounded border border-slate-200 text-slate-700 truncate">{generatedLink}</code>
               <Button size="sm" variant="outline" onClick={copyLink} className="shrink-0">
