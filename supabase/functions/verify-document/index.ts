@@ -223,7 +223,8 @@ Respond ONLY with a JSON object (no markdown):
               const aiGenLikelihood = (analysis.ai_generated_likelihood || "none").toLowerCase();
               const isAiGenerated = aiGenLikelihood === "high" || aiGenLikelihood === "medium";
               // Document fails if: explicitly not authentic, OR high/medium AI-generated likelihood
-              const passed = analysis.authentic === true && !isAiGenerated && analysis.confidence >= 60;
+              // OR confidence is below 75 (borderline → routed to manual review queue, treated as not-passed for is_verified)
+              const passed = analysis.authentic === true && !isAiGenerated && analysis.confidence >= 75;
               results.aiAnalysis = {
                 passed,
                 confidence: analysis.confidence,
