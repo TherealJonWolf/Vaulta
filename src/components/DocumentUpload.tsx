@@ -445,7 +445,18 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
       if (metadata.pdfInfo.hasFormFields) issues.push("form fields");
 
       if (issues.length > 0 && metadata.pdfInfo.hasIncrementalSaves) {
-        updateStep("pdf", { status: "warning", detail: `Detected: ${issues.join(", ")}` });
+        updateStep("pdf", { status: "failed", detail: `Post-issuance edits detected: ${issues.join(", ")}` });
+        await flagAccountAsFraudulent(`PDF structural integrity failed: ${issues.join(", ")}`, file.name);
+        await logUploadEvent(file.name, file.size, file.type, 'security_failure', `PDF structural integrity: ${issues.join(", ")}`, 'pdf_structure', 'critical', { pdfInfo: metadata.pdfInfo });
+        const priorFailures = await checkPriorSecurityFailures();
+        toast({
+          variant: "destructive",
+          title: priorFailures >= 2 ? "⚠️ FINAL WARNING — Account Under Review" : "⚠️ Document Rejected — Structural Tampering",
+          description: "PDF shows post-issuance modifications (incremental saves). Document rejected and account flagged.",
+        });
+        setUploadStatus("error");
+        setUploading(false);
+        return;
       } else if (issues.length > 0) {
         updateStep("pdf", { status: "passed", detail: `Found: ${issues.join(", ")}` });
       } else {
@@ -508,10 +519,12 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
           if (ai.note) {
             updateStep("ai", { status: "skipped", detail: ai.note });
           } else if (ai.passed === false) {
+            // AI rejected the document — BLOCK it
             updateStep("ai", {
-              status: "warning",
-              detail: `Confidence: ${ai.confidence}% — ${ai.summary || "Potential issues detected"}`,
+              status: "failed",
+              detail: `Authenticity rejected (${ai.confidence ?? "?"}%): ${ai.summary || "Document not authentic"}`,
             });
+            blocked = true;
           } else {
             updateStep("ai", {
               status: "passed",
@@ -522,12 +535,13 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
           }
         }
 
-        // Server-side metadata check
+        // Server-side metadata check (Canva/Photoshop/etc) — BLOCKING
         if (verifyData.results?.metadataCheck?.passed === false) {
           updateStep("metadata", {
-            status: "warning",
-            detail: verifyData.results.metadataCheck.reason,
+            status: "failed",
+            detail: verifyData.results.metadataCheck.reason || "Editing software signature detected",
           });
+          blocked = true;
         }
 
         if (blocked) {
@@ -596,11 +610,14 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
       }
 
       // Determine verification result from steps
-      const allStepsPassed = verificationSteps.every(
+      // is_verified must reflect the TRUE outcome — any failure or warning means NOT verified
+      const currentSteps = verificationSteps;
+      const hasFailure = currentSteps.some(s => s.status === "failed" || s.status === "warning");
+      const allStepsPassed = !hasFailure && currentSteps.every(
         s => s.status === "passed" || s.status === "skipped"
       );
       const verificationSummary = Object.fromEntries(
-        verificationSteps.map(s => [s.id, { status: s.status, detail: s.detail }])
+        currentSteps.map(s => [s.id, { status: s.status, detail: s.detail }])
       );
 
       const { error: dbError } = await (supabase.from("documents") as any).insert({
