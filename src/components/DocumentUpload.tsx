@@ -506,9 +506,24 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
       setProgress(70);
 
       if (verifyError) {
+        // HARD STOP — the verification service errored out. Do not silently
+        // continue to the documents insert; that path produced confusing
+        // "database error, code: 08P01" toasts when the real issue was a
+        // failed verification call. Surface the actual reason instead.
         console.error("Verification error:", verifyError);
-        updateStep("duplicate", { status: "skipped", detail: "Verification service unavailable" });
-        updateStep("ai", { status: "skipped", detail: "Verification service unavailable" });
+        updateStep("duplicate", { status: "failed", detail: "Verification service error" });
+        updateStep("ai", { status: "failed", detail: "Verification service error" });
+        const reason = verifyError.message || "Verification service unavailable. Please retry.";
+        setErrorDetail(reason);
+        await logUploadEvent(file.name, file.size, file.type, 'technical_failure', reason, 'verify_document_invoke', 'warning');
+        toast({
+          variant: "destructive",
+          title: "Verification Failed",
+          description: reason,
+        });
+        setUploadStatus("error");
+        setUploading(false);
+        return;
       } else if (verifyData) {
         // Hash check
         if (verifyData.results?.hashCheck?.passed === false) {

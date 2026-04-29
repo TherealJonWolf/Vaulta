@@ -272,19 +272,34 @@ Respond ONLY with a JSON object (no markdown):
     const needsManualReview = (aiBorderline || aiGenSuspect || metadataWarn);
     if (needsManualReview) {
       const { documentId, institutionId } = metadata || {};
-      await serviceClient.from("manual_review_queue").insert({
-        document_id: documentId || sha256Hash,
-        user_id: user.id,
-        institution_id: institutionId || null,
-        file_name: fileName,
-        mime_type: mimeType || null,
-        ai_confidence: aiConf || 0,
-        ai_summary: results.aiAnalysis?.summary || null,
-        ai_issues: results.aiAnalysis?.issues || [],
-        ai_generated_likelihood: results.aiAnalysis?.ai_generated_likelihood || "none",
-        verification_result: results,
-        status: "pending",
-      });
+      // document_id is nullable — only set it when the caller passed a real UUID.
+      // The SHA-256 hex string is NOT a UUID and would cause 22P02 (which the
+      // supabase-js client surfaces as "database error, code: 08P01").
+      const isUuid = (v: unknown): v is string =>
+        typeof v === "string" &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+      const { error: queueError } = await serviceClient
+        .from("manual_review_queue")
+        .insert({
+          document_id: isUuid(documentId) ? documentId : null,
+          document_hash: sha256Hash,
+          user_id: user.id,
+          institution_id: isUuid(institutionId) ? institutionId : null,
+          file_name: fileName,
+          mime_type: mimeType || null,
+          ai_confidence: Math.round(aiConf || 0),
+          ai_summary: results.aiAnalysis?.summary || null,
+          ai_issues: results.aiAnalysis?.issues || [],
+          ai_generated_likelihood:
+            results.aiAnalysis?.ai_generated_likelihood || "none",
+          verification_result: results,
+          status: "pending",
+        });
+      if (queueError) {
+        // Log but don't fail the verification — the user-facing decision is
+        // already encoded in `results` and `criticalFailures`.
+        console.error("manual_review_queue insert failed:", queueError);
+      }
     }
     const criticalFailures = Object.entries(results)
       .filter(([, r]: any) => r.passed === false)
