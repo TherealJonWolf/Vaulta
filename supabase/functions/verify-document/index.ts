@@ -259,9 +259,16 @@ Respond ONLY with a JSON object (no markdown):
     // Overall verdict
     const allPassed = Object.values(results).every((r: any) => r.passed !== false);
 
-    // Queue borderline documents (60-75% AI confidence) for manual review
+    // Queue borderline documents (60-85% AI confidence) OR any document that
+    // had a metadata/PDF warning but still "passed" — these need human eyes.
     const aiConf = results.aiAnalysis?.confidence;
-    const needsManualReview = aiConf && aiConf >= 60 && aiConf <= 75 && allPassed;
+    const aiBorderline = !!(aiConf && aiConf >= 60 && aiConf <= 85);
+    const aiGenSuspect = ["medium", "high"].includes(
+      (results.aiAnalysis?.ai_generated_likelihood || "").toLowerCase()
+    );
+    const metadataWarn = !!results.metadataCheck?.warning || !!results.metadataCheck?.rapidEdit ||
+      !!results.metadataCheck?.incrementalSaves || !!results.metadataCheck?.annotations;
+    const needsManualReview = (aiBorderline || aiGenSuspect || metadataWarn);
     if (needsManualReview) {
       const { documentId, institutionId } = metadata || {};
       await serviceClient.from("manual_review_queue").insert({
@@ -270,7 +277,7 @@ Respond ONLY with a JSON object (no markdown):
         institution_id: institutionId || null,
         file_name: fileName,
         mime_type: mimeType || null,
-        ai_confidence: aiConf,
+        ai_confidence: aiConf || 0,
         ai_summary: results.aiAnalysis?.summary || null,
         ai_issues: results.aiAnalysis?.issues || [],
         ai_generated_likelihood: results.aiAnalysis?.ai_generated_likelihood || "none",
@@ -280,7 +287,7 @@ Respond ONLY with a JSON object (no markdown):
     }
     const criticalFailures = Object.entries(results)
       .filter(([, r]: any) => r.passed === false)
-      .map(([key, r]: any) => ({ check: key, reason: r.reason }));
+      .map(([key, r]: any) => ({ check: key, reason: r.reason || "Verification check failed" }));
 
     return new Response(
       JSON.stringify({
