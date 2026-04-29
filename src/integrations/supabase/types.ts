@@ -1449,7 +1449,8 @@ export type Database = {
           ai_issues: Json | null
           ai_summary: string | null
           created_at: string
-          document_id: string
+          document_hash: string | null
+          document_id: string | null
           file_name: string
           id: string
           institution_id: string | null
@@ -1469,7 +1470,8 @@ export type Database = {
           ai_issues?: Json | null
           ai_summary?: string | null
           created_at?: string
-          document_id: string
+          document_hash?: string | null
+          document_id?: string | null
           file_name: string
           id?: string
           institution_id?: string | null
@@ -1489,7 +1491,8 @@ export type Database = {
           ai_issues?: Json | null
           ai_summary?: string | null
           created_at?: string
-          document_id?: string
+          document_hash?: string | null
+          document_id?: string | null
           file_name?: string
           id?: string
           institution_id?: string | null
