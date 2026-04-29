@@ -427,7 +427,18 @@ const DocumentUpload = ({ isOpen, onClose, onUploadComplete, onUpgradeRequired, 
       const suspiciousEditors = ["photoshop", "gimp", "paint.net", "pixlr", "canva", "affinity"];
       const isSuspicious = suspiciousEditors.some(e => (metadata.software || "").toLowerCase().includes(e));
       if (isSuspicious) {
-        updateStep("metadata", { status: "warning", detail: `Edited with: ${metadata.software}` });
+        updateStep("metadata", { status: "failed", detail: `Created/edited with image editor: ${metadata.software}` });
+        await flagAccountAsFraudulent(`Document created/edited with image editing software: ${metadata.software}`, file.name);
+        await logUploadEvent(file.name, file.size, file.type, 'security_failure', `Edited with ${metadata.software}`, 'metadata', 'critical', { software: metadata.software });
+        const priorFailures = await checkPriorSecurityFailures();
+        toast({
+          variant: "destructive",
+          title: priorFailures >= 2 ? "⚠️ FINAL WARNING — Account Under Review" : "⚠️ Document Rejected — Editing Software Detected",
+          description: `This document was created or modified using ${metadata.software}. Edited documents cannot be accepted as evidence.`,
+        });
+        setUploadStatus("error");
+        setUploading(false);
+        return;
       } else {
         updateStep("metadata", { status: "passed", detail: metadata.software ? `Creator: ${metadata.software}` : "No suspicious editors detected" });
       }
