@@ -20,6 +20,7 @@ import { IncidentQueue } from "@/components/soc/IncidentQueue";
 import { AlertHistory } from "@/components/soc/AlertHistory";
 import { AdminAlertSettings } from "@/components/soc/AdminAlertSettings";
 import { BannedAccountsPanel } from "@/components/admin/BannedAccountsPanel";
+import { BulkBanImportPanel } from "@/components/admin/BulkBanImportPanel";
 
 interface CrossAccountSignal {
   id: string;
@@ -635,7 +636,10 @@ const AdminSecurity = () => {
 
           {/* BANNED ACCOUNTS TAB */}
           <TabsContent value="banned">
-            <BannedAccountsPanel />
+            <div className="space-y-4">
+              <BulkBanImportPanel />
+              <BannedAccountsPanel />
+            </div>
           </TabsContent>
 
           {/* Document Verification Audits */}
