@@ -633,6 +633,11 @@ const AdminSecurity = () => {
             </Card>
           </TabsContent>
 
+          {/* BANNED ACCOUNTS TAB */}
+          <TabsContent value="banned">
+            <BannedAccountsPanel />
+          </TabsContent>
+
           {/* Document Verification Audits */}
           <TabsContent value="doc-audits">
             {selectedAuditDoc ? (
