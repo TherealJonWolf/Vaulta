@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, ArrowLeft, Users, Activity, AlertTriangle, TrendingDown, Eye, RefreshCw, Lock, Unlock, FileWarning, Upload, ClipboardCheck, Bell, BellRing, CheckCircle2, XCircle, Clock, Zap, Settings, History, Smartphone, ShieldAlert, BarChart3 } from "lucide-react";
+import { Shield, ArrowLeft, Users, Activity, AlertTriangle, TrendingDown, Eye, RefreshCw, Lock, Unlock, FileWarning, Upload, ClipboardCheck, Bell, BellRing, CheckCircle2, XCircle, Clock, Zap, Settings, History, Smartphone, ShieldAlert, BarChart3, Ban } from "lucide-react";
 import { PhoneSensorIngestion } from "@/components/telemetry/PhoneSensorIngestion";
 import { AlertingRules } from "@/components/telemetry/AlertingRules";
 import { TraceabilityDashboard } from "@/components/telemetry/TraceabilityDashboard";
