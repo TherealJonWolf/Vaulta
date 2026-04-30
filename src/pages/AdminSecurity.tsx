@@ -19,6 +19,7 @@ import DocumentVerificationAudit, { DEFAULT_CHECK_EXPLANATIONS, type DocumentAud
 import { IncidentQueue } from "@/components/soc/IncidentQueue";
 import { AlertHistory } from "@/components/soc/AlertHistory";
 import { AdminAlertSettings } from "@/components/soc/AdminAlertSettings";
+import { BannedAccountsPanel } from "@/components/admin/BannedAccountsPanel";
 
 interface CrossAccountSignal {
   id: string;
@@ -450,6 +451,10 @@ const AdminSecurity = () => {
               )}
             </TabsTrigger>
             <TabsTrigger value="locked" className="font-mono text-xs">LOCKED ACCOUNTS</TabsTrigger>
+            <TabsTrigger value="banned" className="font-mono text-xs gap-1.5">
+              <Ban size={12} />
+              BANNED
+            </TabsTrigger>
             <TabsTrigger value="doc-audits" className="font-mono text-xs">DOC AUDITS</TabsTrigger>
             <TabsTrigger value="uploads" className="font-mono text-xs">UPLOAD EVENTS</TabsTrigger>
             <TabsTrigger value="clusters" className="font-mono text-xs">CROSS-ACCOUNT CLUSTERS</TabsTrigger>
