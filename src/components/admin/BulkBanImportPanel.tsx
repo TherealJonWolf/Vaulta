@@ -16,6 +16,8 @@ interface RowResult {
   status: "valid" | "invalid_email" | "duplicate_in_csv" | "already_banned" | "inserted" | "error";
   message?: string;
   associated_user_id?: string | null;
+  normalized_email?: string;
+  duplicate_of_row?: number;
 }
 
 interface ImportResponse {
@@ -186,10 +188,20 @@ export const BulkBanImportPanel = ({ onImported }: { onImported?: () => void }) 
               <TableBody>
                 {response.results.map((r, i) => {
                   const v = statusVariant[r.status];
+                  const showAlias =
+                    r.normalized_email && r.normalized_email !== r.email;
                   return (
                     <TableRow key={`${r.row}-${i}`}>
                       <TableCell className="font-mono text-[11px] text-muted-foreground">{r.row}</TableCell>
-                      <TableCell className="font-mono text-xs">{r.email || <span className="text-muted-foreground">—</span>}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        <div>{r.email || <span className="text-muted-foreground">—</span>}</div>
+                        {showAlias && (
+                          <div className="text-[10px] text-muted-foreground">
+                            normalized: {r.normalized_email}
+                            {r.duplicate_of_row ? ` · alias of row ${r.duplicate_of_row}` : ""}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="text-xs max-w-[260px] truncate" title={r.reason ?? ""}>{r.reason ?? "—"}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={`font-mono text-[10px] ${v.color}`}>{v.label}</Badge>
