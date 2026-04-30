@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, ArrowLeft, Users, Activity, AlertTriangle, TrendingDown, Eye, RefreshCw, Lock, Unlock, FileWarning, Upload, ClipboardCheck, Bell, BellRing, CheckCircle2, XCircle, Clock, Zap, Settings, History, Smartphone, ShieldAlert, BarChart3 } from "lucide-react";
+import { Shield, ArrowLeft, Users, Activity, AlertTriangle, TrendingDown, Eye, RefreshCw, Lock, Unlock, FileWarning, Upload, ClipboardCheck, Bell, BellRing, CheckCircle2, XCircle, Clock, Zap, Settings, History, Smartphone, ShieldAlert, BarChart3, Ban } from "lucide-react";
 import { PhoneSensorIngestion } from "@/components/telemetry/PhoneSensorIngestion";
 import { AlertingRules } from "@/components/telemetry/AlertingRules";
 import { TraceabilityDashboard } from "@/components/telemetry/TraceabilityDashboard";
@@ -19,6 +19,7 @@ import DocumentVerificationAudit, { DEFAULT_CHECK_EXPLANATIONS, type DocumentAud
 import { IncidentQueue } from "@/components/soc/IncidentQueue";
 import { AlertHistory } from "@/components/soc/AlertHistory";
 import { AdminAlertSettings } from "@/components/soc/AdminAlertSettings";
+import { BannedAccountsPanel } from "@/components/admin/BannedAccountsPanel";
 
 interface CrossAccountSignal {
   id: string;
@@ -450,6 +451,10 @@ const AdminSecurity = () => {
               )}
             </TabsTrigger>
             <TabsTrigger value="locked" className="font-mono text-xs">LOCKED ACCOUNTS</TabsTrigger>
+            <TabsTrigger value="banned" className="font-mono text-xs gap-1.5">
+              <Ban size={12} />
+              BANNED
+            </TabsTrigger>
             <TabsTrigger value="doc-audits" className="font-mono text-xs">DOC AUDITS</TabsTrigger>
             <TabsTrigger value="uploads" className="font-mono text-xs">UPLOAD EVENTS</TabsTrigger>
             <TabsTrigger value="clusters" className="font-mono text-xs">CROSS-ACCOUNT CLUSTERS</TabsTrigger>
@@ -626,6 +631,11 @@ const AdminSecurity = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* BANNED ACCOUNTS TAB */}
+          <TabsContent value="banned">
+            <BannedAccountsPanel />
           </TabsContent>
 
           {/* Document Verification Audits */}
