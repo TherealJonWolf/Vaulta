@@ -7,6 +7,52 @@ const corsHeaders = {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Domains where dots in the local part are ignored and "+tag" suffixes are aliases
+const DOT_INSENSITIVE_DOMAINS = new Set([
+  "gmail.com",
+  "googlemail.com",
+]);
+// Domains that ignore "+tag" suffixes (most modern providers do)
+const PLUS_ALIAS_DOMAINS = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "outlook.com",
+  "hotmail.com",
+  "live.com",
+  "icloud.com",
+  "me.com",
+  "mac.com",
+  "yahoo.com",
+  "ymail.com",
+  "fastmail.com",
+  "protonmail.com",
+  "proton.me",
+]);
+// Domain canonicalization (treat as the same mailbox provider)
+const DOMAIN_ALIASES: Record<string, string> = {
+  "googlemail.com": "gmail.com",
+};
+
+/** Normalize an email for duplicate detection only. Preserves original casing in results. */
+function normalizeForDedup(raw: string): string {
+  const lowered = raw.trim().toLowerCase();
+  const at = lowered.lastIndexOf("@");
+  if (at < 1) return lowered;
+  let local = lowered.slice(0, at);
+  let domain = lowered.slice(at + 1);
+
+  domain = DOMAIN_ALIASES[domain] ?? domain;
+
+  if (PLUS_ALIAS_DOMAINS.has(domain)) {
+    const plus = local.indexOf("+");
+    if (plus >= 0) local = local.slice(0, plus);
+  }
+  if (DOT_INSENSITIVE_DOMAINS.has(domain)) {
+    local = local.replace(/\./g, "");
+  }
+  return `${local}@${domain}`;
+}
+
 interface RowResult {
   row: number;
   email: string;
@@ -14,6 +60,8 @@ interface RowResult {
   status: "valid" | "invalid_email" | "duplicate_in_csv" | "already_banned" | "inserted" | "error";
   message?: string;
   associated_user_id?: string | null;
+  normalized_email?: string;
+  duplicate_of_row?: number;
 }
 
 Deno.serve(async (req) => {
@@ -76,13 +124,13 @@ Deno.serve(async (req) => {
     const firstCols = splitRow(lines[0]).map((s) => s.toLowerCase());
     if (firstCols[0] === "email") startIdx = 1;
 
-    const seen = new Set<string>();
+    const seenNormalized = new Map<string, number>(); // normalized -> first row number seen
     const results: RowResult[] = [];
-    const validEmails: { row: number; email: string; reason: string }[] = [];
+    const validEmails: { row: number; email: string; normalized: string; reason: string }[] = [];
 
     for (let i = startIdx; i < lines.length; i++) {
       const cols = splitRow(lines[i]);
-      const rawEmail = (cols[0] || "").toLowerCase();
+      const rawEmail = (cols[0] || "").trim().toLowerCase();
       const reason = (cols[1] || defaultReason).slice(0, 500);
       const rowNum = i + 1;
 
@@ -90,39 +138,63 @@ Deno.serve(async (req) => {
         results.push({ row: rowNum, email: rawEmail, reason, status: "invalid_email" });
         continue;
       }
-      if (seen.has(rawEmail)) {
-        results.push({ row: rowNum, email: rawEmail, reason, status: "duplicate_in_csv" });
+      const normalized = normalizeForDedup(rawEmail);
+      const firstSeenRow = seenNormalized.get(normalized);
+      if (firstSeenRow !== undefined) {
+        results.push({
+          row: rowNum,
+          email: rawEmail,
+          reason,
+          status: "duplicate_in_csv",
+          normalized_email: normalized,
+          duplicate_of_row: firstSeenRow,
+          message: normalized !== rawEmail ? `Alias of row ${firstSeenRow} (${normalized})` : undefined,
+        });
         continue;
       }
-      seen.add(rawEmail);
-      validEmails.push({ row: rowNum, email: rawEmail, reason });
+      seenNormalized.set(normalized, rowNum);
+      validEmails.push({ row: rowNum, email: rawEmail, normalized, reason });
     }
 
-    // Check which already exist in blacklist
-    const emailList = validEmails.map((v) => v.email);
+    // Check which already exist in blacklist — query both raw and normalized to catch aliases
+    const lookupEmails = Array.from(new Set(validEmails.flatMap((v) => [v.email, v.normalized])));
     let alreadyBanned = new Set<string>();
-    if (emailList.length > 0) {
+    if (lookupEmails.length > 0) {
       const { data: existing } = await adminClient
-        .from("blacklisted_emails").select("email").in("email", emailList);
-      alreadyBanned = new Set((existing ?? []).map((e: any) => e.email));
+        .from("blacklisted_emails").select("email").in("email", lookupEmails);
+      // Compare by normalized form so aliases hit
+      alreadyBanned = new Set((existing ?? []).map((e: any) => normalizeForDedup(e.email)));
     }
 
     // Look up associated user_ids from profiles
     const profileMap = new Map<string, string>();
-    if (emailList.length > 0) {
+    if (lookupEmails.length > 0) {
       const { data: profiles } = await adminClient
-        .from("profiles").select("user_id, email").in("email", emailList);
-      for (const p of profiles ?? []) profileMap.set((p as any).email, (p as any).user_id);
+        .from("profiles").select("user_id, email").in("email", lookupEmails);
+      for (const p of profiles ?? []) profileMap.set(normalizeForDedup((p as any).email), (p as any).user_id);
     }
 
     const toInsert: { email: string; reason: string; associated_user_id: string | null; blacklisted_by: string }[] = [];
     for (const v of validEmails) {
-      if (alreadyBanned.has(v.email)) {
-        results.push({ row: v.row, email: v.email, reason: v.reason, status: "already_banned" });
+      if (alreadyBanned.has(v.normalized)) {
+        results.push({
+          row: v.row,
+          email: v.email,
+          reason: v.reason,
+          status: "already_banned",
+          normalized_email: v.normalized,
+        });
         continue;
       }
-      const assoc = profileMap.get(v.email) ?? null;
-      results.push({ row: v.row, email: v.email, reason: v.reason, status: "valid", associated_user_id: assoc });
+      const assoc = profileMap.get(v.normalized) ?? null;
+      results.push({
+        row: v.row,
+        email: v.email,
+        reason: v.reason,
+        status: "valid",
+        associated_user_id: assoc,
+        normalized_email: v.normalized,
+      });
       toInsert.push({ email: v.email, reason: v.reason, associated_user_id: assoc, blacklisted_by: user.id });
     }
 
