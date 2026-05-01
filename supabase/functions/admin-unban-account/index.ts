@@ -64,48 +64,63 @@ Deno.serve(async (req) => {
       .eq("email", email)
       .maybeSingle();
 
-    if (!entry) {
-      return new Response(JSON.stringify({ error: "Email is not banned" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const { data: profile } = await adminClient
+      .from("profiles")
+      .select("user_id")
+      .eq("email", email)
+      .maybeSingle();
+
+    const targetUserId = entry?.associated_user_id ?? profile?.user_id ?? null;
 
     // Remove blacklist entry
-    const { error: delErr } = await adminClient
-      .from("blacklisted_emails")
-      .delete()
-      .eq("id", entry.id);
-    if (delErr) {
-      return new Response(JSON.stringify({ error: delErr.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (entry) {
+      const { error: delErr } = await adminClient
+        .from("blacklisted_emails")
+        .delete()
+        .eq("id", entry.id);
+      if (delErr) {
+        return new Response(JSON.stringify({ error: delErr.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
-    // Unlock the underlying profile if present
-    if (entry.associated_user_id) {
+    // Unlock the profile and clear the hosted auth-level ban if present
+    if (targetUserId) {
       await adminClient
         .from("profiles")
         .update({ failed_login_attempts: 0, account_locked_at: null })
-        .eq("user_id", entry.associated_user_id);
+        .eq("user_id", targetUserId);
+
+      const { error: unbanError } = await adminClient.auth.admin.updateUserById(targetUserId, {
+        ban_duration: "none",
+      });
+      if (unbanError) {
+        return new Response(JSON.stringify({ error: `Auth ban could not be cleared: ${unbanError.message}` }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // Audit log
     await adminClient.from("security_events").insert({
-      user_id: entry.associated_user_id,
+      user_id: targetUserId,
       event_type: "account_reinstated",
-      severity: "info",
+      event_description: "Account reinstated by admin",
       metadata: {
         email,
         reason,
-        previous_ban_reason: entry.reason,
+        previous_ban_reason: entry?.reason ?? null,
         reinstated_by: user.id,
+        cleared_blacklist: Boolean(entry),
+        cleared_auth_ban: Boolean(targetUserId),
       },
     });
 
     return new Response(
-      JSON.stringify({ success: true, email, associated_user_id: entry.associated_user_id }),
+      JSON.stringify({ success: true, email, associated_user_id: targetUserId, cleared_blacklist: Boolean(entry) }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err: any) {

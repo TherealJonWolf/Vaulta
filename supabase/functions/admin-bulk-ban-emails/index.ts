@@ -57,7 +57,7 @@ interface RowResult {
   row: number;
   email: string;
   reason: string | null;
-  status: "valid" | "invalid_email" | "duplicate_in_csv" | "already_banned" | "inserted" | "error";
+  status: "valid" | "invalid_email" | "duplicate_in_csv" | "already_banned" | "protected_admin" | "inserted" | "error";
   message?: string;
   associated_user_id?: string | null;
   normalized_email?: string;
@@ -168,13 +168,27 @@ Deno.serve(async (req) => {
 
     // Look up associated user_ids from profiles
     const profileMap = new Map<string, string>();
+    const protectedAdminEmails = new Set<string>();
     if (lookupEmails.length > 0) {
       const { data: profiles } = await adminClient
         .from("profiles").select("user_id, email").in("email", lookupEmails);
       for (const p of profiles ?? []) profileMap.set(normalizeForDedup((p as any).email), (p as any).user_id);
+
+      const userIds = (profiles ?? []).map((p: any) => p.user_id).filter(Boolean);
+      if (userIds.length > 0) {
+        const { data: adminRoles } = await adminClient
+          .from("user_roles")
+          .select("user_id")
+          .in("user_id", userIds)
+          .eq("role", "admin");
+        const adminUserIds = new Set((adminRoles ?? []).map((r: any) => r.user_id));
+        for (const p of profiles ?? []) {
+          if (adminUserIds.has((p as any).user_id)) protectedAdminEmails.add(normalizeForDedup((p as any).email));
+        }
+      }
     }
 
-    const toInsert: { email: string; reason: string; associated_user_id: string | null; blacklisted_by: string }[] = [];
+    const toInsert: { email: string; reason: string; associated_user_id: string | null }[] = [];
     for (const v of validEmails) {
       if (alreadyBanned.has(v.normalized)) {
         results.push({
@@ -183,6 +197,18 @@ Deno.serve(async (req) => {
           reason: v.reason,
           status: "already_banned",
           normalized_email: v.normalized,
+        });
+        continue;
+      }
+      if (protectedAdminEmails.has(v.normalized)) {
+        results.push({
+          row: v.row,
+          email: v.email,
+          reason: v.reason,
+          status: "protected_admin",
+          normalized_email: v.normalized,
+          message: "Protected admin account cannot be banned",
+          associated_user_id: profileMap.get(v.normalized) ?? null,
         });
         continue;
       }
@@ -195,7 +221,7 @@ Deno.serve(async (req) => {
         associated_user_id: assoc,
         normalized_email: v.normalized,
       });
-      toInsert.push({ email: v.email, reason: v.reason, associated_user_id: assoc, blacklisted_by: user.id });
+      toInsert.push({ email: v.email, reason: v.reason, associated_user_id: assoc });
     }
 
     const summary = {
@@ -205,7 +231,7 @@ Deno.serve(async (req) => {
       duplicate_in_csv: results.filter((r) => r.status === "duplicate_in_csv").length,
       already_banned: results.filter((r) => r.status === "already_banned").length,
       inserted: 0,
-      errors: 0,
+      errors: results.filter((r) => r.status === "protected_admin").length,
     };
 
     if (dryRun) {
@@ -243,7 +269,7 @@ Deno.serve(async (req) => {
       await adminClient.from("security_events").insert({
         user_id: user.id,
         event_type: "bulk_email_ban_import",
-        severity: "warning",
+        event_description: "Admin bulk-imported banned emails",
         metadata: {
           imported_by: user.id,
           inserted_count: summary.inserted,

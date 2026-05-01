@@ -20,6 +20,7 @@ export const BannedAccountsPanel = () => {
   const [rows, setRows] = useState<BannedRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
+  const [manualEmail, setManualEmail] = useState("");
   const [working, setWorking] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -58,6 +59,29 @@ export const BannedAccountsPanel = () => {
     setRows((prev) => prev.filter((r) => r.id !== row.id));
   };
 
+  const reinstateByEmail = async () => {
+    const email = manualEmail.trim().toLowerCase();
+    if (!email) return;
+    if (!confirm(`Clear all ban states for ${email}?`)) return;
+    setWorking("manual");
+    const { data, error } = await supabase.functions.invoke("admin-unban-account", {
+      body: { email, reason: "Admin reinstatement by email via dashboard" },
+    });
+    setWorking(null);
+    if (error || (data as any)?.error) {
+      toast({
+        title: "Reinstatement failed",
+        description: error?.message ?? (data as any)?.error ?? "Unknown error",
+        variant: "destructive",
+      });
+      return;
+    }
+    toast({ title: "Account reinstated", description: email });
+    setManualEmail("");
+    setRows((prev) => prev.filter((r) => r.email.toLowerCase() !== email));
+    load();
+  };
+
   const filtered = rows.filter((r) =>
     !filter || r.email.toLowerCase().includes(filter.toLowerCase()),
   );
@@ -84,6 +108,24 @@ export const BannedAccountsPanel = () => {
         </div>
       </CardHeader>
       <CardContent>
+        <div className="mb-4 flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center">
+          <Input
+            value={manualEmail}
+            onChange={(e) => setManualEmail(e.target.value)}
+            placeholder="Reinstate by email…"
+            className="h-8 text-xs font-mono"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={reinstateByEmail}
+            disabled={working === "manual" || !manualEmail.trim()}
+            className="gap-1.5 sm:w-auto"
+          >
+            <RotateCcw size={12} />
+            {working === "manual" ? "Clearing…" : "Clear Ban"}
+          </Button>
+        </div>
         {loading ? (
           <p className="text-xs text-muted-foreground font-mono">Loading…</p>
         ) : filtered.length === 0 ? (
