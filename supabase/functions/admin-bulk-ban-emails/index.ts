@@ -188,7 +188,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const toInsert: { email: string; reason: string; associated_user_id: string | null; blacklisted_by: string }[] = [];
+    const toInsert: { email: string; reason: string; associated_user_id: string | null }[] = [];
     for (const v of validEmails) {
       if (alreadyBanned.has(v.normalized)) {
         results.push({
@@ -221,7 +221,7 @@ Deno.serve(async (req) => {
         associated_user_id: assoc,
         normalized_email: v.normalized,
       });
-      toInsert.push({ email: v.email, reason: v.reason, associated_user_id: assoc, blacklisted_by: user.id });
+      toInsert.push({ email: v.email, reason: v.reason, associated_user_id: assoc });
     }
 
     const summary = {
@@ -269,7 +269,7 @@ Deno.serve(async (req) => {
       await adminClient.from("security_events").insert({
         user_id: user.id,
         event_type: "bulk_email_ban_import",
-        severity: "warning",
+        event_description: "Admin bulk-imported banned emails",
         metadata: {
           imported_by: user.id,
           inserted_count: summary.inserted,
