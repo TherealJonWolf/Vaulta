@@ -2214,6 +2214,7 @@ export type Database = {
         Returns: boolean
       }
       increment_failed_login: { Args: { p_email: string }; Returns: Json }
+      is_admin_email: { Args: { p_email: string }; Returns: boolean }
       is_email_blacklisted: { Args: { check_email: string }; Returns: boolean }
       is_institutional_member: {
         Args: { _institution_id: string; _user_id: string }
