@@ -20,6 +20,7 @@ export const BannedAccountsPanel = () => {
   const [rows, setRows] = useState<BannedRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
+  const [manualEmail, setManualEmail] = useState("");
   const [working, setWorking] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -56,6 +57,29 @@ export const BannedAccountsPanel = () => {
     }
     toast({ title: "Account reinstated", description: row.email });
     setRows((prev) => prev.filter((r) => r.id !== row.id));
+  };
+
+  const reinstateByEmail = async () => {
+    const email = manualEmail.trim().toLowerCase();
+    if (!email) return;
+    if (!confirm(`Clear all ban states for ${email}?`)) return;
+    setWorking("manual");
+    const { data, error } = await supabase.functions.invoke("admin-unban-account", {
+      body: { email, reason: "Admin reinstatement by email via dashboard" },
+    });
+    setWorking(null);
+    if (error || (data as any)?.error) {
+      toast({
+        title: "Reinstatement failed",
+        description: error?.message ?? (data as any)?.error ?? "Unknown error",
+        variant: "destructive",
+      });
+      return;
+    }
+    toast({ title: "Account reinstated", description: email });
+    setManualEmail("");
+    setRows((prev) => prev.filter((r) => r.email.toLowerCase() !== email));
+    load();
   };
 
   const filtered = rows.filter((r) =>
