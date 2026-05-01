@@ -108,6 +108,24 @@ export const BannedAccountsPanel = () => {
         </div>
       </CardHeader>
       <CardContent>
+        <div className="mb-4 flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center">
+          <Input
+            value={manualEmail}
+            onChange={(e) => setManualEmail(e.target.value)}
+            placeholder="Reinstate by email…"
+            className="h-8 text-xs font-mono"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={reinstateByEmail}
+            disabled={working === "manual" || !manualEmail.trim()}
+            className="gap-1.5 sm:w-auto"
+          >
+            <RotateCcw size={12} />
+            {working === "manual" ? "Clearing…" : "Clear Ban"}
+          </Button>
+        </div>
         {loading ? (
           <p className="text-xs text-muted-foreground font-mono">Loading…</p>
         ) : filtered.length === 0 ? (
