@@ -13,7 +13,7 @@ interface RowResult {
   row: number;
   email: string;
   reason: string | null;
-  status: "valid" | "invalid_email" | "duplicate_in_csv" | "already_banned" | "inserted" | "error";
+  status: "valid" | "invalid_email" | "duplicate_in_csv" | "already_banned" | "protected_admin" | "inserted" | "error";
   message?: string;
   associated_user_id?: string | null;
   normalized_email?: string;
@@ -41,6 +41,7 @@ const statusVariant: Record<RowResult["status"], { label: string; color: string 
   invalid_email: { label: "INVALID", color: "bg-destructive/10 text-destructive border-destructive/30" },
   duplicate_in_csv: { label: "DUPLICATE", color: "bg-amber-500/10 text-amber-600 border-amber-500/30" },
   already_banned: { label: "ALREADY BANNED", color: "bg-muted text-muted-foreground border-border" },
+  protected_admin: { label: "PROTECTED ADMIN", color: "bg-cyan-500/10 text-cyan-600 border-cyan-500/30" },
   error: { label: "ERROR", color: "bg-destructive/10 text-destructive border-destructive/30" },
 };
 
@@ -201,6 +202,7 @@ export const BulkBanImportPanel = ({ onImported }: { onImported?: () => void }) 
                             {r.duplicate_of_row ? ` · alias of row ${r.duplicate_of_row}` : ""}
                           </div>
                         )}
+                        {r.message && <div className="text-[10px] text-muted-foreground">{r.message}</div>}
                       </TableCell>
                       <TableCell className="text-xs max-w-[260px] truncate" title={r.reason ?? ""}>{r.reason ?? "—"}</TableCell>
                       <TableCell>
