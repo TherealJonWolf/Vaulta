@@ -47,6 +47,31 @@ Deno.serve(async (req) => {
 
     const email = userData.user.email.toLowerCase();
 
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (roleData) {
+      console.warn(`Protected admin account ${userId} (${email}) was flagged but not suspended: ${reason}`);
+      await supabase.from("security_events").insert({
+        user_id: userId,
+        event_type: "protected_admin_ban_blocked",
+        event_description: "Protected admin account was flagged but ban enforcement was blocked",
+        metadata: { email, reason, fileName },
+      });
+
+      return new Response(JSON.stringify({
+        success: true,
+        protected: true,
+        message: "Protected admin account flagged for review; suspension was blocked.",
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Blacklist the email
     const { error: blacklistError } = await supabase
       .from("blacklisted_emails")
