@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Users, ShieldCheck, FileWarning } from "lucide-react";
 import { format } from "date-fns";
 import { deriveRiskBadges, badgeStyle } from "@/lib/riskBadges";
+import { VerifiedIncomeSeal } from "../components/VerifiedIncomeSeal";
 
 interface Submission {
   id: string;
@@ -165,6 +166,15 @@ const InstitutionalDashboard = () => {
                           {sub.trust_score ?? "—"}
                         </Badge>
                       </div>
+                      {verifiedIncome && (
+                        <div className="mt-2">
+                          <VerifiedIncomeSeal
+                            trustScore={sub.trust_score}
+                            scoreState={sub.score_state}
+                            documentTypes={sub.document_types || []}
+                          />
+                        </div>
+                      )}
                       {risks.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1">
                           {risks.map((r) => (
