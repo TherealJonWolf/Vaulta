@@ -19,32 +19,69 @@ const ResetPassword = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check URL hash for recovery token
-    const hash = window.location.hash;
-    const params = new URLSearchParams(hash.replace("#", ""));
-    if (params.get("type") === "recovery" || hash.includes("type=recovery")) {
-      setIsRecovery(true);
-    }
-
-    // Listen for PASSWORD_RECOVERY event from Supabase
+    // Listen for PASSWORD_RECOVERY / SIGNED_IN events from Supabase
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setIsRecovery(true);
-        setChecking(false);
-      } else if (event === "SIGNED_IN" && session) {
-        // User arrived via recovery link and was auto-signed in
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
         setIsRecovery(true);
         setChecking(false);
       }
     });
 
-    // Also check if there's already an active session (user may have already been signed in by the recovery link)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setIsRecovery(true);
+    (async () => {
+      try {
+        const url = new URL(window.location.href);
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+
+        // 1. Surface error from email link (e.g., expired/invalid)
+        const errDesc = url.searchParams.get("error_description") || hashParams.get("error_description");
+        if (errDesc) {
+          toast({ variant: "destructive", title: "Recovery link error", description: errDesc });
+          setChecking(false);
+          return;
+        }
+
+        // 2. PKCE flow: ?code=...
+        const code = url.searchParams.get("code");
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            toast({ variant: "destructive", title: "Recovery link invalid", description: error.message });
+            setChecking(false);
+            return;
+          }
+          // Clean URL
+          window.history.replaceState({}, document.title, "/reset-password");
+          setIsRecovery(true);
+          setChecking(false);
+          return;
+        }
+
+        // 3. Implicit flow: #access_token=...&type=recovery
+        if (hashParams.get("type") === "recovery" && hashParams.get("access_token")) {
+          const { error } = await supabase.auth.setSession({
+            access_token: hashParams.get("access_token")!,
+            refresh_token: hashParams.get("refresh_token") || "",
+          });
+          if (error) {
+            toast({ variant: "destructive", title: "Recovery link invalid", description: error.message });
+            setChecking(false);
+            return;
+          }
+          window.history.replaceState({}, document.title, "/reset-password");
+          setIsRecovery(true);
+          setChecking(false);
+          return;
+        }
+
+        // 4. Existing session (already exchanged via auth listener)
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) setIsRecovery(true);
+        setChecking(false);
+      } catch (e) {
+        toast({ variant: "destructive", title: "Recovery error", description: (e as Error).message });
+        setChecking(false);
       }
-      setChecking(false);
-    });
+    })();
 
     return () => subscription.unsubscribe();
   }, []);
