@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, X, FileText, FolderInput, Eye, AlertTriangle, FileWarning } from "lucide-react";
+import { Download, X, FileText, FolderInput, Eye, AlertTriangle, FileWarning, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { useInstitutionalAuth } from "../hooks/useInstitutionalAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,11 @@ import { deriveRiskBadges, badgeStyle } from "@/lib/riskBadges";
 import { DecisionNarrativePanel } from "./DecisionNarrativePanel";
 import { VerifiedIncomeSeal } from "./VerifiedIncomeSeal";
 import { recordReviewAction } from "../lib/reviewLog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface Submission {
   id: string;
@@ -47,6 +52,9 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
   const [requestOpen, setRequestOpen] = useState(false);
   const [judgeOpen, setJudgeOpen] = useState(false);
   const [adverseLoading, setAdverseLoading] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [emailSending, setEmailSending] = useState(false);
 
   const handleExportPdf = async () => {
     if (!submission) return;
@@ -130,6 +138,51 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
       toast.error("Failed to generate adverse action notice.");
     } finally {
       setAdverseLoading(false);
+    }
+  };
+
+  const handleEmailAdverseAction = async () => {
+    if (!submission || !institutionId || !user) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    setEmailSending(true);
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/adverse-action-pdf`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ submission_id: submission.id, recipient_email: recipientEmail }),
+        }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to send notice");
+      }
+      await recordReviewAction({
+        institution_id: institutionId,
+        submission_id: submission.id,
+        reviewer_user_id: user.id,
+        reviewer_name: user.email ?? null,
+        action: "adverse_action_notice_generated",
+        target_type: "submission",
+        target_id: submission.id,
+        target_name: submission.applicant_name,
+      });
+      toast.success(`Adverse action notice emailed to ${recipientEmail}`);
+      setEmailDialogOpen(false);
+      setRecipientEmail("");
+    } catch (e) {
+      toast.error(`Failed to email notice: ${(e as Error).message}`);
+    } finally {
+      setEmailSending(false);
     }
   };
 
@@ -242,15 +295,25 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
               Request Documents
             </Button>
             {(submission.score_state === "flag" || submission.score_state === "review") && (
-              <Button
-                onClick={handleAdverseActionPdf}
-                disabled={adverseLoading}
-                variant="outline"
-                className="w-full gap-2 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
-              >
-                <FileWarning className="h-4 w-4" />
-                {adverseLoading ? "Preparing notice..." : "Prepare Adverse Action Notice"}
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={handleAdverseActionPdf}
+                  disabled={adverseLoading}
+                  variant="outline"
+                  className="w-full gap-2 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+                >
+                  <FileWarning className="h-4 w-4" />
+                  {adverseLoading ? "Preparing..." : "Download Notice"}
+                </Button>
+                <Button
+                  onClick={() => setEmailDialogOpen(true)}
+                  variant="outline"
+                  className="w-full gap-2 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+                >
+                  <Mail className="h-4 w-4" />
+                  Email Notice
+                </Button>
+              </div>
             )}
             <Button onClick={handleExportPdf} className="w-full bg-slate-900 hover:bg-slate-800 text-white">
               <Download className="h-4 w-4 mr-2" />
@@ -259,6 +322,36 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
           </div>
         </SheetContent>
       </Sheet>
+
+      <Dialog open={emailDialogOpen} onOpenChange={(o) => !emailSending && setEmailDialogOpen(o)}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <DialogTitle>Email Adverse Action Notice</DialogTitle>
+            <DialogDescription>
+              The notice PDF will be attached and sent to the applicant. This action is logged.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="recipient-email">Applicant email</Label>
+            <Input
+              id="recipient-email"
+              type="email"
+              placeholder="applicant@example.com"
+              value={recipientEmail}
+              onChange={(e) => setRecipientEmail(e.target.value)}
+              disabled={emailSending}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmailDialogOpen(false)} disabled={emailSending}>
+              Cancel
+            </Button>
+            <Button onClick={handleEmailAdverseAction} disabled={emailSending} className="bg-red-700 hover:bg-red-800 text-white">
+              {emailSending ? "Sending..." : "Send Notice"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <DocumentPossessionRequest
         open={requestOpen}
