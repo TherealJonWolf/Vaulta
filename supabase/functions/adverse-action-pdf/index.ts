@@ -45,11 +45,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { submission_id } = await req.json();
+    const { submission_id, recipient_email } = await req.json();
     if (!submission_id || typeof submission_id !== "string") {
       return new Response(JSON.stringify({ error: "submission_id required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+    if (recipient_email !== undefined) {
+      if (typeof recipient_email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient_email)) {
+        return new Response(JSON.stringify({ error: "Invalid recipient_email" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
@@ -231,11 +238,60 @@ Deno.serve(async (req) => {
     await admin.from("institutional_activity_log").insert({
       institution_id: sub.institution_id,
       user_id: user.id,
-      event_type: "Adverse Action Notice Generated",
+      event_type: recipient_email ? "Adverse Action Notice Emailed" : "Adverse Action Notice Generated",
       reference_id: sub.reference_id,
       applicant_name: sub.applicant_name,
-      detail: `Adverse action notice generated for ${sub.applicant_name}`,
+      detail: recipient_email
+        ? `Adverse action notice emailed to ${recipient_email} for ${sub.applicant_name}`
+        : `Adverse action notice generated for ${sub.applicant_name}`,
     });
+
+    // Email delivery via Resend
+    if (recipient_email) {
+      const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+      if (!RESEND_API_KEY) {
+        return new Response(JSON.stringify({ error: "Email service not configured" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const b64Pdf = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      const subject = `Notice regarding your application — ${institutionName}`;
+      const html = `<p>Dear ${sub.applicant_name},</p>
+<p>Please find attached a notice regarding the recent decision on your application with <strong>${institutionName}</strong>. The notice outlines your rights and how to respond.</p>
+<p>Reference ID: <strong>${sub.reference_id}</strong></p>
+<p>If you have questions, please reply to this email or contact ${institutionName} directly.</p>
+<p>— Sent on behalf of ${institutionName} via Vaulta</p>`;
+      const fromAddr = settings?.contact_email
+        ? `${institutionName} <onboarding@resend.dev>`
+        : `Vaulta Notices <onboarding@resend.dev>`;
+      const resendRes = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: fromAddr,
+          to: [recipient_email],
+          reply_to: settings?.contact_email || undefined,
+          subject,
+          html,
+          attachments: [{
+            filename: `adverse-action-${sub.reference_id}.pdf`,
+            content: b64Pdf,
+          }],
+        }),
+      });
+      if (!resendRes.ok) {
+        const errBody = await resendRes.text();
+        return new Response(JSON.stringify({ error: `Email delivery failed: ${errBody}` }), {
+          status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ success: true, emailed_to: recipient_email }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     return new Response(buf, {
       headers: {
