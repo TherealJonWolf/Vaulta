@@ -66,6 +66,7 @@ const App = () => (
             <Route path="/institutional/*" element={<InstitutionalRoutes />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <VaultaBranding />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
