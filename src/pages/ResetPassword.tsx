@@ -128,7 +128,20 @@ const ResetPassword = () => {
       }
       setSuccess(true);
       toast({ title: "Password Updated", description: "Redirecting to your vault..." });
-      setTimeout(() => navigate("/vault"), 1500);
+      // Role-aware redirect: landlords/lenders with institutional membership go to dashboard
+      let destination = "/vault";
+      if (session?.user) {
+        const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id);
+        const roleList = (roles || []).map((r: any) => r.role);
+        if (roleList.includes("landlord") || roleList.includes("lender")) {
+          const { data: membership } = await (supabase.from as any)("institutional_users")
+            .select("institution_id").eq("user_id", session.user.id).maybeSingle();
+          if (membership?.institution_id) destination = "/institutional/dashboard";
+          else if (roleList.includes("landlord")) destination = "/landlord";
+          else destination = "/lender";
+        }
+      }
+      setTimeout(() => navigate(destination), 1500);
     } catch (err) {
       const msg = (err as Error).message || "Unexpected error. Please try again.";
       setFormError(msg);
