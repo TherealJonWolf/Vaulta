@@ -26,6 +26,7 @@ import NotFound from "./pages/NotFound";
 import SubmitDocuments from "./pages/SubmitDocuments";
 import VerifyTrustReport from "./pages/VerifyTrustReport";
 import { InstitutionalRoutes } from "./institutional/InstitutionalRoutes";
+import { VaultaBranding } from "./components/VaultaBranding";
 
 const queryClient = new QueryClient();
 
