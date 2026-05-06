@@ -166,7 +166,12 @@ const Auth = () => {
       title: "Verification Complete",
       description: "Accessing your Sovereign Sector...",
     });
-    navigate("/vault");
+    const { data: session } = await supabase.auth.getSession();
+    if (session?.session?.user) {
+      await roleRedirect(session.session.user.id);
+    } else {
+      navigate("/vault");
+    }
   };
 
   const handleMFACancel = async () => {
