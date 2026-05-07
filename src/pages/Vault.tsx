@@ -78,6 +78,38 @@ const Vault = () => {
     }
   }, [user, loading, mfaRequired, navigate]);
 
+  // Role guard: landlords/lenders must never land on the tenant vault.
+  // Route them to their portal regardless of how they arrived here.
+  useEffect(() => {
+    if (loading || !user) return;
+    let cancelled = false;
+    (async () => {
+      const { data: roleRows } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      if (cancelled) return;
+      const roles = (roleRows || []).map((r: any) => r.role);
+      if (roles.includes("landlord")) {
+        const { data: membership } = await (supabase.from as any)("institutional_users")
+          .select("institution_id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (cancelled) return;
+        if (membership?.institution_id) {
+          navigate("/institutional/dashboard", { replace: true });
+        } else {
+          navigate("/landlord", { replace: true });
+        }
+        return;
+      }
+      if (roles.includes("lender")) {
+        navigate("/lender", { replace: true });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user, loading, navigate]);
+
   // Show onboarding for new users
   useEffect(() => {
     if (user && !loading && isUnlocked) {
