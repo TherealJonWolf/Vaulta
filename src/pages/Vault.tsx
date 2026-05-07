@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck, ClipboardCheck, TrendingUp, Zap, Fingerprint, LockOpen, ShieldAlert, User, FolderInput, ScanSearch } from "lucide-react";
 import { useAdminRole } from "@/hooks/useAdminRole";
@@ -57,6 +57,7 @@ const Vault = () => {
   const [privacyAuditOpen, setPrivacyAuditOpen] = useState(false);
   const [vaultDisplayName, setVaultDisplayName] = useState<string | null>(null);
   const [vaultAccentColor, setVaultAccentColor] = useState<string | null>(null);
+  const roleRedirected = useRef(false);
 
   const {
     isUnlocked,
@@ -82,6 +83,7 @@ const Vault = () => {
   // Route them to their portal regardless of how they arrived here.
   useEffect(() => {
     if (loading || !user) return;
+    if (roleRedirected.current) return;
     let cancelled = false;
     (async () => {
       const { data: roleRows } = await supabase
@@ -96,6 +98,7 @@ const Vault = () => {
           .eq("user_id", user.id)
           .maybeSingle();
         if (cancelled) return;
+        roleRedirected.current = true;
         if (membership?.institution_id) {
           navigate("/institutional/dashboard", { replace: true });
         } else {
@@ -104,6 +107,7 @@ const Vault = () => {
         return;
       }
       if (roles.includes("lender")) {
+        roleRedirected.current = true;
         navigate("/lender", { replace: true });
       }
     })();

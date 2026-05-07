@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from "react";
+import { useState, useEffect, createContext, useContext, ReactNode, useRef } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -19,12 +19,16 @@ export const InstitutionalAuthProvider = ({ children }: { children: ReactNode })
   const [institutionName, setInstitutionName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const initRan = useRef(false);
+  const redirected = useRef(false);
 
   useEffect(() => {
+    if (initRan.current) return;
+    initRan.current = true;
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
-        navigate("/auth");
+        if (!redirected.current) { redirected.current = true; navigate("/auth", { replace: true }); }
         return;
       }
       setUser(session.user);
@@ -34,7 +38,9 @@ export const InstitutionalAuthProvider = ({ children }: { children: ReactNode })
       });
 
       if (error || !data || data.error) {
-        navigate("/vault");
+        // Do NOT bounce to /vault — Vault.tsx role guard would send landlord/lender right
+        // back here, creating an infinite loop. Send to /auth instead.
+        if (!redirected.current) { redirected.current = true; navigate("/auth", { replace: true }); }
         return;
       }
 
@@ -46,7 +52,10 @@ export const InstitutionalAuthProvider = ({ children }: { children: ReactNode })
     init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      if (!session) navigate("/auth");
+      if (!session && !redirected.current) {
+        redirected.current = true;
+        navigate("/auth", { replace: true });
+      }
     });
 
     return () => subscription.unsubscribe();
