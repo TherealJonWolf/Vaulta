@@ -1,8 +1,9 @@
 import { useState, useEffect, createContext, useContext, ReactNode, useRef } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { getAuthSessionKey, navigateOnceForAuthTransition, resolveRoleRedirectTarget } from "@/lib/authRedirect";
 
 interface InstitutionalAuthContextType {
   user: User | null;
@@ -15,53 +16,59 @@ interface InstitutionalAuthContextType {
 const InstitutionalAuthContext = createContext<InstitutionalAuthContextType | undefined>(undefined);
 
 export const InstitutionalAuthProvider = ({ children }: { children: ReactNode }) => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, session, loading: authLoading, authInitialized, mfaRequired } = useAuth();
   const [institutionId, setInstitutionId] = useState<string | null>(null);
   const [institutionName, setInstitutionName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
   const accessChecked = useRef<string | null>(null);
-  const redirected = useRef(false);
 
   // Wait for auth to resolve, then check institutional access exactly once per user.
   useEffect(() => {
-    if (authLoading) return;
+    if (!authInitialized || authLoading) return;
 
     if (!user) {
-      if (!redirected.current) {
-        redirected.current = true;
-        navigate("/auth", { replace: true });
-      }
+      navigateOnceForAuthTransition({ navigate, location, targetPath: "/auth", sessionKey: getAuthSessionKey(session) });
       return;
     }
 
-    // Only run the access check once per authenticated user id
-    if (accessChecked.current === user.id) return;
-    accessChecked.current = user.id;
+    if (mfaRequired) {
+      navigateOnceForAuthTransition({ navigate, location, targetPath: "/auth", sessionKey: getAuthSessionKey(session, user.id) });
+      return;
+    }
+
+    const sessionKey = getAuthSessionKey(session, user.id);
+    if (accessChecked.current === sessionKey) return;
+    accessChecked.current = sessionKey;
 
     let cancelled = false;
     (async () => {
-      const { data, error } = await (supabase.rpc as any)('ensure_institutional_access', {
-        _user_id: user.id,
-      });
+      const targetPath = await resolveRoleRedirectTarget(user.id);
       if (cancelled) return;
-
-      if (error || !data || (data as any).error) {
-        // Access denied — send to /auth (NOT /vault, which would bounce back here).
-        if (!redirected.current) {
-          redirected.current = true;
-          navigate("/auth", { replace: true });
-        }
+      if (targetPath !== "/institutional/dashboard") {
+        navigateOnceForAuthTransition({ navigate, location, targetPath, sessionKey });
         return;
       }
 
-      setInstitutionId((data as any).institution_id);
-      setInstitutionName((data as any).institution_name);
+      const { data, error } = await (supabase.from as any)("institutional_users")
+        .select("institution_id, institutions(name)")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+
+      if (error || !data?.institution_id) {
+        navigateOnceForAuthTransition({ navigate, location, targetPath: "/auth", sessionKey });
+        return;
+      }
+
+      setInstitutionId(data.institution_id);
+      setInstitutionName(data.institutions?.name ?? null);
       setLoading(false);
     })();
 
     return () => { cancelled = true; };
-  }, [authLoading, user, navigate]);
+  }, [authInitialized, authLoading, user?.id, session, mfaRequired, navigate, location]);
 
   const signOut = async () => {
     try {

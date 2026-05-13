@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, useSearchParams, Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Shield, Eye, EyeOff, Lock, ArrowLeft, Building2, User, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import MFAVerification from "@/components/MFAVerification";
 import PasswordStrengthMeter from "@/components/PasswordStrengthMeter";
 import { isPasswordAcceptable } from "@/lib/passwordStrength";
+import { getAuthSessionKey, navigateOnceForAuthTransition, resolveRoleRedirectTarget } from "@/lib/authRedirect";
 
 type SignupRole = "user" | "landlord";
 
@@ -29,15 +30,25 @@ const Auth = () => {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
-  const { user, mfaRequired, currentLevel, signIn, signUp, checkMFAStatus } = useAuth();
+  const { session, loading: authLoading, authInitialized, mfaRequired, signIn, signUp, checkMFAStatus } = useAuth();
+  const redirectHandledRef = useRef<string | null>(null);
 
-  // Only redirect if user has a valid server-side session
+  const roleRedirect = useCallback(async (userId: string) => {
+    const sessionKey = getAuthSessionKey(session, userId);
+    if (redirectHandledRef.current === sessionKey) return;
+
+    const targetPath = await resolveRoleRedirectTarget(userId);
+    redirectHandledRef.current = sessionKey;
+    navigateOnceForAuthTransition({ navigate, location, targetPath, sessionKey });
+  }, [location, navigate, session]);
+
+  // Only redirect after auth hydration and MFA state have resolved.
   useEffect(() => {
-    const checkExisting = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+    if (!authInitialized || authLoading || !session?.user || mfaRequired || showMFAVerification) return;
 
+    const checkExisting = async () => {
       // Validate session is still valid server-side
       const { data: { user: validUser }, error } = await supabase.auth.getUser();
       if (error || !validUser) {
@@ -46,37 +57,10 @@ const Auth = () => {
         return;
       }
 
-      if (!mfaRequired) {
-        roleRedirect(validUser.id);
-      }
+      await roleRedirect(validUser.id);
     };
     checkExisting();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const roleRedirect = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
-    const roles = (data || []).map((r: any) => r.role);
-
-    // Only redirect to institutional if user is a landlord with existing membership
-    // Do NOT use ensure_institutional_access here — it auto-creates institutions
-    if (roles.includes("landlord")) {
-      const { data: membership } = await (supabase.from as any)('institutional_users')
-        .select('institution_id')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (membership?.institution_id) {
-        navigate("/institutional/dashboard");
-        return;
-      }
-    }
-
-    navigate("/vault");
-  };
+  }, [authInitialized, authLoading, session?.user?.id, mfaRequired, showMFAVerification, roleRedirect]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

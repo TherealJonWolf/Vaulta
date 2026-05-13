@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck, ClipboardCheck, TrendingUp, Zap, Fingerprint, LockOpen, ShieldAlert, User, FolderInput, ScanSearch } from "lucide-react";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { Button } from "@/components/ui/button";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useVaultEncryption } from "@/hooks/useVaultEncryption";
@@ -30,11 +30,13 @@ import DocumentPossessionReview from "@/components/DocumentPossessionReview";
 import { TrustedDevicesPanel } from "@/components/telemetry/TrustedDevicesPanel";
 import { SignalConsentPanel } from "@/components/SignalConsentPanel";
 import { PrivacyAuditPanel } from "@/components/PrivacyAuditPanel";
+import { getAuthSessionKey, navigateOnceForAuthTransition, resolveRoleRedirectTarget } from "@/lib/authRedirect";
 
 const Vault = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { user, loading, mfaRequired, signOut } = useAuth();
+  const { user, session, loading, authInitialized, mfaRequired, signOut } = useAuth();
   const { isAdmin } = useAdminRole();
   const { checkSubscription, fetchDocumentCount, isPremium } = useSubscription();
   const { toast } = useToast();
@@ -57,7 +59,8 @@ const Vault = () => {
   const [privacyAuditOpen, setPrivacyAuditOpen] = useState(false);
   const [vaultDisplayName, setVaultDisplayName] = useState<string | null>(null);
   const [vaultAccentColor, setVaultAccentColor] = useState<string | null>(null);
-  const roleRedirected = useRef(false);
+  const roleRedirected = useRef<string | null>(null);
+  const [roleGuardLoading, setRoleGuardLoading] = useState(true);
 
   const {
     isUnlocked,
@@ -71,64 +74,52 @@ const Vault = () => {
   } = useVaultEncryption(user?.id);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
+    if (!authInitialized || loading) return;
+    if (!user || mfaRequired) {
+      navigateOnceForAuthTransition({
+        navigate,
+        location,
+        targetPath: "/auth",
+        sessionKey: getAuthSessionKey(session, user?.id),
+      });
     }
-    if (!loading && user && mfaRequired) {
-      navigate("/auth");
-    }
-  }, [user, loading, mfaRequired, navigate]);
+  }, [authInitialized, loading, user?.id, mfaRequired, session, navigate, location]);
 
   // Role guard: landlords/lenders must never land on the tenant vault.
   // Route them to their portal regardless of how they arrived here.
   useEffect(() => {
-    if (loading || !user) return;
-    if (roleRedirected.current) return;
+    if (!authInitialized || loading || !user || mfaRequired) return;
+    const sessionKey = getAuthSessionKey(session, user.id);
+    if (roleRedirected.current === sessionKey) return;
+    roleRedirected.current = sessionKey;
     let cancelled = false;
     (async () => {
-      const { data: roleRows } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
+      const targetPath = await resolveRoleRedirectTarget(user.id);
       if (cancelled) return;
-      const roles = (roleRows || []).map((r: any) => r.role);
-      if (roles.includes("landlord")) {
-        const { data: membership } = await (supabase.from as any)("institutional_users")
-          .select("institution_id")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if (cancelled) return;
-        roleRedirected.current = true;
-        if (membership?.institution_id) {
-          navigate("/institutional/dashboard", { replace: true });
-        } else {
-          navigate("/landlord", { replace: true });
-        }
+      if (targetPath !== "/vault") {
+        navigateOnceForAuthTransition({ navigate, location, targetPath, sessionKey });
         return;
       }
-      if (roles.includes("lender")) {
-        roleRedirected.current = true;
-        navigate("/lender", { replace: true });
-      }
+      setRoleGuardLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [user, loading, navigate]);
+  }, [authInitialized, loading, user?.id, mfaRequired, session, navigate, location]);
 
   // Show onboarding for new users
   useEffect(() => {
-    if (user && !loading && isUnlocked) {
+    if (user && !loading && !roleGuardLoading && isUnlocked) {
       const completed = localStorage.getItem(ONBOARDING_STORAGE_KEY);
       if (!completed) setShowOnboarding(true);
     }
-  }, [user, loading, isUnlocked]);
+  }, [user, loading, roleGuardLoading, isUnlocked]);
 
   // Check if user has a passphrase set
   useEffect(() => {
-    if (user && !loading) {
+    if (user && !loading && !roleGuardLoading) {
       setPassphraseLoading(true);
       checkPassphraseExists().finally(() => setPassphraseLoading(false));
     }
-  }, [user, loading, checkPassphraseExists]);
+  }, [user, loading, roleGuardLoading, checkPassphraseExists]);
 
   // Fetch vault personalization settings
   useEffect(() => {
@@ -167,7 +158,7 @@ const Vault = () => {
     navigate("/");
   };
 
-  if (loading) {
+  if (!authInitialized || loading || roleGuardLoading || !user || mfaRequired) {
     return (
       <div className="min-h-screen bg-background grid-bg flex items-center justify-center">
         <div className="text-center">
