@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext, ReactNode, useRef } fro
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 interface InstitutionalAuthContextType {
   user: User | null;
@@ -14,52 +15,53 @@ interface InstitutionalAuthContextType {
 const InstitutionalAuthContext = createContext<InstitutionalAuthContextType | undefined>(undefined);
 
 export const InstitutionalAuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, loading: authLoading } = useAuth();
   const [institutionId, setInstitutionId] = useState<string | null>(null);
   const [institutionName, setInstitutionName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const initRan = useRef(false);
+  const accessChecked = useRef<string | null>(null);
   const redirected = useRef(false);
 
+  // Wait for auth to resolve, then check institutional access exactly once per user.
   useEffect(() => {
-    if (initRan.current) return;
-    initRan.current = true;
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        if (!redirected.current) { redirected.current = true; navigate("/auth", { replace: true }); }
-        return;
-      }
-      setUser(session.user);
+    if (authLoading) return;
 
-      const { data, error } = await (supabase.rpc as any)('ensure_institutional_access', {
-        _user_id: session.user.id,
-      });
-
-      if (error || !data || data.error) {
-        // Do NOT bounce to /vault — Vault.tsx role guard would send landlord/lender right
-        // back here, creating an infinite loop. Send to /auth instead.
-        if (!redirected.current) { redirected.current = true; navigate("/auth", { replace: true }); }
-        return;
-      }
-
-      setInstitutionId(data.institution_id);
-      setInstitutionName(data.institution_name);
-      setLoading(false);
-    };
-
-    init();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      if (!session && !redirected.current) {
+    if (!user) {
+      if (!redirected.current) {
         redirected.current = true;
         navigate("/auth", { replace: true });
       }
-    });
+      return;
+    }
 
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    // Only run the access check once per authenticated user id
+    if (accessChecked.current === user.id) return;
+    accessChecked.current = user.id;
+
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await (supabase.rpc as any)('ensure_institutional_access', {
+        _user_id: user.id,
+      });
+      if (cancelled) return;
+
+      if (error || !data || (data as any).error) {
+        // Access denied — send to /auth (NOT /vault, which would bounce back here).
+        if (!redirected.current) {
+          redirected.current = true;
+          navigate("/auth", { replace: true });
+        }
+        return;
+      }
+
+      setInstitutionId((data as any).institution_id);
+      setInstitutionName((data as any).institution_name);
+      setLoading(false);
+    })();
+
+    return () => { cancelled = true; };
+  }, [authLoading, user, navigate]);
 
   const signOut = async () => {
     try {
