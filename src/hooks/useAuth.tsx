@@ -73,16 +73,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       initializedRef.current = true;
       setAuthInitialized(true);
-      setLoading(false);
       
       if (session?.user) {
-        checkMFAStatus();
+        await checkMFAStatus();
       }
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
