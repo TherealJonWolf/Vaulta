@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from "react";
+import { useState, useEffect, createContext, useContext, ReactNode, useRef } from "react";
 import { User, Session, AuthenticatorAssuranceLevels } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { logLoginAttempt, logSecurityEvent, createSession } from "@/lib/securityLogger";
@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  authInitialized: boolean;
   mfaRequired: boolean;
   currentLevel: AuthenticatorAssuranceLevels | null;
   signUp: (email: string, password: string, role?: 'user' | 'landlord') => Promise<{ error: Error | null }>;
@@ -21,8 +22,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authInitialized, setAuthInitialized] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(false);
   const [currentLevel, setCurrentLevel] = useState<AuthenticatorAssuranceLevels | null>(null);
+  const initializedRef = useRef(false);
 
   const checkMFAStatus = async (): Promise<boolean> => {
     const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
@@ -45,13 +48,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       (event, session) => {
         // Don't update state for PASSWORD_RECOVERY — let ResetPassword page handle it
         if (event === "PASSWORD_RECOVERY") {
+          initializedRef.current = true;
+          setAuthInitialized(true);
           setLoading(false);
           return;
         }
         
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
+        if (initializedRef.current) {
+          setLoading(false);
+        }
         
         // Check MFA status after auth state change
         if (session?.user) {
@@ -69,6 +76,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      initializedRef.current = true;
+      setAuthInitialized(true);
       setLoading(false);
       
       if (session?.user) {
@@ -170,7 +179,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, mfaRequired, currentLevel, signUp, signIn, signOut, checkMFAStatus }}>
+    <AuthContext.Provider value={{ user, session, loading, authInitialized, mfaRequired, currentLevel, signUp, signIn, signOut, checkMFAStatus }}>
       {children}
     </AuthContext.Provider>
   );
