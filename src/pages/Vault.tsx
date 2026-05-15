@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck, ClipboardCheck, TrendingUp, Zap, Fingerprint, LockOpen, ShieldAlert, User, FolderInput, ScanSearch } from "lucide-react";
+import { Shield, Upload, FileText, Bot, LogOut, Building2, Settings, ShieldCheck, ClipboardCheck, TrendingUp, Zap, Fingerprint, LockOpen, ShieldAlert, User, FolderInput, ScanSearch, History } from "lucide-react";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { Button } from "@/components/ui/button";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -17,6 +17,7 @@ import MFASettings from "@/components/MFASettings";
 import { SecurityDashboard } from "@/components/SecurityDashboard";
 import { ComplianceDashboard } from "@/components/ComplianceDashboard";
 import { TrustScoreDashboard } from "@/components/TrustScoreDashboard";
+import { TrustTimeline } from "@/components/TrustTimeline";
 import { ThreatSimulation } from "@/components/ThreatSimulation";
 import SubscriptionBadge from "@/components/SubscriptionBadge";
 import UpgradePrompt from "@/components/UpgradePrompt";
@@ -47,6 +48,7 @@ const Vault = () => {
   const [securityOpen, setSecurityOpen] = useState(false);
   const [complianceOpen, setComplianceOpen] = useState(false);
   const [trustScoreOpen, setTrustScoreOpen] = useState(false);
+  const [trustTimelineOpen, setTrustTimelineOpen] = useState(false);
   const [threatSimOpen, setThreatSimOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [veriffOpen, setVeriffOpen] = useState(false);
@@ -214,6 +216,9 @@ const Vault = () => {
               <Button variant="ghost" onClick={() => setTrustScoreOpen(true)} className="text-muted-foreground" title="Trust Score">
                 <TrendingUp size={18} />
               </Button>
+              <Button variant="ghost" onClick={() => setTrustTimelineOpen(true)} className="text-muted-foreground" title="Trust Timeline (provenance)">
+                <History size={18} />
+              </Button>
               <Button variant="ghost" onClick={() => setSignalConsentsOpen(true)} className="text-muted-foreground" title="Trust Signal Consents">
                 <Shield size={18} />
               </Button>
@@ -346,6 +351,7 @@ const Vault = () => {
       <SecurityDashboard open={securityOpen} onOpenChange={setSecurityOpen} />
       <ComplianceDashboard open={complianceOpen} onOpenChange={setComplianceOpen} />
       <TrustScoreDashboard open={trustScoreOpen} onOpenChange={setTrustScoreOpen} />
+      <TrustTimeline open={trustTimelineOpen} onOpenChange={setTrustTimelineOpen} />
       <ThreatSimulation open={threatSimOpen} onOpenChange={setThreatSimOpen} />
       <UpgradePrompt isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
       <VeriffVerification open={veriffOpen} onOpenChange={setVeriffOpen} />

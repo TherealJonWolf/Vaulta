@@ -1822,6 +1822,69 @@ export type Database = {
         }
         Relationships: []
       }
+      trust_events: {
+        Row: {
+          confidence: number
+          created_at: string
+          event_type: string
+          evidence_refs: Json
+          explanation: string
+          id: string
+          immutable_hash: string
+          metadata: Json
+          reversed: boolean
+          reversed_by_event_id: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewer_notes: string | null
+          severity: string
+          source_system: string
+          trust_delta: number
+          user_id: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          event_type: string
+          evidence_refs?: Json
+          explanation: string
+          id?: string
+          immutable_hash?: string
+          metadata?: Json
+          reversed?: boolean
+          reversed_by_event_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          severity?: string
+          source_system: string
+          trust_delta?: number
+          user_id: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          event_type?: string
+          evidence_refs?: Json
+          explanation?: string
+          id?: string
+          immutable_hash?: string
+          metadata?: Json
+          reversed?: boolean
+          reversed_by_event_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          severity?: string
+          source_system?: string
+          trust_delta?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       trust_history: {
         Row: {
           created_at: string
