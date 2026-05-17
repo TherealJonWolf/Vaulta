@@ -187,6 +187,66 @@ export type Database = {
           },
         ]
       }
+      assessment_reports: {
+        Row: {
+          applicant_name: string | null
+          applicant_user_id: string | null
+          assessment_narrative: string | null
+          created_at: string
+          evidence_summary: Json
+          id: string
+          institution_id: string
+          issued_at: string
+          issued_by: string
+          issuer_display_name: string | null
+          reference_id: string | null
+          report_hash: string
+          report_payload: Json
+          score_state: string
+          submission_id: string | null
+          trust_score: number | null
+          version: string
+        }
+        Insert: {
+          applicant_name?: string | null
+          applicant_user_id?: string | null
+          assessment_narrative?: string | null
+          created_at?: string
+          evidence_summary?: Json
+          id?: string
+          institution_id: string
+          issued_at?: string
+          issued_by: string
+          issuer_display_name?: string | null
+          reference_id?: string | null
+          report_hash: string
+          report_payload?: Json
+          score_state?: string
+          submission_id?: string | null
+          trust_score?: number | null
+          version?: string
+        }
+        Update: {
+          applicant_name?: string | null
+          applicant_user_id?: string | null
+          assessment_narrative?: string | null
+          created_at?: string
+          evidence_summary?: Json
+          id?: string
+          institution_id?: string
+          issued_at?: string
+          issued_by?: string
+          issuer_display_name?: string | null
+          reference_id?: string | null
+          report_hash?: string
+          report_payload?: Json
+          score_state?: string
+          submission_id?: string | null
+          trust_score?: number | null
+          version?: string
+        }
+        Relationships: []
+      }
       blacklisted_emails: {
         Row: {
           associated_user_id: string | null
@@ -2302,6 +2362,18 @@ export type Database = {
           institution_name: string
           is_valid: boolean
           reference_id: string
+        }[]
+      }
+      verify_assessment_report_by_hash: {
+        Args: { p_hash: string }
+        Returns: {
+          issued_at: string
+          issuer_display_name: string
+          reference_id: string
+          score_state: string
+          trust_score: number
+          valid: boolean
+          version: string
         }[]
       }
       verify_recovery_code: {
