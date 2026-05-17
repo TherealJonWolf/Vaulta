@@ -7,9 +7,14 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface VerifyResult {
   valid: boolean;
+  report_type?: "tenant_trust_report" | "institutional_assessment_report";
   generated_at?: string;
+  issued_at?: string;
   trust_score?: number;
   trust_level?: string;
+  score_state?: string;
+  issuer_display_name?: string;
+  reference_id?: string;
   version?: string;
   message?: string;
 }
@@ -96,10 +101,66 @@ export default function VerifyTrustReport() {
                       Authentic
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Hash matches an immutable Vaulta snapshot.
+                      {result.report_type === "institutional_assessment_report"
+                        ? "Hash matches an immutable institution-issued assessment record."
+                        : "Hash matches an immutable Vaulta snapshot."}
                     </div>
                   </div>
                 </div>
+                {result.report_type === "institutional_assessment_report" ? (
+                  <dl className="grid grid-cols-2 gap-4 border-t pt-4 text-sm">
+                    <div className="col-span-2">
+                      <dt className="text-xs uppercase text-muted-foreground">
+                        Issued By
+                      </dt>
+                      <dd className="mt-1 text-base font-semibold">
+                        {result.issuer_display_name ?? "—"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs uppercase text-muted-foreground">
+                        Reference ID
+                      </dt>
+                      <dd className="mt-1 font-mono text-sm">
+                        {result.reference_id ?? "—"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs uppercase text-muted-foreground">
+                        Score State
+                      </dt>
+                      <dd className="mt-1 text-base font-semibold capitalize">
+                        {result.score_state?.replace(/_/g, " ") ?? "—"}
+                      </dd>
+                    </div>
+                    {result.trust_score != null && (
+                      <div>
+                        <dt className="text-xs uppercase text-muted-foreground">
+                          Trust Score
+                        </dt>
+                        <dd className="mt-1 text-2xl font-bold">
+                          {Math.round(result.trust_score)}
+                        </dd>
+                      </div>
+                    )}
+                    <div className="col-span-2">
+                      <dt className="text-xs uppercase text-muted-foreground">
+                        Issued
+                      </dt>
+                      <dd className="mt-1 text-sm">
+                        {result.issued_at
+                          ? new Date(result.issued_at).toUTCString()
+                          : "—"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs uppercase text-muted-foreground">
+                        Schema Version
+                      </dt>
+                      <dd className="mt-1 text-sm">{result.version}</dd>
+                    </div>
+                  </dl>
+                ) : (
                 <dl className="grid grid-cols-2 gap-4 border-t pt-4 text-sm">
                   <div>
                     <dt className="text-xs uppercase text-muted-foreground">
@@ -134,6 +195,7 @@ export default function VerifyTrustReport() {
                     <dd className="mt-1 text-sm">{result.version}</dd>
                   </div>
                 </dl>
+                )}
               </div>
             ) : (
               <div className="flex items-center gap-3 text-destructive">
