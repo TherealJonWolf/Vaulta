@@ -55,39 +55,65 @@ Deno.serve(async (req) => {
     // table itself blocks anonymous SELECT; the function exposes only
     // the safe verification fields.
     const client = createClient(SUPABASE_URL, ANON_KEY);
-    const { data, error } = await client.rpc("verify_trust_report_by_hash", {
-      p_hash: hash.toLowerCase(),
-    });
+    const lower = hash.toLowerCase();
 
-    if (error) {
-      console.error("verify rpc error", error);
+    // Try tenant-issued trust report snapshot first.
+    const trustRes = await client.rpc("verify_trust_report_by_hash", {
+      p_hash: lower,
+    });
+    const trustRow = Array.isArray(trustRes.data) ? trustRes.data[0] : trustRes.data;
+    if (trustRow) {
+      return new Response(
+        JSON.stringify({
+          valid: true,
+          report_type: "tenant_trust_report",
+          generated_at: trustRow.generated_at,
+          trust_score: Number(trustRow.trust_score),
+          trust_level: trustRow.trust_level,
+          version: trustRow.version,
+          report_hash: lower,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Fall through to institution-issued assessment report.
+    const assessRes = await client.rpc("verify_assessment_report_by_hash", {
+      p_hash: lower,
+    });
+    const assessRow = Array.isArray(assessRes.data) ? assessRes.data[0] : assessRes.data;
+    if (assessRow) {
+      return new Response(
+        JSON.stringify({
+          valid: true,
+          report_type: "institutional_assessment_report",
+          issued_at: assessRow.issued_at,
+          issuer_display_name: assessRow.issuer_display_name,
+          reference_id: assessRow.reference_id,
+          trust_score:
+            assessRow.trust_score == null ? null : Number(assessRow.trust_score),
+          score_state: assessRow.score_state,
+          version: assessRow.version,
+          report_hash: lower,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    if (trustRes.error && assessRes.error) {
+      console.error("verify rpc errors", trustRes.error, assessRes.error);
       return new Response(
         JSON.stringify({ valid: false, error: "lookup_failed" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const row = Array.isArray(data) ? data[0] : data;
-    if (!row) {
-      return new Response(
-        JSON.stringify({
-          valid: false,
-          message: "No report found for this hash.",
-        }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
     return new Response(
       JSON.stringify({
-        valid: true,
-        generated_at: row.generated_at,
-        trust_score: Number(row.trust_score),
-        trust_level: row.trust_level,
-        version: row.version,
-        report_hash: hash.toLowerCase(),
+        valid: false,
+        message: "No report found for this hash.",
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
     console.error("verify-trust-report error", err);
