@@ -426,6 +426,36 @@ Deno.serve(async (req) => {
       },
     });
 
+    // 7b. Provenance: record in trust_events so Trust Timeline shows
+    // the verified report alongside other evidence. Immutable + hashed.
+    try {
+      await admin.from("trust_events").insert({
+        user_id: userId,
+        event_type: "report.verified.generated",
+        source_system: "generate-trust-report",
+        trust_delta: 0,
+        severity: "info",
+        confidence: 100,
+        explanation:
+          "Verified Trust Report snapshot issued. The report is immutable and can be independently verified using the hash below.",
+        evidence_refs: [
+          {
+            kind: "trust_report_snapshot",
+            snapshot_id: inserted.id,
+            report_hash: reportHash,
+            verify_path: `/verify/${reportHash}`,
+          },
+        ],
+        metadata: {
+          trace_id: traceId,
+          version: "v1",
+        },
+      });
+    } catch (provenanceErr) {
+      // Non-fatal — snapshot is already persisted.
+      console.warn("trust_events insert failed", provenanceErr);
+    }
+
     return new Response(
       JSON.stringify({
         ok: true,
