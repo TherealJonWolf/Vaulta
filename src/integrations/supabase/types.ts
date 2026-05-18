@@ -976,6 +976,57 @@ export type Database = {
         }
         Relationships: []
       }
+      fraud_risk_assessments: {
+        Row: {
+          aggregate_score: number
+          applicant_name: string | null
+          computed_by: string | null
+          created_at: string
+          evidence_refs: Json
+          id: string
+          immutable_hash: string
+          institution_id: string | null
+          methodology_version: string
+          reference_id: string | null
+          severity: string
+          submission_id: string | null
+          top_signals: Json
+          user_id: string | null
+        }
+        Insert: {
+          aggregate_score?: number
+          applicant_name?: string | null
+          computed_by?: string | null
+          created_at?: string
+          evidence_refs?: Json
+          id?: string
+          immutable_hash?: string
+          institution_id?: string | null
+          methodology_version?: string
+          reference_id?: string | null
+          severity?: string
+          submission_id?: string | null
+          top_signals?: Json
+          user_id?: string | null
+        }
+        Update: {
+          aggregate_score?: number
+          applicant_name?: string | null
+          computed_by?: string | null
+          created_at?: string
+          evidence_refs?: Json
+          id?: string
+          immutable_hash?: string
+          institution_id?: string | null
+          methodology_version?: string
+          reference_id?: string | null
+          severity?: string
+          submission_id?: string | null
+          top_signals?: Json
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       incident_events: {
         Row: {
           created_at: string
