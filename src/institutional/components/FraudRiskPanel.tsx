@@ -2,9 +2,10 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ShieldAlert, RefreshCw, Hash } from "lucide-react";
+import { ShieldAlert, RefreshCw, Hash, ChevronDown, FileText, Cpu, AlertTriangle, ShieldCheck, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface Signal {
   code: string;
@@ -13,6 +14,15 @@ interface Signal {
   weight: number;
   detail: string;
   _contribution?: number;
+  evidence_ref?: {
+    source?: string;
+    rule_id?: string;
+    category?: string;
+    file_name?: string;
+    alert_type?: string;
+    issue_count?: number;
+    [k: string]: unknown;
+  };
 }
 
 interface Assessment {
@@ -37,6 +47,174 @@ const sevStyle: Record<Assessment["severity"], string> = {
   moderate: "bg-amber-50 text-amber-800 border-amber-200",
   high: "bg-orange-50 text-orange-800 border-orange-200",
   critical: "bg-red-50 text-red-800 border-red-200",
+};
+
+const SOURCE_META: Record<string, { label: string; Icon: typeof FileText }> = {
+  consistency_findings: { label: "Consistency engine", Icon: ShieldCheck },
+  manual_review_queue: { label: "Manual review queue", Icon: Cpu },
+  device_telemetry_alerts: { label: "Device telemetry", Icon: AlertTriangle },
+  documents: { label: "Document verification", Icon: FileText },
+};
+
+interface EvidenceRecord {
+  recorded_at?: string | null;
+  fields: Array<{ key: string; value: string }>;
+  notFound?: boolean;
+}
+
+const fmtVal = (v: unknown): string => {
+  if (v === null || v === undefined) return "—";
+  if (typeof v === "object") {
+    try { return JSON.stringify(v); } catch { return String(v); }
+  }
+  return String(v);
+};
+
+async function fetchEvidence(signal: Signal, userId?: string | null): Promise<EvidenceRecord> {
+  const ref = signal.evidence_ref || {};
+  const source = ref.source as string | undefined;
+  if (!source) return { fields: [], notFound: true };
+  try {
+    if (source === "consistency_findings" && userId && ref.rule_id) {
+      const { data } = await (supabase.from as any)("consistency_findings")
+        .select("rule_id, rule_name, rule_category, severity, confidence_impact, description, detected_at, created_at, resolved")
+        .eq("user_id", userId).eq("rule_id", ref.rule_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (!data) return { fields: [], notFound: true };
+      return {
+        recorded_at: data.detected_at || data.created_at,
+        fields: [
+          { key: "Rule", value: `${data.rule_name} (${data.rule_id})` },
+          { key: "Category", value: fmtVal(data.rule_category) },
+          { key: "Severity", value: fmtVal(data.severity) },
+          { key: "Confidence impact", value: fmtVal(data.confidence_impact) },
+          { key: "Resolved", value: data.resolved ? "yes" : "no" },
+          { key: "Description", value: fmtVal(data.description) },
+        ],
+      };
+    }
+    if (source === "manual_review_queue" && userId && ref.file_name) {
+      const { data } = await (supabase.from as any)("manual_review_queue")
+        .select("file_name, ai_confidence, ai_generated_likelihood, ai_summary, status, created_at, updated_at")
+        .eq("user_id", userId).eq("file_name", ref.file_name).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (!data) return { fields: [], notFound: true };
+      return {
+        recorded_at: data.updated_at || data.created_at,
+        fields: [
+          { key: "File", value: fmtVal(data.file_name) },
+          { key: "AI likelihood", value: fmtVal(data.ai_generated_likelihood) },
+          { key: "AI confidence", value: `${fmtVal(data.ai_confidence)}%` },
+          { key: "Status", value: fmtVal(data.status) },
+          { key: "Summary", value: fmtVal(data.ai_summary) },
+        ],
+      };
+    }
+    if (source === "device_telemetry_alerts" && userId && ref.alert_type) {
+      const { data } = await (supabase.from as any)("device_telemetry_alerts")
+        .select("rule_name, severity, alert_type, description, resolved, created_at")
+        .eq("user_id", userId).eq("alert_type", ref.alert_type).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (!data) return { fields: [], notFound: true };
+      return {
+        recorded_at: data.created_at,
+        fields: [
+          { key: "Rule", value: fmtVal(data.rule_name) },
+          { key: "Alert type", value: fmtVal(data.alert_type) },
+          { key: "Severity", value: fmtVal(data.severity) },
+          { key: "Resolved", value: data.resolved ? "yes" : "no" },
+          { key: "Description", value: fmtVal(data.description) },
+        ],
+      };
+    }
+    if (source === "documents" && userId && ref.file_name) {
+      const { data } = await (supabase.from as any)("documents")
+        .select("file_name, is_verified, verification_result, uploaded_at, created_at")
+        .eq("user_id", userId).eq("file_name", ref.file_name).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (!data) return { fields: [], notFound: true };
+      const vr = (data.verification_result as any) || {};
+      const issues = Array.isArray(vr.issues) ? vr.issues : [];
+      return {
+        recorded_at: data.uploaded_at || data.created_at,
+        fields: [
+          { key: "File", value: fmtVal(data.file_name) },
+          { key: "Verified", value: data.is_verified ? "yes" : "no" },
+          { key: "Issues", value: String(issues.length) },
+          ...(issues.slice(0, 3).map((i: any, idx: number) => ({
+            key: `Issue ${idx + 1}`,
+            value: typeof i === "string" ? i : fmtVal(i?.message ?? i),
+          }))),
+        ],
+      };
+    }
+  } catch (e) {
+    console.error("[FraudRiskPanel] fetchEvidence failed", e);
+  }
+  return { fields: [], notFound: true };
+}
+
+const SignalRow = ({ signal, userId }: { signal: Signal; userId?: string | null }) => {
+  const [open, setOpen] = useState(false);
+  const [evidence, setEvidence] = useState<EvidenceRecord | null>(null);
+  const [loading, setLoading] = useState(false);
+  const sourceKey = (signal.evidence_ref?.source as string) || "";
+  const meta = SOURCE_META[sourceKey];
+  const SourceIcon = meta?.Icon || FileText;
+
+  const onToggle = async (next: boolean) => {
+    setOpen(next);
+    if (next && !evidence) {
+      setLoading(true);
+      const ev = await fetchEvidence(signal, userId);
+      setEvidence(ev);
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Collapsible open={open} onOpenChange={onToggle} className={`border rounded ${sevStyle[signal.severity]}`}>
+      <CollapsibleTrigger className="w-full text-left p-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <SourceIcon className="h-3.5 w-3.5 shrink-0 opacity-80" />
+            <p className="text-xs font-semibold truncate">{signal.label}</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-[10px] tabular-nums opacity-80">+{signal._contribution ?? signal.weight}</span>
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+          </div>
+        </div>
+        <p className="text-[11px] mt-0.5 opacity-90">{signal.detail}</p>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="px-2 pb-2">
+        <div className="bg-white/70 border border-current/10 rounded p-2 mt-1 space-y-2">
+          <div className="flex items-center justify-between gap-2 text-[10px] uppercase tracking-wider opacity-70">
+            <span>Source · {meta?.label || sourceKey || "unknown"}</span>
+            {evidence?.recorded_at && (
+              <span className="flex items-center gap-1 normal-case tracking-normal">
+                <Clock className="h-3 w-3" />
+                {formatDistanceToNow(new Date(evidence.recorded_at), { addSuffix: true })}
+              </span>
+            )}
+          </div>
+          {loading && <p className="text-[11px] opacity-70">Loading evidence…</p>}
+          {!loading && evidence?.notFound && (
+            <p className="text-[11px] opacity-70">
+              Underlying record not available (may be RLS-restricted or since cleared). Reference:
+              <code className="ml-1 font-mono text-[10px] break-all">{JSON.stringify(signal.evidence_ref || {})}</code>
+            </p>
+          )}
+          {!loading && evidence && !evidence.notFound && (
+            <dl className="grid grid-cols-[110px_1fr] gap-x-2 gap-y-1 text-[11px]">
+              {evidence.fields.map((f) => (
+                <div key={f.key} className="contents">
+                  <dt className="opacity-70">{f.key}</dt>
+                  <dd className="font-mono break-words">{f.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
 };
 
 export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantName }: Props) => {
@@ -118,19 +296,13 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
           </div>
 
           <div className="space-y-2">
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider">Top Contributing Signals</p>
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider">Top Contributing Signals · click to drill down</p>
             {latest.top_signals.length === 0 ? (
               <p className="text-xs text-slate-500">No signals contributing to risk — clean evidence baseline.</p>
             ) : (
               <div className="space-y-1.5">
                 {latest.top_signals.map((s) => (
-                  <div key={s.code} className={`border rounded p-2 ${sevStyle[s.severity]}`}>
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold">{s.label}</p>
-                      <span className="text-[10px] tabular-nums opacity-80">+{s._contribution ?? s.weight}</span>
-                    </div>
-                    <p className="text-[11px] mt-0.5 opacity-90">{s.detail}</p>
-                  </div>
+                  <SignalRow key={s.code} signal={s} userId={userId} />
                 ))}
               </div>
             )}
