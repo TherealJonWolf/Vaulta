@@ -78,6 +78,7 @@ Free tier: 3 docs limit enforced via real-time check. Premium: Unlimited.
 - [Realtime publication](mem://security/realtime-publication-policy) — Exclusion of sensitive/PII tables from supabase_realtime
 - [Technical overview](mem://documentation/technical-overview) — Vaulta_Technical_Product_Overview.md location
 - [MFA admin reset](mem://technical/auth/mfa-admin-reset) — admin-reset-mfa edge function for force-deleting TOTP factors
+- [Fraud-Risk Engine](mem://features/fraud-risk-engine) — Phase 3 weighted aggregator table + institutional Fraud-Risk Panel
 - [Trust provenance](mem://features/trust-provenance) — Immutable trust_events audit log + Trust Timeline UI (additive to trust score)
 - [Decision-grade review](mem://features/institutional/decision-grade-review) — Risk badges, Judge's Bench, decision narrative panel, Verified Income seal
 - [Intake expiry window](mem://features/institutional/intake-expiry) — Configurable 24/48/72h intake window with tenant countdown
