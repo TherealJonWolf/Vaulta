@@ -15,6 +15,7 @@ import { deriveRiskBadges, badgeStyle } from "@/lib/riskBadges";
 import { DecisionNarrativePanel } from "./DecisionNarrativePanel";
 import { VerifiedIncomeSeal } from "./VerifiedIncomeSeal";
 import { recordReviewAction } from "../lib/reviewLog";
+import { FraudRiskPanel } from "./FraudRiskPanel";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -246,6 +247,12 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
               trustScore={submission.trust_score}
               documentCount={submission.document_count}
               documentTypes={submission.document_types || []}
+            />
+
+            <FraudRiskPanel
+              submissionId={submission.id}
+              institutionId={institutionId}
+              applicantName={submission.applicant_name}
             />
 
             {riskBadges.length > 0 && (
