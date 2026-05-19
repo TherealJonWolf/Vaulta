@@ -156,11 +156,13 @@ const SignalRow = ({
   signal,
   userId,
   cached,
+  cachedAt,
   onCache,
 }: {
   signal: Signal;
   userId?: string | null;
   cached?: EvidenceRecord;
+  cachedAt?: number;
   onCache?: (ev: EvidenceRecord) => void;
 }) => {
   const [open, setOpen] = useState(false);
@@ -169,9 +171,11 @@ const SignalRow = ({
   const meta = SOURCE_META[sourceKey];
   const SourceIcon = meta?.Icon || FileText;
 
+  const isStale = cachedAt === undefined || Date.now() - cachedAt > EVIDENCE_TTL_MS;
+
   const onToggle = async (next: boolean) => {
     setOpen(next);
-    if (next && !cached) {
+    if (next && (!cached || isStale)) {
       setLoading(true);
       const ev = await fetchEvidence(signal, userId);
       onCache?.(ev);
