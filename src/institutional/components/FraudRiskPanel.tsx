@@ -316,7 +316,13 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
             ) : (
               <div className="space-y-1.5">
                 {latest.top_signals.map((s) => (
-                  <SignalRow key={s.code} signal={s} userId={userId} />
+                  <SignalRow
+                    key={s.code}
+                    signal={s}
+                    userId={userId}
+                    cached={evidenceCache[s.code]}
+                    onCache={(ev) => setEvidenceCache((prev) => ({ ...prev, [s.code]: ev }))}
+                  />
                 ))}
               </div>
             )}
