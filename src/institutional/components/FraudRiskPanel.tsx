@@ -150,9 +150,18 @@ async function fetchEvidence(signal: Signal, userId?: string | null): Promise<Ev
   return { fields: [], notFound: true };
 }
 
-const SignalRow = ({ signal, userId }: { signal: Signal; userId?: string | null }) => {
+const SignalRow = ({
+  signal,
+  userId,
+  cached,
+  onCache,
+}: {
+  signal: Signal;
+  userId?: string | null;
+  cached?: EvidenceRecord;
+  onCache?: (ev: EvidenceRecord) => void;
+}) => {
   const [open, setOpen] = useState(false);
-  const [evidence, setEvidence] = useState<EvidenceRecord | null>(null);
   const [loading, setLoading] = useState(false);
   const sourceKey = (signal.evidence_ref?.source as string) || "";
   const meta = SOURCE_META[sourceKey];
@@ -160,10 +169,10 @@ const SignalRow = ({ signal, userId }: { signal: Signal; userId?: string | null 
 
   const onToggle = async (next: boolean) => {
     setOpen(next);
-    if (next && !evidence) {
+    if (next && !cached) {
       setLoading(true);
       const ev = await fetchEvidence(signal, userId);
-      setEvidence(ev);
+      onCache?.(ev);
       setLoading(false);
     }
   };
