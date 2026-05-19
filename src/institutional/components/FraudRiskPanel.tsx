@@ -150,9 +150,18 @@ async function fetchEvidence(signal: Signal, userId?: string | null): Promise<Ev
   return { fields: [], notFound: true };
 }
 
-const SignalRow = ({ signal, userId }: { signal: Signal; userId?: string | null }) => {
+const SignalRow = ({
+  signal,
+  userId,
+  cached,
+  onCache,
+}: {
+  signal: Signal;
+  userId?: string | null;
+  cached?: EvidenceRecord;
+  onCache?: (ev: EvidenceRecord) => void;
+}) => {
   const [open, setOpen] = useState(false);
-  const [evidence, setEvidence] = useState<EvidenceRecord | null>(null);
   const [loading, setLoading] = useState(false);
   const sourceKey = (signal.evidence_ref?.source as string) || "";
   const meta = SOURCE_META[sourceKey];
@@ -160,10 +169,10 @@ const SignalRow = ({ signal, userId }: { signal: Signal; userId?: string | null 
 
   const onToggle = async (next: boolean) => {
     setOpen(next);
-    if (next && !evidence) {
+    if (next && !cached) {
       setLoading(true);
       const ev = await fetchEvidence(signal, userId);
-      setEvidence(ev);
+      onCache?.(ev);
       setLoading(false);
     }
   };
@@ -187,23 +196,23 @@ const SignalRow = ({ signal, userId }: { signal: Signal; userId?: string | null 
         <div className="bg-white/70 border border-current/10 rounded p-2 mt-1 space-y-2">
           <div className="flex items-center justify-between gap-2 text-[10px] uppercase tracking-wider opacity-70">
             <span>Source · {meta?.label || sourceKey || "unknown"}</span>
-            {evidence?.recorded_at && (
+            {cached?.recorded_at && (
               <span className="flex items-center gap-1 normal-case tracking-normal">
                 <Clock className="h-3 w-3" />
-                {formatDistanceToNow(new Date(evidence.recorded_at), { addSuffix: true })}
+                {formatDistanceToNow(new Date(cached.recorded_at), { addSuffix: true })}
               </span>
             )}
           </div>
           {loading && <p className="text-[11px] opacity-70">Loading evidence…</p>}
-          {!loading && evidence?.notFound && (
+          {!loading && cached?.notFound && (
             <p className="text-[11px] opacity-70">
               Underlying record not available (may be RLS-restricted or since cleared). Reference:
               <code className="ml-1 font-mono text-[10px] break-all">{JSON.stringify(signal.evidence_ref || {})}</code>
             </p>
           )}
-          {!loading && evidence && !evidence.notFound && (
+          {!loading && cached && !cached.notFound && (
             <dl className="grid grid-cols-[110px_1fr] gap-x-2 gap-y-1 text-[11px]">
-              {evidence.fields.map((f) => (
+              {cached.fields.map((f) => (
                 <div key={f.key} className="contents">
                   <dt className="opacity-70">{f.key}</dt>
                   <dd className="font-mono break-words">{f.value}</dd>
@@ -221,6 +230,7 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
   const [latest, setLatest] = useState<Assessment | null>(null);
   const [loading, setLoading] = useState(false);
   const [computing, setComputing] = useState(false);
+  const [evidenceCache, setEvidenceCache] = useState<Record<string, EvidenceRecord>>({});
 
   const fetchLatest = useCallback(async () => {
     if (!submissionId && !userId) return;
@@ -237,6 +247,10 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
   }, [submissionId, userId]);
 
   useEffect(() => { fetchLatest(); }, [fetchLatest]);
+
+  useEffect(() => {
+    setEvidenceCache({});
+  }, [latest?.id, userId]);
 
   const compute = async () => {
     setComputing(true);
@@ -302,7 +316,13 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
             ) : (
               <div className="space-y-1.5">
                 {latest.top_signals.map((s) => (
-                  <SignalRow key={s.code} signal={s} userId={userId} />
+                  <SignalRow
+                    key={s.code}
+                    signal={s}
+                    userId={userId}
+                    cached={evidenceCache[s.code]}
+                    onCache={(ev) => setEvidenceCache((prev) => ({ ...prev, [s.code]: ev }))}
+                  />
                 ))}
               </div>
             )}
