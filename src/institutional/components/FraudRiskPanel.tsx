@@ -230,6 +230,7 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
   const [latest, setLatest] = useState<Assessment | null>(null);
   const [loading, setLoading] = useState(false);
   const [computing, setComputing] = useState(false);
+  const [evidenceCache, setEvidenceCache] = useState<Record<string, EvidenceRecord>>({});
 
   const fetchLatest = useCallback(async () => {
     if (!submissionId && !userId) return;
@@ -246,6 +247,10 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
   }, [submissionId, userId]);
 
   useEffect(() => { fetchLatest(); }, [fetchLatest]);
+
+  useEffect(() => {
+    setEvidenceCache({});
+  }, [latest?.id, userId]);
 
   const compute = async () => {
     setComputing(true);
