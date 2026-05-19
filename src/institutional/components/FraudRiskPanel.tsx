@@ -42,6 +42,8 @@ interface Props {
   applicantName?: string | null;
 }
 
+const EVIDENCE_TTL_MS = 5 * 60 * 1000;
+
 const sevStyle: Record<Assessment["severity"], string> = {
   low: "bg-emerald-50 text-emerald-800 border-emerald-200",
   moderate: "bg-amber-50 text-amber-800 border-amber-200",
