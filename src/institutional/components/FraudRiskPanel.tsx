@@ -42,6 +42,8 @@ interface Props {
   applicantName?: string | null;
 }
 
+const EVIDENCE_TTL_MS = 5 * 60 * 1000;
+
 const sevStyle: Record<Assessment["severity"], string> = {
   low: "bg-emerald-50 text-emerald-800 border-emerald-200",
   moderate: "bg-amber-50 text-amber-800 border-amber-200",
@@ -154,11 +156,13 @@ const SignalRow = ({
   signal,
   userId,
   cached,
+  cachedAt,
   onCache,
 }: {
   signal: Signal;
   userId?: string | null;
   cached?: EvidenceRecord;
+  cachedAt?: number;
   onCache?: (ev: EvidenceRecord) => void;
 }) => {
   const [open, setOpen] = useState(false);
@@ -167,9 +171,11 @@ const SignalRow = ({
   const meta = SOURCE_META[sourceKey];
   const SourceIcon = meta?.Icon || FileText;
 
+  const isStale = cachedAt === undefined || Date.now() - cachedAt > EVIDENCE_TTL_MS;
+
   const onToggle = async (next: boolean) => {
     setOpen(next);
-    if (next && !cached) {
+    if (next && (!cached || isStale)) {
       setLoading(true);
       const ev = await fetchEvidence(signal, userId);
       onCache?.(ev);
@@ -230,7 +236,7 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
   const [latest, setLatest] = useState<Assessment | null>(null);
   const [loading, setLoading] = useState(false);
   const [computing, setComputing] = useState(false);
-  const [evidenceCache, setEvidenceCache] = useState<Record<string, EvidenceRecord>>({});
+  const [evidenceCache, setEvidenceCache] = useState<Record<string, { record: EvidenceRecord; ts: number }>>({});
 
   const fetchLatest = useCallback(async () => {
     if (!submissionId && !userId) return;
@@ -320,8 +326,9 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
                     key={s.code}
                     signal={s}
                     userId={userId}
-                    cached={evidenceCache[s.code]}
-                    onCache={(ev) => setEvidenceCache((prev) => ({ ...prev, [s.code]: ev }))}
+                    cached={evidenceCache[s.code]?.record}
+                    cachedAt={evidenceCache[s.code]?.ts}
+                    onCache={(ev) => setEvidenceCache((prev) => ({ ...prev, [s.code]: { record: ev, ts: Date.now() } }))}
                   />
                 ))}
               </div>
