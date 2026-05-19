@@ -326,8 +326,9 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
                     key={s.code}
                     signal={s}
                     userId={userId}
-                    cached={evidenceCache[s.code]}
-                    onCache={(ev) => setEvidenceCache((prev) => ({ ...prev, [s.code]: ev }))}
+                    cached={evidenceCache[s.code]?.record}
+                    cachedAt={evidenceCache[s.code]?.ts}
+                    onCache={(ev) => setEvidenceCache((prev) => ({ ...prev, [s.code]: { record: ev, ts: Date.now() } }))}
                   />
                 ))}
               </div>
