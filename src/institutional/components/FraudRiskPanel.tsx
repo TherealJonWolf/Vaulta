@@ -236,7 +236,7 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
   const [latest, setLatest] = useState<Assessment | null>(null);
   const [loading, setLoading] = useState(false);
   const [computing, setComputing] = useState(false);
-  const [evidenceCache, setEvidenceCache] = useState<Record<string, EvidenceRecord>>({});
+  const [evidenceCache, setEvidenceCache] = useState<Record<string, { record: EvidenceRecord; ts: number }>>({});
 
   const fetchLatest = useCallback(async () => {
     if (!submissionId && !userId) return;
