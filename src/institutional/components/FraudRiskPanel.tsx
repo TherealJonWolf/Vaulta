@@ -258,6 +258,31 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
     setEvidenceCache({});
   }, [latest?.id, userId]);
 
+  // Prefetch evidence for the top 3 signals so first expand is instant.
+  useEffect(() => {
+    if (!latest?.top_signals?.length) return;
+    let cancelled = false;
+    const targets = latest.top_signals.slice(0, 3);
+    (async () => {
+      const results = await Promise.all(
+        targets
+          .filter((s) => !evidenceCache[s.code])
+          .map(async (s) => ({ code: s.code, record: await fetchEvidence(s, userId) }))
+      );
+      if (cancelled || results.length === 0) return;
+      const ts = Date.now();
+      setEvidenceCache((prev) => {
+        const next = { ...prev };
+        for (const { code, record } of results) {
+          if (!next[code]) next[code] = { record, ts };
+        }
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [latest?.id, userId]);
+
   const compute = async () => {
     setComputing(true);
     try {
