@@ -43,6 +43,38 @@ interface Props {
 }
 
 const EVIDENCE_TTL_MS = 5 * 60 * 1000;
+const EVIDENCE_STORAGE_PREFIX = "vaulta:fraud-evidence:";
+
+type CacheMap = Record<string, { record: EvidenceRecord; ts: number }>;
+
+const storageKeyFor = (assessmentId?: string | null, userId?: string | null) =>
+  `${EVIDENCE_STORAGE_PREFIX}${assessmentId || "none"}:${userId || "anon"}`;
+
+const loadCacheFromSession = (assessmentId?: string | null, userId?: string | null): CacheMap => {
+  if (typeof window === "undefined" || !assessmentId) return {};
+  try {
+    const raw = window.sessionStorage.getItem(storageKeyFor(assessmentId, userId));
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as CacheMap;
+    const now = Date.now();
+    const fresh: CacheMap = {};
+    for (const [k, v] of Object.entries(parsed)) {
+      if (v && typeof v.ts === "number" && now - v.ts <= EVIDENCE_TTL_MS) fresh[k] = v;
+    }
+    return fresh;
+  } catch {
+    return {};
+  }
+};
+
+const saveCacheToSession = (assessmentId: string | null | undefined, userId: string | null | undefined, cache: CacheMap) => {
+  if (typeof window === "undefined" || !assessmentId) return;
+  try {
+    window.sessionStorage.setItem(storageKeyFor(assessmentId, userId), JSON.stringify(cache));
+  } catch {
+    // quota or serialization failure — silent, cache stays in-memory
+  }
+};
 
 const sevStyle: Record<Assessment["severity"], string> = {
   low: "bg-emerald-50 text-emerald-800 border-emerald-200",
@@ -236,7 +268,7 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
   const [latest, setLatest] = useState<Assessment | null>(null);
   const [loading, setLoading] = useState(false);
   const [computing, setComputing] = useState(false);
-  const [evidenceCache, setEvidenceCache] = useState<Record<string, { record: EvidenceRecord; ts: number }>>({});
+  const [evidenceCache, setEvidenceCache] = useState<CacheMap>({});
 
   const fetchLatest = useCallback(async () => {
     if (!submissionId && !userId) return;
@@ -255,8 +287,16 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
   useEffect(() => { fetchLatest(); }, [fetchLatest]);
 
   useEffect(() => {
-    setEvidenceCache({});
+    // Rehydrate from sessionStorage when the assessment changes so navigating
+    // away and back reuses the previously fetched evidence (within TTL).
+    setEvidenceCache(loadCacheFromSession(latest?.id, userId));
   }, [latest?.id, userId]);
+
+  // Persist cache to sessionStorage whenever it changes.
+  useEffect(() => {
+    if (!latest?.id) return;
+    saveCacheToSession(latest.id, userId, evidenceCache);
+  }, [evidenceCache, latest?.id, userId]);
 
   // Prefetch evidence for the top 3 signals so first expand is instant.
   useEffect(() => {
