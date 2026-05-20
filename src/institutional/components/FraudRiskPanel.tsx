@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -205,13 +205,35 @@ const SignalRow = ({
 
   const isStale = cachedAt === undefined || Date.now() - cachedAt > EVIDENCE_TTL_MS;
 
+  // Race protection: every fetch gets a monotonic token. Only the most recent
+  // token is allowed to write to the cache / clear the loading state, so
+  // rapid expand/collapse never lets a stale fetch overwrite a newer one.
+  const requestSeqRef = useRef(0);
+  const activeRequestRef = useRef(0);
+
+  useEffect(() => {
+    // On unmount, invalidate any in-flight request.
+    return () => { activeRequestRef.current = -1; };
+  }, []);
+
   const onToggle = async (next: boolean) => {
     setOpen(next);
-    if (next && (!cached || isStale)) {
-      setLoading(true);
-      const ev = await fetchEvidence(signal, userId);
-      onCache?.(ev);
+    if (!next) {
+      // Collapsing cancels any in-flight fetch for this row.
+      activeRequestRef.current = -1;
       setLoading(false);
+      return;
+    }
+    if (cached && !isStale) return;
+    const token = ++requestSeqRef.current;
+    activeRequestRef.current = token;
+    setLoading(true);
+    try {
+      const ev = await fetchEvidence(signal, userId);
+      if (activeRequestRef.current !== token) return; // superseded or cancelled
+      onCache?.(ev);
+    } finally {
+      if (activeRequestRef.current === token) setLoading(false);
     }
   };
 
