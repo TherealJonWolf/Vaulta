@@ -6,6 +6,7 @@ import { ShieldAlert, RefreshCw, Hash, ChevronDown, FileText, Cpu, AlertTriangle
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { createRaceGuard } from "@/institutional/lib/raceGuardedFetch";
 
 interface Signal {
   code: string;
@@ -222,47 +223,31 @@ const SignalRow = ({
   const requestSeqRef = useRef(0);
   const activeRequestRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
+  const guardRef = useRef<ReturnType<typeof createRaceGuard<EvidenceRecord>> | null>(null);
+  if (!guardRef.current) {
+    guardRef.current = createRaceGuard<EvidenceRecord>({
+      onResult: (ev) => onCache?.(ev),
+      onError: (e) => setError((e as { message?: string })?.message || "Failed to load evidence"),
+      onLoadingChange: setLoading,
+    });
+  }
 
   useEffect(() => {
     // On unmount, invalidate and abort any in-flight request.
-    return () => {
-      activeRequestRef.current = -1;
-      abortRef.current?.abort();
-      abortRef.current = null;
-    };
+    const guard = guardRef.current;
+    return () => { guard?.cancel(); };
   }, []);
 
   const runFetch = async () => {
-    // Abort any previous in-flight fetch before starting a new one.
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const token = ++requestSeqRef.current;
-    activeRequestRef.current = token;
     setError(null);
-    setLoading(true);
-    try {
-      const ev = await fetchEvidence(signal, userId, controller.signal);
-      if (activeRequestRef.current !== token) return;
-      onCache?.(ev);
-    } catch (e) {
-      if ((e as any)?.name === "AbortError") return;
-      if (activeRequestRef.current !== token) return;
-      setError((e as any)?.message || "Failed to load evidence");
-    } finally {
-      if (activeRequestRef.current === token) setLoading(false);
-      if (abortRef.current === controller) abortRef.current = null;
-    }
+    await guardRef.current!.run((sig) => fetchEvidence(signal, userId, sig));
   };
 
   const onToggle = async (next: boolean) => {
     setOpen(next);
     if (!next) {
       // Collapsing truly aborts any in-flight fetch for this row.
-      activeRequestRef.current = -1;
-      abortRef.current?.abort();
-      abortRef.current = null;
-      setLoading(false);
+      guardRef.current?.cancel();
       setError(null);
       return;
     }
