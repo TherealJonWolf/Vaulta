@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ShieldAlert, RefreshCw, Hash, ChevronDown, FileText, Cpu, AlertTriangle, ShieldCheck, Clock } from "lucide-react";
+import { ShieldAlert, RefreshCw, Hash, ChevronDown, FileText, Cpu, AlertTriangle, ShieldCheck, Clock, AlertCircle, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -188,6 +188,8 @@ async function fetchEvidence(signal: Signal, userId?: string | null, signalAbort
       throw e;
     }
     console.error("[FraudRiskPanel] fetchEvidence failed", e);
+    // Surface to caller so the UI can show an error + retry affordance.
+    throw e;
   }
   return { fields: [], notFound: true };
 }
@@ -207,6 +209,7 @@ const SignalRow = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const sourceKey = (signal.evidence_ref?.source as string) || "";
   const meta = SOURCE_META[sourceKey];
   const SourceIcon = meta?.Icon || FileText;
@@ -229,6 +232,29 @@ const SignalRow = ({
     };
   }, []);
 
+  const runFetch = async () => {
+    // Abort any previous in-flight fetch before starting a new one.
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const token = ++requestSeqRef.current;
+    activeRequestRef.current = token;
+    setError(null);
+    setLoading(true);
+    try {
+      const ev = await fetchEvidence(signal, userId, controller.signal);
+      if (activeRequestRef.current !== token) return;
+      onCache?.(ev);
+    } catch (e) {
+      if ((e as any)?.name === "AbortError") return;
+      if (activeRequestRef.current !== token) return;
+      setError((e as any)?.message || "Failed to load evidence");
+    } finally {
+      if (activeRequestRef.current === token) setLoading(false);
+      if (abortRef.current === controller) abortRef.current = null;
+    }
+  };
+
   const onToggle = async (next: boolean) => {
     setOpen(next);
     if (!next) {
@@ -237,26 +263,11 @@ const SignalRow = ({
       abortRef.current?.abort();
       abortRef.current = null;
       setLoading(false);
+      setError(null);
       return;
     }
     if (cached && !isStale) return;
-    // Abort any previous in-flight fetch before starting a new one.
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const token = ++requestSeqRef.current;
-    activeRequestRef.current = token;
-    setLoading(true);
-    try {
-      const ev = await fetchEvidence(signal, userId, controller.signal);
-      if (activeRequestRef.current !== token) return; // superseded or cancelled
-      onCache?.(ev);
-    } catch (e) {
-      if ((e as any)?.name !== "AbortError") throw e;
-    } finally {
-      if (activeRequestRef.current === token) setLoading(false);
-      if (abortRef.current === controller) abortRef.current = null;
-    }
+    await runFetch();
   };
 
   return (
@@ -286,13 +297,33 @@ const SignalRow = ({
             )}
           </div>
           {loading && <p className="text-[11px] opacity-70">Loading evidence…</p>}
-          {!loading && cached?.notFound && (
+          {!loading && error && (
+            <div className="flex items-start justify-between gap-2 rounded border border-red-200 bg-red-50 p-2">
+              <div className="flex items-start gap-1.5 min-w-0">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-red-600" />
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium text-red-800">Couldn't load evidence</p>
+                  <p className="text-[10px] text-red-700/80 break-words">{error}</p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 px-2 text-[10px] border-red-300 text-red-700 hover:bg-red-100 shrink-0"
+                onClick={(e) => { e.stopPropagation(); runFetch(); }}
+              >
+                <RotateCcw className="h-3 w-3 mr-1" />
+                Retry
+              </Button>
+            </div>
+          )}
+          {!loading && !error && cached?.notFound && (
             <p className="text-[11px] opacity-70">
               Underlying record not available (may be RLS-restricted or since cleared). Reference:
               <code className="ml-1 font-mono text-[10px] break-all">{JSON.stringify(signal.evidence_ref || {})}</code>
             </p>
           )}
-          {!loading && cached && !cached.notFound && (
+          {!loading && !error && cached && !cached.notFound && (
             <dl className="grid grid-cols-[110px_1fr] gap-x-2 gap-y-1 text-[11px]">
               {cached.fields.map((f) => (
                 <div key={f.key} className="contents">
@@ -357,7 +388,9 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
         );
       } catch (e) {
         if ((e as any)?.name === "AbortError") return;
-        throw e;
+        // Prefetch is best-effort — swallow errors; the user can retry on expand.
+        console.warn("[FraudRiskPanel] prefetch failed", e);
+        return;
       }
       if (controller.signal.aborted || results.length === 0) return;
       const ts = Date.now();
