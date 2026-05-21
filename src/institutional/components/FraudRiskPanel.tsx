@@ -110,9 +110,10 @@ async function fetchEvidence(signal: Signal, userId?: string | null): Promise<Ev
   if (!source) return { fields: [], notFound: true };
   try {
     if (source === "consistency_findings" && userId && ref.rule_id) {
-      const { data } = await (supabase.from as any)("consistency_findings")
+      const q = (supabase.from as any)("consistency_findings")
         .select("rule_id, rule_name, rule_category, severity, confidence_impact, description, detected_at, created_at, resolved")
         .eq("user_id", userId).eq("rule_id", ref.rule_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data } = signalAbort ? await q.abortSignal(signalAbort) : await q;
       if (!data) return { fields: [], notFound: true };
       return {
         recorded_at: data.detected_at || data.created_at,
@@ -127,9 +128,10 @@ async function fetchEvidence(signal: Signal, userId?: string | null): Promise<Ev
       };
     }
     if (source === "manual_review_queue" && userId && ref.file_name) {
-      const { data } = await (supabase.from as any)("manual_review_queue")
+      const q = (supabase.from as any)("manual_review_queue")
         .select("file_name, ai_confidence, ai_generated_likelihood, ai_summary, status, created_at, updated_at")
         .eq("user_id", userId).eq("file_name", ref.file_name).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data } = signalAbort ? await q.abortSignal(signalAbort) : await q;
       if (!data) return { fields: [], notFound: true };
       return {
         recorded_at: data.updated_at || data.created_at,
@@ -143,9 +145,10 @@ async function fetchEvidence(signal: Signal, userId?: string | null): Promise<Ev
       };
     }
     if (source === "device_telemetry_alerts" && userId && ref.alert_type) {
-      const { data } = await (supabase.from as any)("device_telemetry_alerts")
+      const q = (supabase.from as any)("device_telemetry_alerts")
         .select("rule_name, severity, alert_type, description, resolved, created_at")
         .eq("user_id", userId).eq("alert_type", ref.alert_type).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data } = signalAbort ? await q.abortSignal(signalAbort) : await q;
       if (!data) return { fields: [], notFound: true };
       return {
         recorded_at: data.created_at,
@@ -159,9 +162,10 @@ async function fetchEvidence(signal: Signal, userId?: string | null): Promise<Ev
       };
     }
     if (source === "documents" && userId && ref.file_name) {
-      const { data } = await (supabase.from as any)("documents")
+      const q = (supabase.from as any)("documents")
         .select("file_name, is_verified, verification_result, uploaded_at, created_at")
         .eq("user_id", userId).eq("file_name", ref.file_name).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data } = signalAbort ? await q.abortSignal(signalAbort) : await q;
       if (!data) return { fields: [], notFound: true };
       const vr = (data.verification_result as any) || {};
       const issues = Array.isArray(vr.issues) ? vr.issues : [];
@@ -179,6 +183,10 @@ async function fetchEvidence(signal: Signal, userId?: string | null): Promise<Ev
       };
     }
   } catch (e) {
+    if ((e as any)?.name === "AbortError") {
+      // Cancellation is expected when the user collapses or switches signals.
+      throw e;
+    }
     console.error("[FraudRiskPanel] fetchEvidence failed", e);
   }
   return { fields: [], notFound: true };
