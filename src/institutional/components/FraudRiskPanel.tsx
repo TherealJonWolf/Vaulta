@@ -388,7 +388,9 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
         );
       } catch (e) {
         if ((e as any)?.name === "AbortError") return;
-        throw e;
+        // Prefetch is best-effort — swallow errors; the user can retry on expand.
+        console.warn("[FraudRiskPanel] prefetch failed", e);
+        return;
       }
       if (controller.signal.aborted || results.length === 0) return;
       const ts = Date.now();
