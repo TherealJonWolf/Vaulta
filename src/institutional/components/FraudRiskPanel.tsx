@@ -218,30 +218,44 @@ const SignalRow = ({
   // rapid expand/collapse never lets a stale fetch overwrite a newer one.
   const requestSeqRef = useRef(0);
   const activeRequestRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    // On unmount, invalidate any in-flight request.
-    return () => { activeRequestRef.current = -1; };
+    // On unmount, invalidate and abort any in-flight request.
+    return () => {
+      activeRequestRef.current = -1;
+      abortRef.current?.abort();
+      abortRef.current = null;
+    };
   }, []);
 
   const onToggle = async (next: boolean) => {
     setOpen(next);
     if (!next) {
-      // Collapsing cancels any in-flight fetch for this row.
+      // Collapsing truly aborts any in-flight fetch for this row.
       activeRequestRef.current = -1;
+      abortRef.current?.abort();
+      abortRef.current = null;
       setLoading(false);
       return;
     }
     if (cached && !isStale) return;
+    // Abort any previous in-flight fetch before starting a new one.
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     const token = ++requestSeqRef.current;
     activeRequestRef.current = token;
     setLoading(true);
     try {
-      const ev = await fetchEvidence(signal, userId);
+      const ev = await fetchEvidence(signal, userId, controller.signal);
       if (activeRequestRef.current !== token) return; // superseded or cancelled
       onCache?.(ev);
+    } catch (e) {
+      if ((e as any)?.name !== "AbortError") throw e;
     } finally {
       if (activeRequestRef.current === token) setLoading(false);
+      if (abortRef.current === controller) abortRef.current = null;
     }
   };
 
@@ -331,15 +345,21 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
   // Prefetch evidence for the top 3 signals so first expand is instant.
   useEffect(() => {
     if (!latest?.top_signals?.length) return;
-    let cancelled = false;
+    const controller = new AbortController();
     const targets = latest.top_signals.slice(0, 3);
     (async () => {
-      const results = await Promise.all(
-        targets
-          .filter((s) => !evidenceCache[s.code])
-          .map(async (s) => ({ code: s.code, record: await fetchEvidence(s, userId) }))
-      );
-      if (cancelled || results.length === 0) return;
+      let results: { code: string; record: EvidenceRecord }[] = [];
+      try {
+        results = await Promise.all(
+          targets
+            .filter((s) => !evidenceCache[s.code])
+            .map(async (s) => ({ code: s.code, record: await fetchEvidence(s, userId, controller.signal) }))
+        );
+      } catch (e) {
+        if ((e as any)?.name === "AbortError") return;
+        throw e;
+      }
+      if (controller.signal.aborted || results.length === 0) return;
       const ts = Date.now();
       setEvidenceCache((prev) => {
         const next = { ...prev };
@@ -349,7 +369,7 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
         return next;
       });
     })();
-    return () => { cancelled = true; };
+    return () => { controller.abort(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [latest?.id, userId]);
 
