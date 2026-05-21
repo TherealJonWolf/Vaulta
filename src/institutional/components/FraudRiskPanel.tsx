@@ -217,12 +217,8 @@ const SignalRow = ({
 
   const isStale = cachedAt === undefined || Date.now() - cachedAt > EVIDENCE_TTL_MS;
 
-  // Race protection: every fetch gets a monotonic token. Only the most recent
-  // token is allowed to write to the cache / clear the loading state, so
-  // rapid expand/collapse never lets a stale fetch overwrite a newer one.
-  const requestSeqRef = useRef(0);
-  const activeRequestRef = useRef(0);
-  const abortRef = useRef<AbortController | null>(null);
+  // Race protection: createRaceGuard ensures only the latest in-flight fetch
+  // can write to the cache / clear loading, even on rapid expand/collapse.
   const guardRef = useRef<ReturnType<typeof createRaceGuard<EvidenceRecord>> | null>(null);
   if (!guardRef.current) {
     guardRef.current = createRaceGuard<EvidenceRecord>({
