@@ -104,15 +104,16 @@ const fmtVal = (v: unknown): string => {
   return String(v);
 };
 
-async function fetchEvidence(signal: Signal, userId?: string | null): Promise<EvidenceRecord> {
+async function fetchEvidence(signal: Signal, userId?: string | null, signalAbort?: AbortSignal): Promise<EvidenceRecord> {
   const ref = signal.evidence_ref || {};
   const source = ref.source as string | undefined;
   if (!source) return { fields: [], notFound: true };
   try {
     if (source === "consistency_findings" && userId && ref.rule_id) {
-      const { data } = await (supabase.from as any)("consistency_findings")
+      const q = (supabase.from as any)("consistency_findings")
         .select("rule_id, rule_name, rule_category, severity, confidence_impact, description, detected_at, created_at, resolved")
         .eq("user_id", userId).eq("rule_id", ref.rule_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data } = signalAbort ? await q.abortSignal(signalAbort) : await q;
       if (!data) return { fields: [], notFound: true };
       return {
         recorded_at: data.detected_at || data.created_at,
@@ -127,9 +128,10 @@ async function fetchEvidence(signal: Signal, userId?: string | null): Promise<Ev
       };
     }
     if (source === "manual_review_queue" && userId && ref.file_name) {
-      const { data } = await (supabase.from as any)("manual_review_queue")
+      const q = (supabase.from as any)("manual_review_queue")
         .select("file_name, ai_confidence, ai_generated_likelihood, ai_summary, status, created_at, updated_at")
         .eq("user_id", userId).eq("file_name", ref.file_name).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data } = signalAbort ? await q.abortSignal(signalAbort) : await q;
       if (!data) return { fields: [], notFound: true };
       return {
         recorded_at: data.updated_at || data.created_at,
@@ -143,9 +145,10 @@ async function fetchEvidence(signal: Signal, userId?: string | null): Promise<Ev
       };
     }
     if (source === "device_telemetry_alerts" && userId && ref.alert_type) {
-      const { data } = await (supabase.from as any)("device_telemetry_alerts")
+      const q = (supabase.from as any)("device_telemetry_alerts")
         .select("rule_name, severity, alert_type, description, resolved, created_at")
         .eq("user_id", userId).eq("alert_type", ref.alert_type).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data } = signalAbort ? await q.abortSignal(signalAbort) : await q;
       if (!data) return { fields: [], notFound: true };
       return {
         recorded_at: data.created_at,
@@ -159,9 +162,10 @@ async function fetchEvidence(signal: Signal, userId?: string | null): Promise<Ev
       };
     }
     if (source === "documents" && userId && ref.file_name) {
-      const { data } = await (supabase.from as any)("documents")
+      const q = (supabase.from as any)("documents")
         .select("file_name, is_verified, verification_result, uploaded_at, created_at")
         .eq("user_id", userId).eq("file_name", ref.file_name).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data } = signalAbort ? await q.abortSignal(signalAbort) : await q;
       if (!data) return { fields: [], notFound: true };
       const vr = (data.verification_result as any) || {};
       const issues = Array.isArray(vr.issues) ? vr.issues : [];
@@ -179,6 +183,10 @@ async function fetchEvidence(signal: Signal, userId?: string | null): Promise<Ev
       };
     }
   } catch (e) {
+    if ((e as any)?.name === "AbortError") {
+      // Cancellation is expected when the user collapses or switches signals.
+      throw e;
+    }
     console.error("[FraudRiskPanel] fetchEvidence failed", e);
   }
   return { fields: [], notFound: true };
@@ -210,30 +218,44 @@ const SignalRow = ({
   // rapid expand/collapse never lets a stale fetch overwrite a newer one.
   const requestSeqRef = useRef(0);
   const activeRequestRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    // On unmount, invalidate any in-flight request.
-    return () => { activeRequestRef.current = -1; };
+    // On unmount, invalidate and abort any in-flight request.
+    return () => {
+      activeRequestRef.current = -1;
+      abortRef.current?.abort();
+      abortRef.current = null;
+    };
   }, []);
 
   const onToggle = async (next: boolean) => {
     setOpen(next);
     if (!next) {
-      // Collapsing cancels any in-flight fetch for this row.
+      // Collapsing truly aborts any in-flight fetch for this row.
       activeRequestRef.current = -1;
+      abortRef.current?.abort();
+      abortRef.current = null;
       setLoading(false);
       return;
     }
     if (cached && !isStale) return;
+    // Abort any previous in-flight fetch before starting a new one.
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     const token = ++requestSeqRef.current;
     activeRequestRef.current = token;
     setLoading(true);
     try {
-      const ev = await fetchEvidence(signal, userId);
+      const ev = await fetchEvidence(signal, userId, controller.signal);
       if (activeRequestRef.current !== token) return; // superseded or cancelled
       onCache?.(ev);
+    } catch (e) {
+      if ((e as any)?.name !== "AbortError") throw e;
     } finally {
       if (activeRequestRef.current === token) setLoading(false);
+      if (abortRef.current === controller) abortRef.current = null;
     }
   };
 
@@ -323,15 +345,21 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
   // Prefetch evidence for the top 3 signals so first expand is instant.
   useEffect(() => {
     if (!latest?.top_signals?.length) return;
-    let cancelled = false;
+    const controller = new AbortController();
     const targets = latest.top_signals.slice(0, 3);
     (async () => {
-      const results = await Promise.all(
-        targets
-          .filter((s) => !evidenceCache[s.code])
-          .map(async (s) => ({ code: s.code, record: await fetchEvidence(s, userId) }))
-      );
-      if (cancelled || results.length === 0) return;
+      let results: { code: string; record: EvidenceRecord }[] = [];
+      try {
+        results = await Promise.all(
+          targets
+            .filter((s) => !evidenceCache[s.code])
+            .map(async (s) => ({ code: s.code, record: await fetchEvidence(s, userId, controller.signal) }))
+        );
+      } catch (e) {
+        if ((e as any)?.name === "AbortError") return;
+        throw e;
+      }
+      if (controller.signal.aborted || results.length === 0) return;
       const ts = Date.now();
       setEvidenceCache((prev) => {
         const next = { ...prev };
@@ -341,7 +369,7 @@ export const FraudRiskPanel = ({ submissionId, userId, institutionId, applicantN
         return next;
       });
     })();
-    return () => { cancelled = true; };
+    return () => { controller.abort(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [latest?.id, userId]);
 
