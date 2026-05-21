@@ -104,7 +104,7 @@ const fmtVal = (v: unknown): string => {
   return String(v);
 };
 
-async function fetchEvidence(signal: Signal, userId?: string | null): Promise<EvidenceRecord> {
+async function fetchEvidence(signal: Signal, userId?: string | null, signalAbort?: AbortSignal): Promise<EvidenceRecord> {
   const ref = signal.evidence_ref || {};
   const source = ref.source as string | undefined;
   if (!source) return { fields: [], notFound: true };
