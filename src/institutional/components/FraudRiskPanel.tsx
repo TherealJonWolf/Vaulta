@@ -228,10 +228,19 @@ const SignalRow = ({
     });
   }
 
+  // Debounce rapid expand/collapse clicks so we don't kick off (and immediately
+  // cancel) fetches on every toggle. Side-effects run once the user settles.
+  const TOGGLE_DEBOUNCE_MS = 180;
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingOpenRef = useRef<boolean>(false);
+
   useEffect(() => {
     // On unmount, invalidate and abort any in-flight request.
     const guard = guardRef.current;
-    return () => { guard?.cancel(); };
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      guard?.cancel();
+    };
   }, []);
 
   const runFetch = async () => {
@@ -239,16 +248,23 @@ const SignalRow = ({
     await guardRef.current!.run((sig) => fetchEvidence(signal, userId, sig));
   };
 
-  const onToggle = async (next: boolean) => {
+  const onToggle = (next: boolean) => {
+    // Update UI immediately so the disclosure feels responsive.
     setOpen(next);
-    if (!next) {
-      // Collapsing truly aborts any in-flight fetch for this row.
-      guardRef.current?.cancel();
-      setError(null);
-      return;
-    }
-    if (cached && !isStale) return;
-    await runFetch();
+    pendingOpenRef.current = next;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
+      const finalOpen = pendingOpenRef.current;
+      if (!finalOpen) {
+        // Settled on collapsed — abort any in-flight fetch.
+        guardRef.current?.cancel();
+        setError(null);
+        return;
+      }
+      if (cached && !isStale) return;
+      void runFetch();
+    }, TOGGLE_DEBOUNCE_MS);
   };
 
   return (
