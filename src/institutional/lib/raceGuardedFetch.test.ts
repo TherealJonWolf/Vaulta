@@ -131,4 +131,33 @@ describe("createRaceGuard — rapid expand/collapse race protection", () => {
 
     expect(onError).not.toHaveBeenCalled();
   });
+
+  it("never overwrites cache with an older result while a newer fetch is still in-flight for the same open row", async () => {
+    // Simulates the SignalRow scenario: the row stays open while the user
+    // triggers refetches (e.g., retry, debounced re-expand). Older fetches
+    // settling later must not poison the cache the latest fetch will fill.
+    const cache: Record<string, string> = {};
+    const guard = createRaceGuard<string>({
+      onResult: (v) => { cache["signal-A"] = v; },
+    });
+
+    const stale = deferred<string>();
+    const fresh = deferred<string>();
+
+    // First fetch starts (row opens).
+    const p1 = guard.run(() => stale.promise);
+    // While still in-flight, a newer fetch begins (retry / re-expand).
+    const p2 = guard.run(() => fresh.promise);
+
+    // Newer fetch settles first and writes to the cache.
+    fresh.resolve("fresh-evidence");
+    await p2;
+    expect(cache["signal-A"]).toBe("fresh-evidence");
+
+    // Older fetch resolves later — must NOT overwrite the fresh value.
+    stale.resolve("stale-evidence");
+    await p1;
+
+    expect(cache["signal-A"]).toBe("fresh-evidence");
+  });
 });
