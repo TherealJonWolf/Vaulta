@@ -195,18 +195,21 @@ async function fetchEvidence(signal: Signal, userId?: string | null, signalAbort
   return { fields: [], notFound: true };
 }
 
-const SignalRow = ({
+export const SignalRow = ({
   signal,
   userId,
   cached,
   cachedAt,
   onCache,
+  fetcher,
 }: {
   signal: Signal;
   userId?: string | null;
   cached?: EvidenceRecord;
   cachedAt?: number;
   onCache?: (ev: EvidenceRecord) => void;
+  /** Test seam: override the evidence fetcher. Defaults to live Supabase fetch. */
+  fetcher?: (signal: Signal, userId?: string | null, abort?: AbortSignal) => Promise<EvidenceRecord>;
 }) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -245,7 +248,8 @@ const SignalRow = ({
 
   const runFetch = async () => {
     setError(null);
-    await guardRef.current!.run((sig) => fetchEvidence(signal, userId, sig));
+    const fn = fetcher ?? fetchEvidence;
+    await guardRef.current!.run((sig) => fn(signal, userId, sig));
   };
 
   const onToggle = (next: boolean) => {
