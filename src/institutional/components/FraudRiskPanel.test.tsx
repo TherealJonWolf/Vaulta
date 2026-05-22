@@ -59,16 +59,19 @@ describe("SignalRow integration — rapid expand/collapse shows only the latest 
 
     const trigger = container.querySelector("button")!;
 
-    // Rapid sequence: expand, collapse, expand again, before debounce flushes.
+    // Sequence that exercises the race-guard end-to-end:
+    //   expand → (debounce flushes, fetch #1 starts but doesn't resolve)
+    //   collapse → (debounce flushes, guard cancels fetch #1)
+    //   expand again → (debounce flushes, fetch #2 starts)
+    // Then fetch #1 resolves LATE with stale data — guard must discard it.
     fireEvent.click(trigger);
+    await act(async () => { vi.advanceTimersByTime(200); });
     fireEvent.click(trigger);
+    await act(async () => { vi.advanceTimersByTime(200); });
     fireEvent.click(trigger);
-
-    // Flush the debounce (180ms in component).
     await act(async () => { vi.advanceTimersByTime(200); });
 
-    // Only one fetch should have been started — the latest expand.
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledTimes(2);
 
     // Simulate an earlier (stale) result arriving FIRST, then the real one.
     // The race-guard must ignore the stale result entirely.
