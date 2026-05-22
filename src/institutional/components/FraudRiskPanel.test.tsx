@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
+import { render, fireEvent, act } from "@testing-library/react";
 import { SignalRow } from "./FraudRiskPanel";
 
 // Supabase client is imported transitively by FraudRiskPanel; stub it so the
@@ -75,14 +75,11 @@ describe("SignalRow integration — rapid expand/collapse shows only the latest 
     await act(async () => {
       first.resolve(evidence("stale"));
       second.resolve(evidence("fresh"));
-      // Allow microtasks for promise chains and React commits to settle.
-      await Promise.resolve();
-      await Promise.resolve();
+      // Flush any pending microtasks and timers caused by promise resolution.
+      await vi.runAllTimersAsync();
     });
 
-    await waitFor(() => {
-      expect(onCache).toHaveBeenCalled();
-    });
+    expect(onCache).toHaveBeenCalled();
 
     // Cache must hold the fresh value only.
     expect(cached?.fields.find((f) => f.key === "Marker")?.value).toBe("fresh");
