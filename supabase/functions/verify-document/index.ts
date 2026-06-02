@@ -274,16 +274,20 @@ OUTPUT (JSON only, no markdown):
     // Overall verdict
     const allPassed = Object.values(results).every((r: any) => r.passed !== false);
 
-    // Queue borderline documents (60-85% AI confidence) OR any document that
-    // had a metadata/PDF warning but still "passed" — these need human eyes.
+    // Queue for human review when the AI analyst is uncertain or flags the document
+    // as "Suspicious" / borderline "Likely AI-Generated", or when metadata raised a warning.
+    // Per false-positive discipline, "Likely Authentic" documents are NEVER queued.
     const aiConf = results.aiAnalysis?.confidence;
-    const aiBorderline = !!(aiConf && aiConf >= 60 && aiConf <= 85);
-    const aiGenSuspect = ["medium", "high"].includes(
+    const classification = (results.aiAnalysis?.classification || "").toString();
+    const aiBorderline =
+      classification === "Likely AI-Generated" && (aiConf || 0) >= 60 && (aiConf || 0) < 80;
+    const aiSuspicious = classification === "Suspicious";
+    const aiGenSuspect = ["high"].includes(
       (results.aiAnalysis?.ai_generated_likelihood || "").toLowerCase()
-    );
+    ) && !results.aiAnalysis?.passed === false; // already failed = not queued, just failed
     const metadataWarn = !!results.metadataCheck?.warning || !!results.metadataCheck?.rapidEdit ||
       !!results.metadataCheck?.incrementalSaves || !!results.metadataCheck?.annotations;
-    const needsManualReview = (aiBorderline || aiGenSuspect || metadataWarn);
+    const needsManualReview = (aiBorderline || aiSuspicious || aiGenSuspect || metadataWarn);
     if (needsManualReview) {
       const { documentId, institutionId } = metadata || {};
       // document_id is nullable — only set it when the caller passed a real UUID.
