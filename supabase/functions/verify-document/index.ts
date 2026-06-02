@@ -156,39 +156,46 @@ Deno.serve(async (req) => {
               messages: [
                 {
                   role: "system",
-                  content: `You are a document fraud detection specialist with expertise in identifying both traditional forgery AND AI-generated/synthetic documents. Analyze the provided document image rigorously. Check for:
+                  content: `You are a document authenticity analyst specializing in detecting AI-generated or synthetic documents. Evaluate the provided document across THREE LAYERS and cross-reference against your internal baseline of known-authentic real-world examples for the document type (paystub, bank statement, ID, utility bill, lease, government letter, etc.).
 
-1. AI-GENERATED CONTENT DETECTION:
-   - Unnaturally perfect text alignment or spacing that looks computer-generated rather than printed/scanned
-   - Synthetic textures — backgrounds that appear too smooth, uniform, or artificially noisy
-   - AI hallmarks: slightly off logos, impossible watermarks, phantom text artifacts, warped seals
-   - Perfect font rendering inconsistent with a scanned or photographed real document
-   - Missing natural scan/photo artifacts (slight skew, shadow, paper texture, fold marks)
-   - Content that appears plausible but uses generic placeholder-style data
+LAYER 1 — LINGUISTIC MARKERS
+   - Overly uniform phrasing, unnaturally consistent tone, or templated sentence structure with no human variation.
+   - Generic placeholder-feeling language ("Dear valued customer", boilerplate that no real issuer uses verbatim).
+   - Absence of normal human/institutional quirks: abbreviations, footnotes, legalese fragments, mixed casing, line-break artifacts.
 
-2. TRADITIONAL FORGERY DETECTION:
-   - Font inconsistencies (mixed fonts, sizes, or weights that don't match official documents)
-   - Seal/watermark irregularities (blurry, misaligned, or digitally overlaid seals)
-   - Layout anomalies (misaligned text, uneven spacing, incorrect margins)
-   - Color inconsistencies (different ink colors, digital artifacts, compression anomalies)
-   - Text overlay signs (text that appears pasted over existing content)
-   - Missing or incorrect official formatting (wrong letterhead, incorrect date formats, missing reference numbers)
+LAYER 2 — FORMATTING SIGNALS
+   - Suspicious precision: perfectly aligned columns, uniform kerning, mathematically clean spacing inconsistent with real printed/scanned output.
+   - Missing real-world variability: no scan skew, no compression noise, no paper texture, no fold/shadow artifacts, no slight rotation.
+   - Vector-clean fonts on what claims to be a scanned/photographed document; uniform background gradient where real scans show noise.
 
-3. DOCUMENT PLAUSIBILITY:
-   - Do the numbers, dates, and details make logical sense together?
-   - Are employer names, addresses, and tax IDs plausible or generic?
-   - For paystubs: are tax withholdings mathematically consistent with the gross pay?
-   - For government docs: does the format match known official templates?
+LAYER 3 — CONTEXTUAL AUTHENTICITY
+   - Realistic, domain-specific details: plausible employer/bank/agency names, real-looking logos and letterhead, valid-looking reference/account numbers, jurisdictionally correct formatting.
+   - Natural financial/data variability: non-round numbers, consistent tax math, believable YTD totals, realistic dates.
+   - Legitimate branding cues and minor real-world inconsistencies (slight misalignments, stamp marks, handwritten notes) INCREASE authenticity.
 
-Be SKEPTICAL by default. A document that looks "too clean" or "too perfect" without natural wear is suspicious.
+CROSS-REFERENCE
+   Compare against your baseline of authentic examples of this document type. If the document's structure, branding, and data variability are consistent with real examples you have seen, treat it as authentic.
 
-Respond ONLY with a JSON object (no markdown):
+FALSE-POSITIVE DISCIPLINE (CRITICAL)
+   - Default to "Likely Authentic" unless you have STRONG, SPECIFIC evidence of synthesis.
+   - Natural imperfections, varied financial data, real branding, and minor human-like inconsistencies are signs of authenticity — do NOT flag them.
+   - Do not penalize a document merely for being clean or well-formatted; many real digital documents (e-statements, payroll PDFs) are crisp by design.
+   - Only assign "Likely AI-Generated" when multiple layers independently show strong synthetic signals.
+   - When uncertain, prefer "Likely Authentic" over "Suspicious", and "Suspicious" over "Likely AI-Generated".
+
+OUTPUT (JSON only, no markdown):
 {
-  "authentic": true/false,
-  "confidence": 0-100,
-  "ai_generated_likelihood": "none/low/medium/high",
-  "issues": ["list of specific issues found"],
-  "summary": "brief assessment"
+  "classification": "Likely Authentic" | "Suspicious" | "Likely AI-Generated",
+  "confidence": 0-100,            // confidence that the document is AI-generated/synthetic
+  "authentic": true | false,      // true unless classification is "Likely AI-Generated"
+  "ai_generated_likelihood": "none" | "low" | "medium" | "high",
+  "layer_findings": {
+     "linguistic": "short note on what you observed",
+     "formatting": "short note on what you observed",
+     "contextual": "short note on what you observed"
+  },
+  "issues": ["specific, evidence-backed signals only — empty array if none"],
+  "summary": "2-3 sentence justification of the classification"
 }`,
                 },
                 {
@@ -221,17 +228,24 @@ Respond ONLY with a JSON object (no markdown):
             if (jsonMatch) {
               const analysis = JSON.parse(jsonMatch[0]);
               const aiGenLikelihood = (analysis.ai_generated_likelihood || "none").toLowerCase();
-              const isAiGenerated = aiGenLikelihood === "high" || aiGenLikelihood === "medium";
-              // Document fails if: explicitly not authentic, OR high/medium AI-generated likelihood
-              // OR confidence is below 75 (borderline → routed to manual review queue, treated as not-passed for is_verified)
-              const passed = analysis.authentic === true && !isAiGenerated && analysis.confidence >= 75;
+              const classification = (analysis.classification || "Likely Authentic") as string;
+              const aiConfidence = Number(analysis.confidence) || 0; // confidence that doc IS AI-generated
+              // False-positive discipline: only FAIL when the model is HIGHLY confident the doc is synthetic.
+              //   - "Likely AI-Generated" with confidence >= 80  → fail
+              //   - "Likely AI-Generated" with 60 <= conf < 80   → pass but route to manual review
+              //   - "Suspicious"                                  → pass but route to manual review
+              //   - "Likely Authentic"                            → pass, no review
+              const failed =
+                classification === "Likely AI-Generated" && aiConfidence >= 80;
               results.aiAnalysis = {
-                passed,
-                confidence: analysis.confidence,
+                passed: !failed,
+                classification,
+                confidence: aiConfidence,
                 ai_generated_likelihood: aiGenLikelihood,
+                layer_findings: analysis.layer_findings || null,
                 issues: analysis.issues || [],
                 summary: analysis.summary,
-                authentic: analysis.authentic,
+                authentic: analysis.authentic !== false && !failed,
               };
             }
           } catch {
@@ -260,16 +274,20 @@ Respond ONLY with a JSON object (no markdown):
     // Overall verdict
     const allPassed = Object.values(results).every((r: any) => r.passed !== false);
 
-    // Queue borderline documents (60-85% AI confidence) OR any document that
-    // had a metadata/PDF warning but still "passed" — these need human eyes.
+    // Queue for human review when the AI analyst is uncertain or flags the document
+    // as "Suspicious" / borderline "Likely AI-Generated", or when metadata raised a warning.
+    // Per false-positive discipline, "Likely Authentic" documents are NEVER queued.
     const aiConf = results.aiAnalysis?.confidence;
-    const aiBorderline = !!(aiConf && aiConf >= 60 && aiConf <= 85);
-    const aiGenSuspect = ["medium", "high"].includes(
+    const classification = (results.aiAnalysis?.classification || "").toString();
+    const aiBorderline =
+      classification === "Likely AI-Generated" && (aiConf || 0) >= 60 && (aiConf || 0) < 80;
+    const aiSuspicious = classification === "Suspicious";
+    const aiGenSuspect = ["high"].includes(
       (results.aiAnalysis?.ai_generated_likelihood || "").toLowerCase()
-    );
+    ) && !results.aiAnalysis?.passed === false; // already failed = not queued, just failed
     const metadataWarn = !!results.metadataCheck?.warning || !!results.metadataCheck?.rapidEdit ||
       !!results.metadataCheck?.incrementalSaves || !!results.metadataCheck?.annotations;
-    const needsManualReview = (aiBorderline || aiGenSuspect || metadataWarn);
+    const needsManualReview = (aiBorderline || aiSuspicious || aiGenSuspect || metadataWarn);
     if (needsManualReview) {
       const { documentId, institutionId } = metadata || {};
       // document_id is nullable — only set it when the caller passed a real UUID.
