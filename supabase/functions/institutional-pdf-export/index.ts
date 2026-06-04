@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Expose-Headers": "X-Content-SHA256",
 };
 
 function escPdf(s: string): string {
@@ -331,11 +332,16 @@ Deno.serve(async (req) => {
       flag_count: sub.flag_count ?? 0,
     });
 
+    const hashBuf = await crypto.subtle.digest('SHA-256', pdfBytes);
+    const sha256 = Array.from(new Uint8Array(hashBuf))
+      .map((b) => b.toString(16).padStart(2, '0')).join('');
+
     return new Response(pdfBytes, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="vaulta-assessment-${sub.reference_id}.pdf"`,
+        'X-Content-SHA256': sha256,
       },
     });
   } catch (err) {

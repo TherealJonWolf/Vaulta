@@ -4,6 +4,7 @@ import { jsPDF } from "npm:jspdf@2.5.1";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Expose-Headers": "X-Content-SHA256",
 };
 
 /**
@@ -234,6 +235,11 @@ Deno.serve(async (req) => {
 
     const buf = doc.output("arraybuffer");
 
+    const pdfBytes = new Uint8Array(buf);
+    const hashBuf = await crypto.subtle.digest("SHA-256", pdfBytes);
+    const sha256 = Array.from(new Uint8Array(hashBuf))
+      .map((b) => b.toString(16).padStart(2, "0")).join("");
+
     // Audit log
     await admin.from("institutional_activity_log").insert({
       institution_id: sub.institution_id,
@@ -298,6 +304,7 @@ Deno.serve(async (req) => {
         ...corsHeaders,
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="adverse-action-${sub.reference_id}.pdf"`,
+        "X-Content-SHA256": sha256,
       },
     });
   } catch (e) {
