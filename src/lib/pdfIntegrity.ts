@@ -7,7 +7,9 @@
  * we refuse to save it.
  */
 export async function sha256Hex(bytes: ArrayBuffer | Uint8Array): Promise<string> {
-  const buf = bytes instanceof Uint8Array ? bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) : bytes;
+  const buf: ArrayBuffer = bytes instanceof Uint8Array
+    ? bytes.slice().buffer as ArrayBuffer
+    : bytes;
   const digest = await crypto.subtle.digest("SHA-256", buf);
   return Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, "0"))

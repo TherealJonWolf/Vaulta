@@ -76,7 +76,7 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
       );
       if (!res.ok) throw new Error("Failed to generate PDF");
       const { bytes, sha256 } = await verifyPdfResponse(res);
-      const blob = new Blob([bytes], { type: "application/pdf" });
+      const blob = new Blob([bytes as BlobPart], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -127,7 +127,7 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
       );
       if (!res.ok) throw new Error("Failed to generate notice");
       const { bytes, sha256 } = await verifyPdfResponse(res);
-      const blob = new Blob([bytes], { type: "application/pdf" });
+      const blob = new Blob([bytes as BlobPart], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
