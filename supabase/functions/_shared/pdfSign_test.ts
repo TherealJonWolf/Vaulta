@@ -25,7 +25,7 @@ async function importPublic(rawB64: string) {
 }
 
 async function sha256Hex(bytes: Uint8Array): Promise<string> {
-  const buf = await crypto.subtle.digest("SHA-256", bytes);
+  const buf = await crypto.subtle.digest("SHA-256", bytes.slice().buffer as ArrayBuffer);
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -41,13 +41,17 @@ Deno.test("signPdfBytes produces a 64-byte signature verifiable with the bundled
   assertEquals(sig.length, 64, "Ed25519 signature must be 64 bytes");
 
   const pubKey = await importPublic(BUNDLED_PUBLIC_KEY_B64);
-  const ok = await crypto.subtle.verify("Ed25519", pubKey, sig, body);
+  const ok = await crypto.subtle.verify(
+    "Ed25519", pubKey, sig.slice().buffer as ArrayBuffer, body.slice().buffer as ArrayBuffer,
+  );
   assert(ok, "signature must verify against bundled public key");
 
   // Tampered bytes must fail verification.
   const tampered = new Uint8Array(body);
   tampered[5] ^= 0xff;
-  const bad = await crypto.subtle.verify("Ed25519", pubKey, sig, tampered);
+  const bad = await crypto.subtle.verify(
+    "Ed25519", pubKey, sig.slice().buffer as ArrayBuffer, tampered.slice().buffer as ArrayBuffer,
+  );
   assert(!bad, "tampered payload must NOT verify");
 
   // SHA-256 of the original body is stable and matches what the function would emit.
