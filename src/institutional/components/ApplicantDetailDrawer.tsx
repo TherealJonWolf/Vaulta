@@ -16,7 +16,7 @@ import { DecisionNarrativePanel } from "./DecisionNarrativePanel";
 import { VerifiedIncomeSeal } from "./VerifiedIncomeSeal";
 import { recordReviewAction } from "../lib/reviewLog";
 import { FraudRiskPanel } from "./FraudRiskPanel";
-import { verifyPdfResponse, IntegrityError } from "@/lib/pdfIntegrity";
+import { verifyPdfResponse, IntegrityError, SignatureError } from "@/lib/pdfIntegrity";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -75,7 +75,7 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
         }
       );
       if (!res.ok) throw new Error("Failed to generate PDF");
-      const { bytes, sha256 } = await verifyPdfResponse(res);
+      const { bytes, sha256, signature } = await verifyPdfResponse(res);
       const blob = new Blob([bytes as BlobPart], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -91,14 +91,18 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
           event_type: 'PDF Exported',
           reference_id: submission.reference_id,
           applicant_name: submission.applicant_name,
-          detail: `Assessment PDF exported for ${submission.applicant_name} (sha256: ${sha256.slice(0, 16)}…)`,
+          detail: `Assessment PDF exported for ${submission.applicant_name} (sha256: ${sha256.slice(0, 16)}… · Ed25519 sig: ${signature.slice(0, 16)}…)`,
         });
       }
-      toast.success("PDF exported · integrity verified", {
-        description: `SHA-256: ${sha256.slice(0, 24)}…`,
+      toast.success("PDF exported · integrity & signature verified", {
+        description: `SHA-256: ${sha256.slice(0, 24)}… · Ed25519 ✓`,
       });
     } catch (e) {
-      if (e instanceof IntegrityError) {
+      if (e instanceof SignatureError) {
+        toast.error("Signature verification failed — file rejected", {
+          description: "The PDF was not signed by Vaulta and was not saved.",
+        });
+      } else if (e instanceof IntegrityError) {
         toast.error("Integrity check failed — file rejected", {
           description: "The downloaded PDF did not match its server hash and was not saved.",
         });
@@ -126,7 +130,7 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
         }
       );
       if (!res.ok) throw new Error("Failed to generate notice");
-      const { bytes, sha256 } = await verifyPdfResponse(res);
+      const { bytes, sha256, signature } = await verifyPdfResponse(res);
       const blob = new Blob([bytes as BlobPart], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -145,11 +149,15 @@ export const ApplicantDetailDrawer = ({ submission, open, onClose }: Props) => {
         target_id: submission.id,
         target_name: submission.applicant_name,
       });
-      toast.success("Adverse action notice generated · integrity verified", {
-        description: `SHA-256: ${sha256.slice(0, 24)}…`,
+      toast.success("Adverse action notice generated · integrity & signature verified", {
+        description: `SHA-256: ${sha256.slice(0, 24)}… · Ed25519 ✓ ${signature.slice(0, 12)}…`,
       });
     } catch (e) {
-      if (e instanceof IntegrityError) {
+      if (e instanceof SignatureError) {
+        toast.error("Signature verification failed — notice rejected", {
+          description: "The PDF was not signed by Vaulta and was not saved.",
+        });
+      } else if (e instanceof IntegrityError) {
         toast.error("Integrity check failed — file rejected", {
           description: "The downloaded PDF did not match its server hash and was not saved.",
         });

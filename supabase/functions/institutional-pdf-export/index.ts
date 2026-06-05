@@ -1,9 +1,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { signPdfBytes } from "../_shared/pdfSign.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Expose-Headers": "X-Content-SHA256",
+  "Access-Control-Expose-Headers": "X-Content-SHA256, X-Content-Signature, X-Content-Signature-Alg",
 };
 
 function escPdf(s: string): string {
@@ -335,6 +336,7 @@ Deno.serve(async (req) => {
     const hashBuf = await crypto.subtle.digest('SHA-256', pdfBytes);
     const sha256 = Array.from(new Uint8Array(hashBuf))
       .map((b) => b.toString(16).padStart(2, '0')).join('');
+    const signature = await signPdfBytes(pdfBytes);
 
     return new Response(pdfBytes, {
       headers: {
@@ -342,6 +344,8 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="vaulta-assessment-${sub.reference_id}.pdf"`,
         'X-Content-SHA256': sha256,
+        'X-Content-Signature': signature,
+        'X-Content-Signature-Alg': 'Ed25519',
       },
     });
   } catch (err) {
