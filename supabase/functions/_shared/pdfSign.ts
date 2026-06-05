@@ -43,6 +43,6 @@ async function getSigningKey(): Promise<CryptoKey> {
  */
 export async function signPdfBytes(bytes: Uint8Array): Promise<string> {
   const key = await getSigningKey();
-  const sig = await crypto.subtle.sign("Ed25519", key, bytes);
+  const sig = await crypto.subtle.sign("Ed25519", key, bytes.slice().buffer as ArrayBuffer);
   return b64encode(new Uint8Array(sig));
 }
