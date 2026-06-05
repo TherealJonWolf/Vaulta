@@ -16,12 +16,12 @@ function b64decode(s: string): Uint8Array {
   return out;
 }
 
-async function importPublic(rawB64: string) {
+async function importPublic(rawB64: string): Promise<CryptoKey> {
   const raw = b64decode(rawB64);
   const spki = new Uint8Array(SPKI_PREFIX.length + raw.length);
   spki.set(SPKI_PREFIX, 0);
   spki.set(raw, SPKI_PREFIX.length);
-  return crypto.subtle.importKey("spki", spki, "Ed25519", false, ["verify"]);
+  return crypto.subtle.importKey("spki", spki.slice().buffer as ArrayBuffer, "Ed25519", false, ["verify"]);
 }
 
 async function sha256Hex(bytes: Uint8Array): Promise<string> {
