@@ -21,7 +21,7 @@ async function generateSignedPdf(body: Uint8Array) {
   // Strip the 12-byte SPKI Ed25519 prefix to get the raw 32-byte key.
   const rawPub = spki.slice(spki.length - 32);
   const publicKeyB64 = bytesToB64(rawPub);
-  const sigBuf = await crypto.subtle.sign("Ed25519", kp.privateKey, body);
+  const sigBuf = await crypto.subtle.sign("Ed25519", kp.privateKey, body.slice().buffer as ArrayBuffer);
   const signature = bytesToB64(new Uint8Array(sigBuf));
   const sha256 = await sha256Hex(body);
   return { publicKeyB64, signature, sha256 };
