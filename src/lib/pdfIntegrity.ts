@@ -27,20 +27,21 @@ function b64ToBytes(s: string): Uint8Array {
 }
 
 let cachedPubKey: CryptoKey | null = null;
-async function getPublicKey(): Promise<CryptoKey> {
-  if (cachedPubKey) return cachedPubKey;
-  const raw = b64ToBytes(PDF_SIGNING_PUBLIC_KEY_B64);
+async function getPublicKey(overrideB64?: string): Promise<CryptoKey> {
+  if (!overrideB64 && cachedPubKey) return cachedPubKey;
+  const raw = b64ToBytes(overrideB64 ?? PDF_SIGNING_PUBLIC_KEY_B64);
   const spki = new Uint8Array(SPKI_ED25519_PREFIX.length + raw.length);
   spki.set(SPKI_ED25519_PREFIX, 0);
   spki.set(raw, SPKI_ED25519_PREFIX.length);
-  cachedPubKey = await crypto.subtle.importKey(
+  const key = await crypto.subtle.importKey(
     "spki",
     spki.buffer as ArrayBuffer,
     "Ed25519",
     false,
     ["verify"],
   );
-  return cachedPubKey;
+  if (!overrideB64) cachedPubKey = key;
+  return key;
 }
 
 export async function sha256Hex(bytes: ArrayBuffer | Uint8Array): Promise<string> {
@@ -76,6 +77,7 @@ export class SignatureError extends Error {
  */
 export async function verifyPdfResponse(
   res: Response,
+  opts: { publicKeyB64?: string } = {},
 ): Promise<{ bytes: Uint8Array; sha256: string; signature: string }> {
   const expected = (res.headers.get("X-Content-SHA256") || "").toLowerCase();
   const signatureB64 = res.headers.get("X-Content-Signature") || "";
@@ -107,7 +109,7 @@ export async function verifyPdfResponse(
   }
   let ok = false;
   try {
-    const key = await getPublicKey();
+    const key = await getPublicKey(opts.publicKeyB64);
     ok = await crypto.subtle.verify(
       "Ed25519",
       key,
