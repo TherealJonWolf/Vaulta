@@ -31,7 +31,7 @@ async function getSigningKey(): Promise<CryptoKey> {
   const pkcs8 = new Uint8Array(PKCS8_ED25519_PREFIX.length + seed.length);
   pkcs8.set(PKCS8_ED25519_PREFIX, 0);
   pkcs8.set(seed, PKCS8_ED25519_PREFIX.length);
-  cachedKey = await crypto.subtle.importKey("pkcs8", pkcs8, "Ed25519", false, ["sign"]);
+  cachedKey = await crypto.subtle.importKey("pkcs8", pkcs8.slice().buffer as ArrayBuffer, "Ed25519", false, ["sign"]);
   return cachedKey;
 }
 
