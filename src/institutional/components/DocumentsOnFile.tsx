@@ -67,14 +67,28 @@ export const DocumentsOnFile = ({ submissionId, applicantName }: Props) => {
 
   const handleDownload = async (doc: any) => {
     try {
-      const { data, error } = await supabase.storage
-        .from("institution-documents")
-        .createSignedUrl(doc.file_path, 900);
-      if (error) throw error;
-      await logAccess(doc, "download");
+      const { data: sess } = await supabase.auth.getSession();
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/download-institution-document`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${sess.session?.access_token}`,
+          },
+          body: JSON.stringify({ document_id: doc.id }),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok) {
+        if (res.status === 403) toast.error("Access denied. Only the requester or institution admins can download this file.");
+        else toast.error(json.error || "Failed to download");
+        return;
+      }
       const a = document.createElement("a");
-      a.href = data.signedUrl;
-      a.download = doc.file_name;
+      a.href = json.signed_url;
+      a.download = json.file_name || doc.file_name;
       a.click();
     } catch {
       toast.error("Failed to generate download URL");
