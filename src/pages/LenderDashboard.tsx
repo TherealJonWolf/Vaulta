@@ -21,6 +21,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ApplicantNarratives, ApplicantScoreIndicator } from "@/components/ApplicantNarratives";
+import { RequestDocumentsButton } from "@/components/RequestDocumentsButton";
 
 interface SavedApplicant {
   id: string;
@@ -397,6 +398,11 @@ const LenderDashboard = () => {
                                 <ExternalLink size={12} /> VIEW
                               </Button>
                             )}
+                            <RequestDocumentsButton
+                              applicantUserId={item.applicant_user_id}
+                              applicantName={item.tokenLabel || "Shared Profile"}
+                              className="font-mono text-xs"
+                            />
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingNotes(item.id); setNoteText(item.notes || ""); }}>
                               <StickyNote size={14} />
                             </Button>
