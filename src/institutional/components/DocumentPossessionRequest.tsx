@@ -41,8 +41,8 @@ interface Props {
   onClose: () => void;
   applicantName: string;
   applicantUserId?: string;
-  submissionId: string;
-  referenceId: string;
+  submissionId?: string | null;
+  referenceId?: string | null;
 }
 
 export const DocumentPossessionRequest = ({ open, onClose, applicantName, applicantUserId, submissionId, referenceId }: Props) => {
@@ -98,14 +98,14 @@ export const DocumentPossessionRequest = ({ open, onClose, applicantName, applic
       const { error } = await (supabase.from as any)("document_possession_requests").insert({
         institution_id: institutionId,
         applicant_user_id: applicantUserId || "00000000-0000-0000-0000-000000000000",
-        submission_id: submissionId,
+        submission_id: submissionId || null,
         requested_by: user.id,
         document_types: allDocTypes,
         legal_basis: legalBasisLabel,
         legal_basis_detail: legalBasis === "other" ? legalBasisDetail : null,
         retention_period: retentionLabel,
         retention_expires_at: calculateRetentionExpiry(),
-        reference_id: referenceId,
+        reference_id: referenceId || null,
         applicant_name: applicantName,
       });
 
@@ -116,7 +116,7 @@ export const DocumentPossessionRequest = ({ open, onClose, applicantName, applic
         institution_id: institutionId,
         user_id: user.id,
         event_type: "Document Request Sent",
-        reference_id: referenceId,
+        reference_id: referenceId || null,
         applicant_name: applicantName,
         detail: `Requested ${allDocTypes.length} document type(s) under ${legalBasis.toUpperCase()} compliance`,
       });
