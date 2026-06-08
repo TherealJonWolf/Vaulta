@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ApplicantNarratives, ApplicantScoreIndicator } from "@/components/ApplicantNarratives";
+import { RequestDocumentsButton } from "@/components/RequestDocumentsButton";
 
 const complianceFrameworks = [
   {
@@ -416,6 +417,11 @@ const LandlordDashboard = () => {
                             VIEW
                           </Button>
                         )}
+                        <RequestDocumentsButton
+                          applicantUserId={item.applicant_user_id}
+                          applicantName={item.tokenLabel || "Shared Profile"}
+                          className="font-mono text-xs"
+                        />
                         <Button
                           variant="ghost"
                           size="icon"
