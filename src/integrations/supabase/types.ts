@@ -777,7 +777,9 @@ export type Database = {
           institution_id: string
           legal_basis: string
           legal_basis_detail: string | null
+          purpose: string | null
           reference_id: string | null
+          request_expires_at: string
           requested_by: string
           responded_at: string | null
           retention_expires_at: string | null
@@ -795,7 +797,9 @@ export type Database = {
           institution_id: string
           legal_basis: string
           legal_basis_detail?: string | null
+          purpose?: string | null
           reference_id?: string | null
+          request_expires_at?: string
           requested_by: string
           responded_at?: string | null
           retention_expires_at?: string | null
@@ -813,7 +817,9 @@ export type Database = {
           institution_id?: string
           legal_basis?: string
           legal_basis_detail?: string | null
+          purpose?: string | null
           reference_id?: string | null
+          request_expires_at?: string
           requested_by?: string
           responded_at?: string | null
           retention_expires_at?: string | null
@@ -1094,18 +1100,23 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           document_type: string
+          download_count: number
           encrypted_iv: string | null
           file_name: string
           file_path: string
           file_size: number
           id: string
           institution_id: string
+          last_downloaded_at: string | null
+          last_downloaded_by: string | null
           mime_type: string
           original_document_id: string | null
           possession_request_id: string
           retention_expired_notified: boolean
           retention_expires_at: string | null
+          share_status: string
           transferred_at: string
+          uploaded_via: string
         }
         Insert: {
           applicant_name?: string | null
@@ -1114,18 +1125,23 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           document_type: string
+          download_count?: number
           encrypted_iv?: string | null
           file_name: string
           file_path: string
           file_size?: number
           id?: string
           institution_id: string
+          last_downloaded_at?: string | null
+          last_downloaded_by?: string | null
           mime_type: string
           original_document_id?: string | null
           possession_request_id: string
           retention_expired_notified?: boolean
           retention_expires_at?: string | null
+          share_status?: string
           transferred_at?: string
+          uploaded_via?: string
         }
         Update: {
           applicant_name?: string | null
@@ -1134,18 +1150,23 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           document_type?: string
+          download_count?: number
           encrypted_iv?: string | null
           file_name?: string
           file_path?: string
           file_size?: number
           id?: string
           institution_id?: string
+          last_downloaded_at?: string | null
+          last_downloaded_by?: string | null
           mime_type?: string
           original_document_id?: string | null
           possession_request_id?: string
           retention_expired_notified?: boolean
           retention_expires_at?: string | null
+          share_status?: string
           transferred_at?: string
+          uploaded_via?: string
         }
         Relationships: [
           {
@@ -2353,6 +2374,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
+      }
+      can_download_institution_doc: {
+        Args: { _doc_id: string; _user_id: string }
+        Returns: boolean
       }
       check_account_locked: { Args: { p_email: string }; Returns: boolean }
       check_document_hash: {
