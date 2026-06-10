@@ -87,7 +87,7 @@ const storage = {
       async download(path: string) {
         const bytes = db.storage.get(`source:${path}`);
         if (!bytes) return { data: null, error: new Error("not found") };
-        return { data: new Blob([bytes]), error: null };
+        return { data: new Blob([bytes.slice().buffer as ArrayBuffer]), error: null };
       },
       async upload(path: string, blob: Blob) {
         const buf = new Uint8Array(await blob.arrayBuffer());
