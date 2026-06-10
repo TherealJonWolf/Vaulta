@@ -236,7 +236,7 @@ async function userApprovesShare(requestId: string, selectedDocIds: string[]) {
     const destPath = `${req.institution_id}/${req.id}/${doc.file_name}`;
     const dl = await storage.from("documents").download(doc.file_path);
     if (dl.error || !dl.data) continue;
-    await storage.from("institution-documents").upload(destPath, dl.data as Blob);
+    await storage.from("institution-documents").upload(destPath, dl.data as Uint8Array);
     await from("institution_documents").insert({
       institution_id: req.institution_id,
       consent_record_id: consent.id,
