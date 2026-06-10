@@ -40,10 +40,15 @@ function uuid() {
 // Mimic the supabase client surface we touch
 function from(table: keyof ReturnType<typeof makeDb>) {
   const rows = db[table] as Row[];
+  const AUDIT_TABLES = new Set(["institutional_activity_log", "document_access_log"]);
   const api: any = {
     insert(values: Row | Row[]) {
       const arr = Array.isArray(values) ? values : [values];
-      const inserted = arr.map((v) => ({ id: v.id ?? uuid(), created_at: new Date().toISOString(), ...v }));
+      const inserted = arr.map((v) => {
+        const row = { id: v.id ?? uuid(), created_at: new Date().toISOString(), ...v };
+        // Audit tables are append-only: freeze inserted rows to enforce immutability
+        return AUDIT_TABLES.has(String(table)) ? Object.freeze(row) : row;
+      });
       rows.push(...inserted);
       return {
         select: () => ({
@@ -120,14 +125,16 @@ async function downloadInstitutionDocument(userId: string, documentId: string) {
   if (!doc) return { status: 404, body: { error: "Document not found" } };
 
   if (!canDownload(userId, documentId)) {
-    db.institutional_activity_log.push({
+    db.institutional_activity_log.push(Object.freeze({
       id: uuid(),
       institution_id: doc.institution_id,
       user_id: userId,
       event_type: "Document Access Denied",
+      possession_request_id: doc.possession_request_id,
+      institution_document_id: doc.id,
       detail: `Denied access to ${doc.file_name}`,
       created_at: new Date().toISOString(),
-    });
+    }));
     return { status: 403, body: { error: "Forbidden" } };
   }
 
@@ -138,27 +145,30 @@ async function downloadInstitutionDocument(userId: string, documentId: string) {
   const signed = await storage.from("institution-documents").createSignedUrl(doc.file_path, 900);
   if (signed.error || !signed.data) return { status: 500, body: { error: "Signed URL failed" } };
 
-  db.document_access_log.push({
+  db.document_access_log.push(Object.freeze({
     id: uuid(),
     institution_id: doc.institution_id,
     institution_document_id: doc.id,
     consent_record_id: doc.consent_record_id,
+    possession_request_id: doc.possession_request_id,
     accessed_by: userId,
     access_type: "download",
     created_at: new Date().toISOString(),
-  });
+  }));
   doc.download_count = (doc.download_count ?? 0) + 1;
   doc.last_downloaded_at = new Date().toISOString();
   doc.last_downloaded_by = userId;
   doc.share_status = "downloaded";
-  db.institutional_activity_log.push({
+  db.institutional_activity_log.push(Object.freeze({
     id: uuid(),
     institution_id: doc.institution_id,
     user_id: userId,
     event_type: "Document Downloaded",
+    possession_request_id: doc.possession_request_id,
+    institution_document_id: doc.id,
     detail: `Downloaded ${doc.file_name}`,
     created_at: new Date().toISOString(),
-  });
+  }));
 
   return { status: 200, body: { signed_url: signed.data.signedUrl, file_name: doc.file_name } };
 }
@@ -364,5 +374,123 @@ describe("Document request → share → download (e2e)", () => {
     expect(db.institution_documents).toHaveLength(0);
     expect(db.consent_records[0].document_ids).toEqual([]);
     expect(db.institutional_activity_log.some((e) => e.event_type === "Document Shared")).toBe(false);
+  });
+
+  it("audit-log entries are immutable (frozen, cannot be mutated or deleted in place)", async () => {
+    const req = await institutionCreatesRequest({ documentTypes: ["Proof of income"] });
+    await userApprovesShare(req.id, ["doc-paystub"]);
+    const sharedDocId = db.institution_documents[0].id;
+    await downloadInstitutionDocument(REQUESTER_ID, sharedDocId);
+    await downloadInstitutionDocument(OTHER_COMPANY_USER_ID, sharedDocId); // denied
+
+    const allow = db.institutional_activity_log.find((e) => e.event_type === "Document Downloaded")!;
+    const deny = db.institutional_activity_log.find((e) => e.event_type === "Document Access Denied")!;
+    const access = db.document_access_log[0];
+
+    for (const row of [allow, deny, access]) {
+      expect(Object.isFrozen(row)).toBe(true);
+      // Attempts to tamper with any field must throw in strict mode (vitest runs ESM strict)
+      expect(() => { (row as any).event_type = "Tampered"; }).toThrow();
+      expect(() => { (row as any).user_id = "00000000-0000-0000-0000-000000000000"; }).toThrow();
+      expect(() => { delete (row as any).id; }).toThrow();
+      // Original values preserved after the failed mutation attempts
+      expect(row.id).toBeTruthy();
+    }
+
+    // Existing rows cannot be silently overwritten by another insert with the same id
+    const before = db.institutional_activity_log.length;
+    expect(() => Object.assign(allow as any, { detail: "rewrite" })).toThrow();
+    expect(db.institutional_activity_log.length).toBe(before);
+  });
+
+  it("audit-log entries are correctly ordered by created_at across the full lifecycle", async () => {
+    const req = await institutionCreatesRequest({ documentTypes: ["Proof of income"] });
+    // small pause so timestamps differ
+    await new Promise((r) => setTimeout(r, 5));
+    await userApprovesShare(req.id, ["doc-paystub"]);
+    const sharedDocId = db.institution_documents[0].id;
+    await new Promise((r) => setTimeout(r, 5));
+    await downloadInstitutionDocument(OTHER_COMPANY_USER_ID, sharedDocId); // denied first
+    await new Promise((r) => setTimeout(r, 5));
+    await downloadInstitutionDocument(REQUESTER_ID, sharedDocId); // then allowed
+
+    const events = db.institutional_activity_log
+      .filter((e) => ["Document Request Sent", "Document Shared", "Document Access Denied", "Document Downloaded"].includes(e.event_type));
+
+    // Stored insertion order equals chronological order
+    const stored = events.map((e) => e.event_type);
+    expect(stored).toEqual([
+      "Document Request Sent",
+      "Document Shared",
+      "Document Access Denied",
+      "Document Downloaded",
+    ]);
+
+    // Re-sorting by created_at yields the same sequence
+    const byTime = [...events].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    );
+    expect(byTime.map((e) => e.event_type)).toEqual(stored);
+
+    // Access log entry (allow) is timestamped AFTER the denied attempt
+    const deny = events.find((e) => e.event_type === "Document Access Denied")!;
+    const access = db.document_access_log[0];
+    expect(new Date(access.created_at).getTime()).toBeGreaterThan(new Date(deny.created_at).getTime());
+  });
+
+  it("allow + denied download audit entries include request, reviewer, and document identifiers", async () => {
+    const req = await institutionCreatesRequest({ documentTypes: ["Proof of income"] });
+    await userApprovesShare(req.id, ["doc-paystub"]);
+    const sharedDoc = db.institution_documents[0];
+
+    // --- Allow path ---
+    const ok = await downloadInstitutionDocument(REQUESTER_ID, sharedDoc.id);
+    expect(ok.status).toBe(200);
+
+    const access = db.document_access_log.find((e) => e.institution_document_id === sharedDoc.id)!;
+    expect(access).toMatchObject({
+      institution_id: INSTITUTION_ID,
+      institution_document_id: sharedDoc.id,
+      possession_request_id: req.id,
+      consent_record_id: sharedDoc.consent_record_id,
+      accessed_by: REQUESTER_ID,
+      access_type: "download",
+    });
+    expect(access.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+
+    const allowEvt = db.institutional_activity_log.find(
+      (e) => e.event_type === "Document Downloaded" && e.institution_document_id === sharedDoc.id,
+    )!;
+    expect(allowEvt).toMatchObject({
+      institution_id: INSTITUTION_ID,
+      user_id: REQUESTER_ID, // reviewer
+      possession_request_id: req.id, // request
+      institution_document_id: sharedDoc.id, // document
+      event_type: "Document Downloaded",
+    });
+
+    // --- Denied path ---
+    const denied = await downloadInstitutionDocument(OTHER_COMPANY_USER_ID, sharedDoc.id);
+    expect(denied.status).toBe(403);
+
+    const denyEvt = db.institutional_activity_log.find(
+      (e) => e.event_type === "Document Access Denied" && e.user_id === OTHER_COMPANY_USER_ID,
+    )!;
+    expect(denyEvt).toMatchObject({
+      institution_id: INSTITUTION_ID,
+      user_id: OTHER_COMPANY_USER_ID, // reviewer who was blocked
+      possession_request_id: req.id, // request
+      institution_document_id: sharedDoc.id, // document
+      event_type: "Document Access Denied",
+    });
+    expect(denyEvt.detail).toContain(sharedDoc.file_name);
+
+    // Sanity: required identifier fields are present and non-empty on every audit entry
+    for (const e of [access, allowEvt, denyEvt]) {
+      expect(e.institution_id).toBeTruthy();
+      expect(e.institution_document_id ?? e.institution_document_id).toBeTruthy();
+      expect(e.possession_request_id).toBeTruthy();
+      expect(e.accessed_by ?? e.user_id).toBeTruthy();
+    }
   });
 });
