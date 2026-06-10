@@ -87,11 +87,10 @@ const storage = {
       async download(path: string) {
         const bytes = db.storage.get(`source:${path}`);
         if (!bytes) return { data: null, error: new Error("not found") };
-        return { data: new Blob([bytes.slice().buffer as ArrayBuffer]), error: null };
+        return { data: bytes, error: null };
       },
-      async upload(path: string, blob: Blob) {
-        const buf = new Uint8Array(await blob.arrayBuffer());
-        db.storage.set(`inst:${path}`, buf);
+      async upload(path: string, payload: Uint8Array) {
+        db.storage.set(`inst:${path}`, payload);
         return { data: { path }, error: null };
       },
       async createSignedUrl(path: string, _ttl: number) {
