@@ -40,10 +40,15 @@ function uuid() {
 // Mimic the supabase client surface we touch
 function from(table: keyof ReturnType<typeof makeDb>) {
   const rows = db[table] as Row[];
+  const AUDIT_TABLES = new Set(["institutional_activity_log", "document_access_log"]);
   const api: any = {
     insert(values: Row | Row[]) {
       const arr = Array.isArray(values) ? values : [values];
-      const inserted = arr.map((v) => ({ id: v.id ?? uuid(), created_at: new Date().toISOString(), ...v }));
+      const inserted = arr.map((v) => {
+        const row = { id: v.id ?? uuid(), created_at: new Date().toISOString(), ...v };
+        // Audit tables are append-only: freeze inserted rows to enforce immutability
+        return AUDIT_TABLES.has(String(table)) ? Object.freeze(row) : row;
+      });
       rows.push(...inserted);
       return {
         select: () => ({
@@ -120,14 +125,16 @@ async function downloadInstitutionDocument(userId: string, documentId: string) {
   if (!doc) return { status: 404, body: { error: "Document not found" } };
 
   if (!canDownload(userId, documentId)) {
-    db.institutional_activity_log.push({
+    db.institutional_activity_log.push(Object.freeze({
       id: uuid(),
       institution_id: doc.institution_id,
       user_id: userId,
       event_type: "Document Access Denied",
+      possession_request_id: doc.possession_request_id,
+      institution_document_id: doc.id,
       detail: `Denied access to ${doc.file_name}`,
       created_at: new Date().toISOString(),
-    });
+    }));
     return { status: 403, body: { error: "Forbidden" } };
   }
 
@@ -138,27 +145,30 @@ async function downloadInstitutionDocument(userId: string, documentId: string) {
   const signed = await storage.from("institution-documents").createSignedUrl(doc.file_path, 900);
   if (signed.error || !signed.data) return { status: 500, body: { error: "Signed URL failed" } };
 
-  db.document_access_log.push({
+  db.document_access_log.push(Object.freeze({
     id: uuid(),
     institution_id: doc.institution_id,
     institution_document_id: doc.id,
     consent_record_id: doc.consent_record_id,
+    possession_request_id: doc.possession_request_id,
     accessed_by: userId,
     access_type: "download",
     created_at: new Date().toISOString(),
-  });
+  }));
   doc.download_count = (doc.download_count ?? 0) + 1;
   doc.last_downloaded_at = new Date().toISOString();
   doc.last_downloaded_by = userId;
   doc.share_status = "downloaded";
-  db.institutional_activity_log.push({
+  db.institutional_activity_log.push(Object.freeze({
     id: uuid(),
     institution_id: doc.institution_id,
     user_id: userId,
     event_type: "Document Downloaded",
+    possession_request_id: doc.possession_request_id,
+    institution_document_id: doc.id,
     detail: `Downloaded ${doc.file_name}`,
     created_at: new Date().toISOString(),
-  });
+  }));
 
   return { status: 200, body: { signed_url: signed.data.signedUrl, file_name: doc.file_name } };
 }
