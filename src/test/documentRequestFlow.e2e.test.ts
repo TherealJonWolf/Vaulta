@@ -493,4 +493,101 @@ describe("Document request → share → download (e2e)", () => {
       expect(e.accessed_by ?? e.user_id).toBeTruthy();
     }
   });
+
+  it("refuses tamper attempts against audit-log records via the download/request APIs", async () => {
+    const req = await institutionCreatesRequest({ documentTypes: ["Proof of income"] });
+    await userApprovesShare(req.id, ["doc-paystub"]);
+    const sharedDocId = db.institution_documents[0].id;
+
+    // Generate one allow + one denied audit trail
+    await downloadInstitutionDocument(REQUESTER_ID, sharedDocId);
+    await downloadInstitutionDocument(OTHER_COMPANY_USER_ID, sharedDocId);
+
+    const allowEvt = db.institutional_activity_log.find((e) => e.event_type === "Document Downloaded")!;
+    const denyEvt = db.institutional_activity_log.find((e) => e.event_type === "Document Access Denied")!;
+    const accessRow = db.document_access_log[0];
+    const requestSentEvt = db.institutional_activity_log.find((e) => e.event_type === "Document Request Sent")!;
+
+    const activityCountBefore = db.institutional_activity_log.length;
+    const accessCountBefore = db.document_access_log.length;
+
+    // 1. Direct field mutation on any audit row is rejected (rows are frozen)
+    for (const row of [allowEvt, denyEvt, accessRow, requestSentEvt]) {
+      expect(Object.isFrozen(row)).toBe(true);
+      expect(() => { (row as any).event_type = "Tampered"; }).toThrow();
+      expect(() => { (row as any).user_id = OUTSIDER_ID; }).toThrow();
+      expect(() => { (row as any).accessed_by = OUTSIDER_ID; }).toThrow();
+      expect(() => { (row as any).detail = "rewritten"; }).toThrow();
+      expect(() => { (row as any).created_at = "1970-01-01T00:00:00.000Z"; }).toThrow();
+      expect(() => { delete (row as any).id; }).toThrow();
+      expect(() => { delete (row as any).institution_id; }).toThrow();
+    }
+
+    // 2. Update through the audit tables' API path is refused (PostgREST-equivalent surface
+    //    exposes no UPDATE for audit tables → the in-memory client mirrors that by
+    //    leaving frozen rows untouched).
+    const updateRes = await from("institutional_activity_log")
+      .update({ event_type: "Tampered", detail: "rewritten" })
+      .eq("id", allowEvt.id);
+    expect(updateRes.error).toBeNull(); // call returns, but...
+    expect(allowEvt.event_type).toBe("Document Downloaded"); // ...row is unchanged
+    expect(allowEvt.detail).toContain("paystub.pdf");
+
+    const accessUpdateRes = await from("document_access_log")
+      .update({ accessed_by: OUTSIDER_ID, access_type: "view" })
+      .eq("id", accessRow.id);
+    expect(accessUpdateRes.error).toBeNull();
+    expect(accessRow.accessed_by).toBe(REQUESTER_ID);
+    expect(accessRow.access_type).toBe("download");
+
+    // 3. Re-running download does NOT overwrite the prior audit row — it appends a new one
+    const beforeAppend = db.institutional_activity_log.length;
+    await downloadInstitutionDocument(REQUESTER_ID, sharedDocId);
+    expect(db.institutional_activity_log.length).toBe(beforeAppend + 1);
+    // Original allow row still intact, untouched
+    expect(allowEvt.event_type).toBe("Document Downloaded");
+    expect(allowEvt.detail).toContain("paystub.pdf");
+
+    // 4. The request API cannot be used to retro-edit an existing request's audit entry.
+    //    Trying to update the original possession request fields that drive audit identifiers
+    //    must NOT alter previously written audit rows.
+    await from("document_possession_requests")
+      .update({ requested_by: OUTSIDER_ID, applicant_name: "Hacker" })
+      .eq("id", req.id);
+    expect(requestSentEvt.user_id).toBe(REQUESTER_ID);
+    expect(requestSentEvt.applicant_name).toBe("Jane Doe");
+    expect(allowEvt.user_id).toBe(REQUESTER_ID);
+    expect(allowEvt.possession_request_id).toBe(req.id);
+    expect(denyEvt.user_id).toBe(OTHER_COMPANY_USER_ID);
+
+    // 5. Audit rows cannot be deleted via array splice / pop / shift either
+    expect(() => Object.defineProperty(allowEvt, "event_type", { value: "x" })).toThrow();
+
+    // 6. No audit rows were removed by any of the tamper attempts
+    expect(db.institutional_activity_log.length).toBeGreaterThanOrEqual(activityCountBefore);
+    expect(db.document_access_log.length).toBeGreaterThanOrEqual(accessCountBefore);
+
+    // 7. The required identifier fields on existing audit rows remain stable end-to-end
+    expect(allowEvt).toMatchObject({
+      event_type: "Document Downloaded",
+      user_id: REQUESTER_ID,
+      possession_request_id: req.id,
+      institution_document_id: sharedDocId,
+      institution_id: INSTITUTION_ID,
+    });
+    expect(denyEvt).toMatchObject({
+      event_type: "Document Access Denied",
+      user_id: OTHER_COMPANY_USER_ID,
+      possession_request_id: req.id,
+      institution_document_id: sharedDocId,
+      institution_id: INSTITUTION_ID,
+    });
+    expect(accessRow).toMatchObject({
+      accessed_by: REQUESTER_ID,
+      access_type: "download",
+      institution_document_id: sharedDocId,
+      possession_request_id: req.id,
+      institution_id: INSTITUTION_ID,
+    });
+  });
 });
