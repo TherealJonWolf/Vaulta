@@ -61,6 +61,13 @@ function from(table: keyof ReturnType<typeof makeDb>) {
     update(values: Row) {
       return {
         eq: (col: string, val: any) => {
+          // Audit tables are append-only: the backend refuses updates outright.
+          if (AUDIT_TABLES.has(String(table))) {
+            return Promise.resolve({
+              data: null,
+              error: { code: "42501", message: "audit log is append-only" },
+            });
+          }
           rows.filter((r) => r[col] === val).forEach((r) => Object.assign(r, values));
           return Promise.resolve({ data: null, error: null });
         },
