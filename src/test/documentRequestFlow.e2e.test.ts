@@ -536,14 +536,14 @@ describe("Document request → share → download (e2e)", () => {
     const updateRes = await from("institutional_activity_log")
       .update({ event_type: "Tampered", detail: "rewritten" })
       .eq("id", allowEvt.id);
-    expect(updateRes.error).toBeNull(); // call returns, but...
-    expect(allowEvt.event_type).toBe("Document Downloaded"); // ...row is unchanged
+    expect(updateRes.error).toBeTruthy(); // backend refuses the update
+    expect(allowEvt.event_type).toBe("Document Downloaded"); // row is unchanged
     expect(allowEvt.detail).toContain("paystub.pdf");
 
     const accessUpdateRes = await from("document_access_log")
       .update({ accessed_by: OUTSIDER_ID, access_type: "view" })
       .eq("id", accessRow.id);
-    expect(accessUpdateRes.error).toBeNull();
+    expect(accessUpdateRes.error).toBeTruthy();
     expect(accessRow.accessed_by).toBe(REQUESTER_ID);
     expect(accessRow.access_type).toBe("download");
 
