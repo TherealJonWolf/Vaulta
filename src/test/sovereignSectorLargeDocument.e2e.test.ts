@@ -258,10 +258,9 @@ describe("Large document encrypted upload + streaming download (e2e)", () => {
     const expectedPrefix = plaintext.subarray(0, got.length);
     expect(Buffer.from(got).equals(Buffer.from(expectedPrefix))).toBe(true);
 
-    // And critically, the post-abort tail of the plaintext is NOT present
-    // anywhere in the consumer's collected output.
-    const tailSample = plaintext.subarray(got.length, got.length + 64);
-    expect(Buffer.from(got).includes(Buffer.from(tailSample))).toBe(false);
+    // And critically, no plaintext beyond the abort point reached the consumer:
+    // the collected buffer is strictly the prefix and nothing longer.
+    expect(got.byteLength).toBe(ABORT_AFTER * CHUNK_SIZE);
   });
 
   it("aborting BEFORE the first chunk yields zero plaintext bytes", async () => {
