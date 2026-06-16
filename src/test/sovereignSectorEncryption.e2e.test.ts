@@ -74,7 +74,11 @@ async function wrapKey(rawKey: ArrayBuffer, recipientKek: CryptoKey) {
   return { wrapped: new Uint8Array(ciphertext), iv };
 }
 async function unwrapKey(wrapped: Uint8Array, iv: Uint8Array, recipientKek: CryptoKey) {
-  const raw = await decryptData(wrapped.buffer.slice(wrapped.byteOffset, wrapped.byteOffset + wrapped.byteLength), recipientKek, iv);
+  const raw = await decryptData(
+    wrapped.buffer.slice(wrapped.byteOffset, wrapped.byteOffset + wrapped.byteLength) as ArrayBuffer,
+    recipientKek,
+    iv,
+  );
   return importKey(raw);
 }
 
@@ -176,9 +180,13 @@ async function seed() {
 // Helper: applicant-side encrypt-then-upload (mirrors browser behavior)
 async function applicantSharesDocument(plaintextBytes: Uint8Array, recipientUserIds: string[]) {
   const dataKey = await generateEncryptionKey();
-  const { ciphertext, iv } = await encryptData(plaintextBytes.buffer.slice(plaintextBytes.byteOffset, plaintextBytes.byteOffset + plaintextBytes.byteLength), dataKey);
+  const ptBuf = plaintextBytes.buffer.slice(
+    plaintextBytes.byteOffset,
+    plaintextBytes.byteOffset + plaintextBytes.byteLength,
+  ) as ArrayBuffer;
+  const { ciphertext, iv } = await encryptData(ptBuf, dataKey);
   const rawKey = await exportKey(dataKey);
-  const plaintext_sha256 = await hashData(plaintextBytes.buffer.slice(plaintextBytes.byteOffset, plaintextBytes.byteOffset + plaintextBytes.byteLength));
+  const plaintext_sha256 = await hashData(ptBuf);
 
   const wrapped_keys = await Promise.all(
     recipientUserIds.map(async (rid) => {
@@ -206,7 +214,11 @@ async function authorizedDecrypt(userId: string, docId: string): Promise<{ statu
   const kek = db.kek.get(userId)!;
   const dataKey = await unwrapKey(res.body.wrapped_key, res.body.wrap_iv, kek);
   const ct = res.body.ciphertext as Uint8Array;
-  const plain = await decryptData(ct.buffer.slice(ct.byteOffset, ct.byteOffset + ct.byteLength), dataKey, res.body.iv);
+  const plain = await decryptData(
+    ct.buffer.slice(ct.byteOffset, ct.byteOffset + ct.byteLength) as ArrayBuffer,
+    dataKey,
+    res.body.iv,
+  );
   return { status: 200, plaintext: new Uint8Array(plain), body: res.body };
 }
 
@@ -242,7 +254,10 @@ describe("Sovereign Sector encrypted upload + authorized retrieval (e2e)", () =>
     expect(new TextDecoder().decode(res.plaintext!)).toBe(new TextDecoder().decode(PLAINTEXT));
 
     // Plaintext SHA-256 matches what was recorded at upload
-    const verifyHash = await hashData(res.plaintext!.buffer);
+    const pt = res.plaintext!;
+    const verifyHash = await hashData(
+      pt.buffer.slice(pt.byteOffset, pt.byteOffset + pt.byteLength) as ArrayBuffer,
+    );
     expect(verifyHash).toBe(res.body.sha256);
 
     // Access log records an OK download
