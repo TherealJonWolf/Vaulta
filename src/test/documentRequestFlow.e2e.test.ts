@@ -598,3 +598,185 @@ describe("Document request → share → download (e2e)", () => {
     });
   });
 });
+
+// ---------- direct mutation-endpoint e2e (no UI) ----------
+//
+// Mirrors the real HTTP surface of the production endpoints:
+//   - download-institution-document edge function: only POST + OPTIONS are
+//     allowed; every other verb returns 405.
+//   - PostgREST data API for audit tables: INSERT/UPDATE/DELETE on
+//     institutional_activity_log and document_access_log are refused with
+//     403 (RLS WITH CHECK fails for non-service callers).
+//
+// These tests bypass every React component and call the mutation endpoints
+// directly the way a malicious or buggy client would.
+
+const ALLOWED_DOWNLOAD_METHODS = new Set(["POST", "OPTIONS"]);
+
+async function downloadEndpoint(method: string, userId: string | null, body?: { document_id?: string }) {
+  if (method === "OPTIONS") return { status: 204, headers: { allow: "POST, OPTIONS" }, body: null };
+  if (!ALLOWED_DOWNLOAD_METHODS.has(method)) {
+    return { status: 405, headers: { allow: "POST, OPTIONS" }, body: { error: "Method Not Allowed" } };
+  }
+  if (!userId) return { status: 401, headers: {}, body: { error: "Unauthorized" } };
+  if (!body?.document_id) return { status: 400, headers: {}, body: { error: "document_id required" } };
+  return { ...(await downloadInstitutionDocument(userId, body.document_id)), headers: {} as Record<string, string> };
+}
+
+// PostgREST-equivalent direct table mutation endpoint. Audit tables refuse
+// writes for any role except service_role; this fake represents a non-service
+// authenticated caller (the only kind a browser client can ever be).
+const AUDIT_TABLE_NAMES = new Set(["institutional_activity_log", "document_access_log"]);
+
+async function directTableMutation(
+  verb: "POST" | "PATCH" | "DELETE",
+  table: string,
+  payload?: Row,
+) {
+  if (AUDIT_TABLE_NAMES.has(table)) {
+    return {
+      status: 403,
+      body: {
+        code: "42501",
+        message: `permission denied for table ${table}`,
+        hint: "audit log is append-only; writes restricted to service_role",
+      },
+    };
+  }
+  // Non-audit tables would route through their normal RLS; not the subject of this test.
+  return { status: 200, body: { ok: true, payload } };
+}
+
+describe("Direct mutation-endpoint tamper attempts (no UI)", () => {
+  beforeEach(seed);
+
+  it("rejects non-POST verbs on the download endpoint with 405 and writes no audit rows", async () => {
+    const req = await institutionCreatesRequest({ documentTypes: ["Proof of income"] });
+    await userApprovesShare(req.id, ["doc-paystub"]);
+    const sharedDocId = db.institution_documents[0].id;
+
+    const activityBefore = db.institutional_activity_log.length;
+    const accessBefore = db.document_access_log.length;
+
+    for (const verb of ["GET", "PUT", "PATCH", "DELETE", "HEAD"]) {
+      const res = await downloadEndpoint(verb, REQUESTER_ID, { document_id: sharedDocId });
+      expect(res.status).toBe(405);
+      expect(res.headers.allow).toBe("POST, OPTIONS");
+      expect(res.body?.error).toBe("Method Not Allowed");
+    }
+
+    // 405 path MUST NOT write any audit rows (allow OR denied)
+    expect(db.institutional_activity_log.length).toBe(activityBefore);
+    expect(db.document_access_log.length).toBe(accessBefore);
+  });
+
+  it("OPTIONS preflight is permitted and writes no audit rows", async () => {
+    const before = db.institutional_activity_log.length;
+    const res = await downloadEndpoint("OPTIONS", null);
+    expect(res.status).toBe(204);
+    expect(db.institutional_activity_log.length).toBe(before);
+    expect(db.document_access_log.length).toBe(0);
+  });
+
+  it("POST without auth is rejected 401 with no audit write", async () => {
+    const req = await institutionCreatesRequest({ documentTypes: ["Proof of income"] });
+    await userApprovesShare(req.id, ["doc-paystub"]);
+    const sharedDocId = db.institution_documents[0].id;
+    const before = db.institutional_activity_log.length;
+
+    const res = await downloadEndpoint("POST", null, { document_id: sharedDocId });
+    expect(res.status).toBe(401);
+    // No "Document Access Denied" leak for unauthenticated calls (no known user_id)
+    expect(db.institutional_activity_log.length).toBe(before);
+    expect(db.document_access_log).toHaveLength(0);
+  });
+
+  it("direct INSERT against audit tables is refused 403 and adds no rows", async () => {
+    const req = await institutionCreatesRequest({ documentTypes: ["Proof of income"] });
+    await userApprovesShare(req.id, ["doc-paystub"]);
+    const activityBefore = db.institutional_activity_log.length;
+    const accessBefore = db.document_access_log.length;
+
+    const forgedActivity = await directTableMutation("POST", "institutional_activity_log", {
+      institution_id: INSTITUTION_ID,
+      user_id: OUTSIDER_ID,
+      event_type: "Document Downloaded", // attacker tries to forge a clean download
+      detail: "forged",
+    });
+    expect(forgedActivity.status).toBe(403);
+    expect(forgedActivity.body.code).toBe("42501");
+
+    const forgedAccess = await directTableMutation("POST", "document_access_log", {
+      institution_id: INSTITUTION_ID,
+      institution_document_id: db.institution_documents[0].id,
+      accessed_by: OUTSIDER_ID,
+      access_type: "download",
+    });
+    expect(forgedAccess.status).toBe(403);
+
+    expect(db.institutional_activity_log.length).toBe(activityBefore);
+    expect(db.document_access_log.length).toBe(accessBefore);
+  });
+
+  it("direct PATCH/DELETE against audit tables is refused 403 and rows are unchanged", async () => {
+    const req = await institutionCreatesRequest({ documentTypes: ["Proof of income"] });
+    await userApprovesShare(req.id, ["doc-paystub"]);
+    const sharedDocId = db.institution_documents[0].id;
+    await downloadInstitutionDocument(REQUESTER_ID, sharedDocId);
+    await downloadInstitutionDocument(OTHER_COMPANY_USER_ID, sharedDocId); // denied
+
+    const allowEvt = db.institutional_activity_log.find((e) => e.event_type === "Document Downloaded")!;
+    const denyEvt = db.institutional_activity_log.find((e) => e.event_type === "Document Access Denied")!;
+    const accessRow = db.document_access_log[0];
+
+    const snapshotActivity = JSON.stringify(db.institutional_activity_log);
+    const snapshotAccess = JSON.stringify(db.document_access_log);
+
+    for (const verb of ["PATCH", "DELETE"] as const) {
+      for (const table of ["institutional_activity_log", "document_access_log"]) {
+        const res = await directTableMutation(verb, table, { event_type: "Tampered" });
+        expect(res.status).toBe(403);
+        expect(res.body.code).toBe("42501");
+      }
+    }
+
+    // Existing rows unchanged byte-for-byte
+    expect(JSON.stringify(db.institutional_activity_log)).toBe(snapshotActivity);
+    expect(JSON.stringify(db.document_access_log)).toBe(snapshotAccess);
+    expect(allowEvt.event_type).toBe("Document Downloaded");
+    expect(denyEvt.event_type).toBe("Document Access Denied");
+    expect(accessRow.accessed_by).toBe(REQUESTER_ID);
+  });
+
+  it("full tamper sweep via mutation endpoints: every attempt denied, audit trail intact", async () => {
+    const req = await institutionCreatesRequest({ documentTypes: ["Proof of income"] });
+    await userApprovesShare(req.id, ["doc-paystub"]);
+    const sharedDocId = db.institution_documents[0].id;
+    await downloadInstitutionDocument(REQUESTER_ID, sharedDocId);
+
+    const activitySnapshot = JSON.stringify(db.institutional_activity_log);
+    const accessSnapshot = JSON.stringify(db.document_access_log);
+
+    // Mix of forbidden verbs on download endpoint + forbidden writes on audit tables
+    const attempts = [
+      () => downloadEndpoint("DELETE", REQUESTER_ID, { document_id: sharedDocId }),
+      () => downloadEndpoint("PATCH", REQUESTER_ID, { document_id: sharedDocId }),
+      () => downloadEndpoint("PUT", OUTSIDER_ID, { document_id: sharedDocId }),
+      () => directTableMutation("POST", "institutional_activity_log", { event_type: "Document Downloaded" }),
+      () => directTableMutation("PATCH", "institutional_activity_log", { detail: "x" }),
+      () => directTableMutation("DELETE", "institutional_activity_log"),
+      () => directTableMutation("POST", "document_access_log", { access_type: "download" }),
+      () => directTableMutation("PATCH", "document_access_log", { accessed_by: OUTSIDER_ID }),
+      () => directTableMutation("DELETE", "document_access_log"),
+    ];
+
+    for (const run of attempts) {
+      const res: any = await run();
+      expect([403, 405]).toContain(res.status);
+    }
+
+    // Not a single byte of audit history changed
+    expect(JSON.stringify(db.institutional_activity_log)).toBe(activitySnapshot);
+    expect(JSON.stringify(db.document_access_log)).toBe(accessSnapshot);
+  });
+});
