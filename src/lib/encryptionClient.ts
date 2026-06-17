@@ -49,7 +49,12 @@ function getWorker(): Worker | null {
   }
 }
 
-function call(req: Omit<WorkerRequest, "id">, transfer: Transferable[] = []): Promise<WorkerResponse> {
+type WorkerRequestBody =
+  | { type: "derive"; password: string; salt: Uint8Array }
+  | { type: "encrypt"; data: ArrayBuffer; key: CryptoKey }
+  | { type: "decrypt"; data: ArrayBuffer; key: CryptoKey; iv: Uint8Array };
+
+function call(req: WorkerRequestBody, transfer: Transferable[] = []): Promise<WorkerResponse> {
   const w = getWorker();
   if (!w) return Promise.reject(new Error("no_worker"));
   const id = nextId++;
@@ -68,7 +73,7 @@ export async function deriveKeyFromPassword(password: string, salt: Uint8Array):
   try {
     const res = await call({ type: "derive", password, salt });
     if (res.ok && res.type === "derive") return res.key;
-    throw new Error(res.ok ? "bad_response" : res.error);
+    throw new Error(!res.ok ? res.error : "bad_response");
   } catch {
     return deriveSync(password, salt);
   }
@@ -83,7 +88,7 @@ export async function encryptData(
     if (res.ok && res.type === "encrypt") {
       return { ciphertext: res.ciphertext, iv: res.iv, tag: res.ciphertext.slice(-16) };
     }
-    throw new Error(res.ok ? "bad_response" : res.error);
+    throw new Error(!res.ok ? res.error : "bad_response");
   } catch {
     return encryptSync(data, key);
   }
@@ -97,7 +102,7 @@ export async function decryptData(
   try {
     const res = await call({ type: "decrypt", data: ciphertext, key, iv }, [ciphertext]);
     if (res.ok && res.type === "decrypt") return res.plaintext;
-    throw new Error(res.ok ? "bad_response" : res.error);
+    throw new Error(!res.ok ? res.error : "bad_response");
   } catch {
     return decryptSync(ciphertext, key, iv);
   }
