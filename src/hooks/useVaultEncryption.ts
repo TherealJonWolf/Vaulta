@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { deriveKeyFromPassword, encryptData, decryptData, hashData, generateSecureRandom, exportKey, importKey } from "@/lib/encryption";
+import { hashData, generateSecureRandom, exportKey, importKey } from "@/lib/encryption";
+import { deriveKeyFromPassword, encryptData, decryptData } from "@/lib/encryptionClient";
 
 export const useVaultEncryption = (userId: string | undefined) => {
   const [encryptionKey, setEncryptionKey] = useState<CryptoKey | null>(null);
