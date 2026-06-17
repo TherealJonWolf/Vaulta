@@ -902,6 +902,7 @@ export type Database = {
           institution_name: string | null
           is_verified: boolean
           mime_type: string
+          region: string | null
           source: string | null
           updated_at: string
           user_id: string
@@ -919,6 +920,7 @@ export type Database = {
           institution_name?: string | null
           is_verified?: boolean
           mime_type: string
+          region?: string | null
           source?: string | null
           updated_at?: string
           user_id: string
@@ -936,6 +938,7 @@ export type Database = {
           institution_name?: string | null
           is_verified?: boolean
           mime_type?: string
+          region?: string | null
           source?: string | null
           updated_at?: string
           user_id?: string
@@ -1112,6 +1115,7 @@ export type Database = {
           mime_type: string
           original_document_id: string | null
           possession_request_id: string
+          region: string | null
           retention_expired_notified: boolean
           retention_expires_at: string | null
           share_status: string
@@ -1137,6 +1141,7 @@ export type Database = {
           mime_type: string
           original_document_id?: string | null
           possession_request_id: string
+          region?: string | null
           retention_expired_notified?: boolean
           retention_expires_at?: string | null
           share_status?: string
@@ -1162,6 +1167,7 @@ export type Database = {
           mime_type?: string
           original_document_id?: string | null
           possession_request_id?: string
+          region?: string | null
           retention_expired_notified?: boolean
           retention_expires_at?: string | null
           share_status?: string
@@ -1380,16 +1386,19 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          region: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          region?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          region?: string | null
         }
         Relationships: []
       }

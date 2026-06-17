@@ -2,6 +2,9 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { jsPDF } from "npm:jspdf@2.5.1";
 import { signPdfBytes } from "../_shared/pdfSign.ts";
 
+const PDF_SERVICE_URL = Deno.env.get("PDF_SERVICE_URL") ?? "";
+const PDF_SERVICE_TOKEN = Deno.env.get("PDF_SERVICE_TOKEN") ?? "";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -101,6 +104,50 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const institutionName = settings?.display_name || institution?.name || "Reviewing Institution";
+
+    // Heavy PDF compilation is delegated to the isolated background PDF
+    // service when configured. The edge function stays a thin authenticated
+    // router that authorises, builds the signed payload, and streams the
+    // service's response back to the caller. Falls back to the inline jsPDF
+    // path below when no external service is configured.
+    if (PDF_SERVICE_URL) {
+      try {
+        const upstream = await fetch(PDF_SERVICE_URL.replace(/\/$/, "") + "/adverse-action", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(PDF_SERVICE_TOKEN ? { "Authorization": `Bearer ${PDF_SERVICE_TOKEN}` } : {}),
+          },
+          body: JSON.stringify({
+            submission_id,
+            recipient_email: recipient_email ?? null,
+            institution_name: institutionName,
+            settings,
+            submission: sub,
+            issued_by: user.id,
+          }),
+        });
+        if (upstream.ok) {
+          await admin.from("institutional_activity_log").insert({
+            institution_id: sub.institution_id,
+            user_id: user.id,
+            event_type: recipient_email ? "Adverse Action Notice Emailed" : "Adverse Action Notice Generated",
+            reference_id: sub.reference_id,
+            applicant_name: sub.applicant_name,
+            detail: recipient_email
+              ? `Adverse action notice emailed to ${recipient_email} for ${sub.applicant_name} (via pdf-service)`
+              : `Adverse action notice generated for ${sub.applicant_name} (via pdf-service)`,
+          });
+          const headers = new Headers(upstream.headers);
+          for (const [k, v] of Object.entries(corsHeaders)) headers.set(k, v);
+          return new Response(upstream.body, { status: upstream.status, headers });
+        }
+        console.error("pdf-service returned", upstream.status, await upstream.text().catch(() => ""));
+        // fall through to inline path on upstream failure
+      } catch (e) {
+        console.error("pdf-service dispatch failed", e);
+      }
+    }
 
     // ── Build PDF ──
     const doc = new jsPDF({ unit: "pt", format: "letter" });

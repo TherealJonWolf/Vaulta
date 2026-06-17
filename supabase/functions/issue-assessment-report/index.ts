@@ -17,6 +17,8 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const PDF_SERVICE_URL = Deno.env.get("PDF_SERVICE_URL") ?? "";
+const PDF_SERVICE_TOKEN = Deno.env.get("PDF_SERVICE_TOKEN") ?? "";
 
 function canonicalize(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -204,6 +206,30 @@ Deno.serve(async (req) => {
       applicant_name: submission.applicant_name,
       detail: `Issued verified assessment report (hash ${reportHash.slice(0, 12)}…).`,
     });
+
+    // Heavy PDF compilation is delegated to the isolated background PDF
+    // service when configured. This edge function stays a thin authenticated
+    // router: it authorises, writes the immutable report row, and triggers
+    // the external compiler. If PDF_SERVICE_URL is unset, callers receive
+    // the JSON receipt only (existing behaviour) — no PDF is compiled here.
+    if (PDF_SERVICE_URL) {
+      try {
+        await fetch(PDF_SERVICE_URL.replace(/\/$/, "") + "/assessment-report", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(PDF_SERVICE_TOKEN ? { "Authorization": `Bearer ${PDF_SERVICE_TOKEN}` } : {}),
+          },
+          body: JSON.stringify({
+            report_id: inserted.id,
+            report_hash: inserted.report_hash,
+            payload,
+          }),
+        });
+      } catch (e) {
+        console.error("pdf-service dispatch failed", e);
+      }
+    }
 
     return new Response(
       JSON.stringify({

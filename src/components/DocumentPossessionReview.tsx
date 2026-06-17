@@ -115,6 +115,20 @@ const DocumentPossessionReview = ({ open, onClose, userId }: Props) => {
       if (consentError) throw consentError;
 
       // Copy documents to institution storage
+      // Resolve the institution's region tag (if configured) so the new
+      // institution_documents row carries it for downstream residency-aware
+      // routing. Falls back to null when not set — current behaviour.
+      let institutionRegion: string | null = null;
+      try {
+        const { data: instRow } = await (supabase.from as any)("institutions")
+          .select("region")
+          .eq("id", selectedRequest.institution_id)
+          .maybeSingle();
+        institutionRegion = (instRow?.region as string | null) ?? null;
+      } catch {
+        institutionRegion = null;
+      }
+
       for (const doc of matchedDocs) {
         const destPath = `${selectedRequest.institution_id}/${selectedRequest.id}/${doc.file_name}`;
 
@@ -155,6 +169,7 @@ const DocumentPossessionReview = ({ open, onClose, userId }: Props) => {
           retention_expires_at: selectedRequest.retention_expires_at,
           share_status: "shared",
           uploaded_via: "vault",
+          region: institutionRegion,
         });
 
         await (supabase.from as any)("institutional_activity_log").insert({

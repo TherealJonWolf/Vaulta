@@ -117,27 +117,27 @@ export default function ApiReference() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: index * 0.1 }}
-                    className="bg-card/50 border border-border rounded-lg p-6 hover:border-primary/50 transition-colors"
+                    className="bg-card/50 border border-border rounded-lg p-4 sm:p-6 hover:border-primary/50 transition-colors min-w-0 overflow-hidden"
                   >
-                    <div className="flex flex-wrap items-center gap-3 mb-3">
-                      <span className={`font-mono text-sm px-2 py-1 rounded ${
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 min-w-0">
+                      <span className={`font-mono text-xs sm:text-sm px-2 py-1 rounded shrink-0 ${
                         endpoint.method === 'GET' ? 'bg-secure-green/20 text-secure-green' :
                         endpoint.method === 'POST' ? 'bg-primary/20 text-primary' :
                         'bg-red-500/20 text-red-400'
                       }`}>
                         {endpoint.method}
                       </span>
-                      <code className="font-mono text-foreground">{endpoint.path}</code>
+                      <code className="font-mono text-xs sm:text-sm text-foreground break-all min-w-0 flex-1">{endpoint.path}</code>
                     </div>
-                    <p className="text-muted-foreground font-rajdhani mb-3">{endpoint.description}</p>
-                    <div className="flex flex-wrap items-center gap-4 text-sm">
-                      <div className="flex items-center gap-2">
+                    <p className="text-muted-foreground font-rajdhani mb-3 break-words">{endpoint.description}</p>
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
                         <Lock className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-mono text-muted-foreground">{endpoint.auth}</span>
+                        <span className="font-mono text-xs sm:text-sm text-muted-foreground break-words min-w-0">{endpoint.auth}</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
                         <Shield className="w-4 h-4 text-muted-foreground" />
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 flex-wrap">
                           {endpoint.controls.map((control) => (
                             <span key={control} className="font-mono text-primary bg-primary/10 px-2 py-0.5 rounded text-xs">
                               {control}
