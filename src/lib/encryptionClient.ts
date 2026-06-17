@@ -13,6 +13,9 @@ import {
 } from "./encryption";
 import type { WorkerRequest, WorkerResponse } from "./encryption.worker";
 
+type ErrResponse = { id: number; ok: false; error: string };
+const isErr = (r: WorkerResponse): r is ErrResponse => r.ok === false;
+
 type Pending = {
   resolve: (value: WorkerResponse) => void;
   reject: (err: unknown) => void;
@@ -72,7 +75,7 @@ function call(req: WorkerRequestBody, transfer: Transferable[] = []): Promise<Wo
 export async function deriveKeyFromPassword(password: string, salt: Uint8Array): Promise<CryptoKey> {
   try {
     const res = await call({ type: "derive", password, salt });
-    if (!res.ok) throw new Error(res.error);
+    if (isErr(res)) throw new Error(res.error);
     if (res.type === "derive") return res.key;
     throw new Error("bad_response");
   } catch {
@@ -86,7 +89,7 @@ export async function encryptData(
 ): Promise<{ ciphertext: ArrayBuffer; iv: Uint8Array; tag: ArrayBuffer }> {
   try {
     const res = await call({ type: "encrypt", data, key }, [data]);
-    if (!res.ok) throw new Error(res.error);
+    if (isErr(res)) throw new Error(res.error);
     if (res.type === "encrypt") {
       return { ciphertext: res.ciphertext, iv: res.iv, tag: res.ciphertext.slice(-16) };
     }
@@ -103,7 +106,7 @@ export async function decryptData(
 ): Promise<ArrayBuffer> {
   try {
     const res = await call({ type: "decrypt", data: ciphertext, key, iv }, [ciphertext]);
-    if (!res.ok) throw new Error(res.error);
+    if (isErr(res)) throw new Error(res.error);
     if (res.type === "decrypt") return res.plaintext;
     throw new Error("bad_response");
   } catch {
