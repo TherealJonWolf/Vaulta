@@ -72,8 +72,9 @@ function call(req: WorkerRequestBody, transfer: Transferable[] = []): Promise<Wo
 export async function deriveKeyFromPassword(password: string, salt: Uint8Array): Promise<CryptoKey> {
   try {
     const res = await call({ type: "derive", password, salt });
-    if (res.ok && res.type === "derive") return res.key;
-    throw new Error(!res.ok ? res.error : "bad_response");
+    if (!res.ok) throw new Error(res.error);
+    if (res.type === "derive") return res.key;
+    throw new Error("bad_response");
   } catch {
     return deriveSync(password, salt);
   }
@@ -85,10 +86,11 @@ export async function encryptData(
 ): Promise<{ ciphertext: ArrayBuffer; iv: Uint8Array; tag: ArrayBuffer }> {
   try {
     const res = await call({ type: "encrypt", data, key }, [data]);
-    if (res.ok && res.type === "encrypt") {
+    if (!res.ok) throw new Error(res.error);
+    if (res.type === "encrypt") {
       return { ciphertext: res.ciphertext, iv: res.iv, tag: res.ciphertext.slice(-16) };
     }
-    throw new Error(!res.ok ? res.error : "bad_response");
+    throw new Error("bad_response");
   } catch {
     return encryptSync(data, key);
   }
@@ -101,8 +103,9 @@ export async function decryptData(
 ): Promise<ArrayBuffer> {
   try {
     const res = await call({ type: "decrypt", data: ciphertext, key, iv }, [ciphertext]);
-    if (res.ok && res.type === "decrypt") return res.plaintext;
-    throw new Error(!res.ok ? res.error : "bad_response");
+    if (!res.ok) throw new Error(res.error);
+    if (res.type === "decrypt") return res.plaintext;
+    throw new Error("bad_response");
   } catch {
     return decryptSync(ciphertext, key, iv);
   }
