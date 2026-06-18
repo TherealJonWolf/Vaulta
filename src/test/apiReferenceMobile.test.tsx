@@ -170,3 +170,68 @@ describe("ApiReference tablet UI regression (mobile -> 768px)", () => {
     });
   }
 });
+
+describe("ApiReference desktop UI regression (mobile -> 1024px)", () => {
+  // Cover the lg: breakpoint range to ensure clipping/squashing doesn't
+  // reappear as the viewport grows from tablet into desktop.
+  const widths = [820, 1024];
+
+  for (const width of widths) {
+    describe(`at ${width}px viewport`, () => {
+      beforeEach(() => setViewport(width));
+
+      it("renders every documented endpoint without dropping rows", () => {
+        renderPage();
+        const paths = [
+          "/api/documents/upload",
+          "/api/documents/{id}",
+          "/api/audit/logs",
+          "/api/auth/mfa/enroll",
+          "/api/auth/mfa/verify",
+        ];
+        for (const p of paths) {
+          expect(screen.getAllByText(p).length).toBeGreaterThan(0);
+        }
+      });
+
+      it("keeps endpoint paths wrap-friendly (no nowrap / truncate)", () => {
+        renderPage();
+        const path = screen.getByText("/api/auth/mfa/verify");
+        expect(path.className).toMatch(/break-all/);
+        expect(path.className).toMatch(/min-w-0/);
+        expect(path.className).not.toMatch(/\bwhitespace-nowrap\b/);
+        expect(path.className).not.toMatch(/\btruncate\b/);
+      });
+
+      it("keeps the endpoint row container overflow-safe", () => {
+        renderPage();
+        const path = screen.getByText("/api/documents/upload");
+        const row = path.closest("div")!;
+        expect(row.className).toMatch(/flex-wrap/);
+        expect(row.className).toMatch(/min-w-0/);
+
+        const card = path.closest("div[class*='bg-card/50']") as HTMLElement | null;
+        expect(card).not.toBeNull();
+        expect(card!.className).toMatch(/overflow-hidden/);
+        expect(card!.className).toMatch(/min-w-0/);
+      });
+
+      it("keeps descriptions breakable and untruncated", () => {
+        renderPage();
+        const desc = screen.getByText("Retrieve security audit logs");
+        expect(desc.className).toMatch(/break-words/);
+        expect(desc.className).not.toMatch(/truncate/);
+        expect(desc.className).not.toMatch(/whitespace-nowrap/);
+      });
+
+      it("contains no fixed widths that would exceed the viewport", () => {
+        const { container } = renderPage();
+        const offenders = Array.from(container.querySelectorAll<HTMLElement>("*")).filter((el) => {
+          const cls = el.className?.toString?.() ?? "";
+          return /\b(min-)?w-\[(\d{3,})px\]/.test(cls) && Number(RegExp.$2) > width;
+        });
+        expect(offenders).toEqual([]);
+      });
+    });
+  }
+});
