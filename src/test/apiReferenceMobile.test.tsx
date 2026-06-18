@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import ApiReference from "@/pages/ApiReference";
@@ -39,6 +39,14 @@ function renderPage() {
       <ApiReference />
     </MemoryRouter>,
   );
+}
+
+function enableDarkMode() {
+  document.documentElement.classList.add("dark");
+}
+
+function disableDarkMode() {
+  document.documentElement.classList.remove("dark");
 }
 
 describe("ApiReference mobile UI regression", () => {
@@ -160,6 +168,85 @@ describe("ApiReference tablet UI regression (mobile -> 768px)", () => {
       });
 
       it("contains no fixed widths that would exceed the viewport", () => {
+        const { container } = renderPage();
+        const offenders = Array.from(container.querySelectorAll<HTMLElement>("*")).filter((el) => {
+          const cls = el.className?.toString?.() ?? "";
+          return /\b(min-)?w-\[(\d{3,})px\]/.test(cls) && Number(RegExp.$2) > width;
+        });
+        expect(offenders).toEqual([]);
+      });
+    });
+  }
+});
+
+describe("ApiReference dark mode UI regression (>=1024px)", () => {
+  const widths = [1024, 1280, 1440];
+
+  for (const width of widths) {
+    describe(`at ${width}px viewport (dark)`, () => {
+      beforeEach(() => {
+        setViewport(width);
+        enableDarkMode();
+      });
+      afterEach(() => disableDarkMode());
+
+      it("activates the dark class on <html>", () => {
+        renderPage();
+        expect(document.documentElement.classList.contains("dark")).toBe(true);
+      });
+
+      it("uses semantic, theme-aware color tokens (no hardcoded light text)", () => {
+        renderPage();
+        const path = screen.getByText("/api/auth/mfa/verify");
+        // Must use semantic foreground tokens, never hardcoded white/black or arbitrary hex.
+        expect(path.className).toMatch(/text-foreground/);
+        expect(path.className).not.toMatch(/\btext-white\b/);
+        expect(path.className).not.toMatch(/\btext-black\b/);
+        expect(path.className).not.toMatch(/text-\[#/);
+
+        const desc = screen.getByText("Verify MFA token");
+        expect(desc.className).toMatch(/text-muted-foreground/);
+        expect(desc.className).not.toMatch(/\btext-white\b/);
+        expect(desc.className).not.toMatch(/\btext-black\b/);
+      });
+
+      it("uses semantic background tokens on endpoint cards (theme-aware)", () => {
+        renderPage();
+        const path = screen.getByText("/api/documents/upload");
+        const card = path.closest("div[class*='bg-card/50']") as HTMLElement | null;
+        expect(card).not.toBeNull();
+        // No hardcoded bg-white/bg-black; must rely on bg-card token.
+        expect(card!.className).not.toMatch(/\bbg-white\b/);
+        expect(card!.className).not.toMatch(/\bbg-black\b/);
+        expect(card!.className).not.toMatch(/bg-\[#/);
+        expect(card!.className).toMatch(/border-border/);
+      });
+
+      it("preserves overflow-safe layout in dark mode at desktop widths", () => {
+        renderPage();
+        const path = screen.getByText("/api/documents/upload");
+        const row = path.closest("div")!;
+        expect(row.className).toMatch(/flex-wrap/);
+        expect(row.className).toMatch(/min-w-0/);
+
+        const card = path.closest("div[class*='bg-card/50']") as HTMLElement | null;
+        expect(card!.className).toMatch(/overflow-hidden/);
+        expect(card!.className).toMatch(/min-w-0/);
+      });
+
+      it("renders the HTTP method badge with a semantic, non-hardcoded color", () => {
+        renderPage();
+        // GET badge for /api/documents/{id}
+        const badges = screen.getAllByText("GET");
+        expect(badges.length).toBeGreaterThan(0);
+        for (const b of badges) {
+          expect(b.className).not.toMatch(/\btext-white\b/);
+          expect(b.className).not.toMatch(/\bbg-white\b/);
+          expect(b.className).not.toMatch(/bg-\[#/);
+        }
+      });
+
+      it("contains no fixed widths that would exceed the desktop viewport", () => {
         const { container } = renderPage();
         const offenders = Array.from(container.querySelectorAll<HTMLElement>("*")).filter((el) => {
           const cls = el.className?.toString?.() ?? "";
