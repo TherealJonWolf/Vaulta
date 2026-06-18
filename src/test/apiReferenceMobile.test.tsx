@@ -3,6 +3,18 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import ApiReference from "@/pages/ApiReference";
 
+// jsdom lacks IntersectionObserver; framer-motion's viewport feature needs it.
+class IO {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords() { return []; }
+  root = null;
+  rootMargin = "";
+  thresholds = [];
+}
+(globalThis as any).IntersectionObserver = (globalThis as any).IntersectionObserver ?? IO;
+
 // Mock auth-related hooks used inside Navbar to keep test isolated
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({ user: null, session: null, loading: false, signOut: vi.fn() }),
