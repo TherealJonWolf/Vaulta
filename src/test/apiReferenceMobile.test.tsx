@@ -41,6 +41,14 @@ function renderPage() {
   );
 }
 
+function enableDarkMode() {
+  document.documentElement.classList.add("dark");
+}
+
+function disableDarkMode() {
+  document.documentElement.classList.remove("dark");
+}
+
 describe("ApiReference mobile UI regression", () => {
   beforeEach(() => {
     setViewport(375); // iPhone SE / smallest supported phone width
