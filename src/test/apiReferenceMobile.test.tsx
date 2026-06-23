@@ -322,3 +322,103 @@ describe("ApiReference desktop UI regression (mobile -> 1024px)", () => {
     });
   }
 });
+
+describe("ApiReference light mode UI regression (>=1024px)", () => {
+  const widths = [1024, 1280, 1440, 1920];
+
+  for (const width of widths) {
+    describe(`at ${width}px viewport (light)`, () => {
+      beforeEach(() => {
+        setViewport(width);
+        // Explicitly ensure light mode (no `dark` class on <html>).
+        disableDarkMode();
+      });
+      afterEach(() => disableDarkMode());
+
+      it("does not activate the dark class on <html>", () => {
+        renderPage();
+        expect(document.documentElement.classList.contains("dark")).toBe(false);
+      });
+
+      it("uses semantic, theme-aware text tokens (no hardcoded light-mode colors)", () => {
+        renderPage();
+        const path = screen.getByText("/api/auth/mfa/verify");
+        // Typography must rely on semantic tokens so it adapts between themes.
+        expect(path.className).toMatch(/text-foreground/);
+        expect(path.className).not.toMatch(/\btext-white\b/);
+        expect(path.className).not.toMatch(/\btext-black\b/);
+        expect(path.className).not.toMatch(/text-\[#/);
+        // Must not hardcode a slate/gray/zinc shade that would fail in light mode.
+        expect(path.className).not.toMatch(/\btext-(slate|gray|zinc|neutral|stone)-\d{3}\b/);
+
+        const desc = screen.getByText("Verify MFA token");
+        expect(desc.className).toMatch(/text-muted-foreground/);
+        expect(desc.className).not.toMatch(/\btext-white\b/);
+        expect(desc.className).not.toMatch(/\btext-black\b/);
+        expect(desc.className).not.toMatch(/text-\[#/);
+      });
+
+      it("uses semantic background + border tokens on endpoint cards", () => {
+        renderPage();
+        const path = screen.getByText("/api/documents/upload");
+        const card = path.closest("div[class*='bg-card/50']") as HTMLElement | null;
+        expect(card).not.toBeNull();
+        expect(card!.className).not.toMatch(/\bbg-white\b/);
+        expect(card!.className).not.toMatch(/\bbg-black\b/);
+        expect(card!.className).not.toMatch(/bg-\[#/);
+        expect(card!.className).toMatch(/border-border/);
+      });
+
+      it("preserves overflow-safe layout at desktop widths in light mode", () => {
+        renderPage();
+        const path = screen.getByText("/api/documents/upload");
+        const row = path.closest("div")!;
+        expect(row.className).toMatch(/flex-wrap/);
+        expect(row.className).toMatch(/min-w-0/);
+
+        const card = path.closest("div[class*='bg-card/50']") as HTMLElement | null;
+        expect(card!.className).toMatch(/overflow-hidden/);
+        expect(card!.className).toMatch(/min-w-0/);
+      });
+
+      it("preserves consistent spacing utilities on endpoint cards", () => {
+        renderPage();
+        const path = screen.getByText("/api/documents/upload");
+        const card = path.closest("div[class*='bg-card/50']") as HTMLElement | null;
+        expect(card).not.toBeNull();
+        // Padding + gap utilities must remain so rows don't visually collapse.
+        expect(card!.className).toMatch(/\bp-\d/);
+        const row = path.closest("div")!;
+        expect(row.className).toMatch(/\bgap-\d/);
+      });
+
+      it("keeps descriptions breakable and untruncated in light mode", () => {
+        renderPage();
+        const desc = screen.getByText("Verify MFA token");
+        expect(desc.className).toMatch(/break-words/);
+        expect(desc.className).not.toMatch(/truncate/);
+        expect(desc.className).not.toMatch(/whitespace-nowrap/);
+      });
+
+      it("renders HTTP method badges with semantic, theme-aware colors", () => {
+        renderPage();
+        const badges = screen.getAllByText("GET");
+        expect(badges.length).toBeGreaterThan(0);
+        for (const b of badges) {
+          expect(b.className).not.toMatch(/\btext-black\b/);
+          expect(b.className).not.toMatch(/\bbg-black\b/);
+          expect(b.className).not.toMatch(/bg-\[#/);
+        }
+      });
+
+      it("contains no fixed widths that would exceed the desktop viewport", () => {
+        const { container } = renderPage();
+        const offenders = Array.from(container.querySelectorAll<HTMLElement>("*")).filter((el) => {
+          const cls = el.className?.toString?.() ?? "";
+          return /\b(min-)?w-\[(\d{3,})px\]/.test(cls) && Number(RegExp.$2) > width;
+        });
+        expect(offenders).toEqual([]);
+      });
+    });
+  }
+});
