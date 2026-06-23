@@ -1,12 +1,22 @@
-import { ReactNode, useEffect } from "react";
+import { ReactNode, createContext, useContext, useEffect } from "react";
 import { InstitutionalAuthProvider, useInstitutionalAuth } from "../hooks/useInstitutionalAuth";
 import { InstitutionalSidebar } from "./InstitutionalSidebar";
 import { Loader2 } from "lucide-react";
 import { useVaultEncryption } from "@/hooks/useVaultEncryption";
+import { useInstitutionVault } from "../hooks/useInstitutionVault";
 import VaultPassphraseGate from "@/components/VaultPassphraseGate";
 
+type InstVault = ReturnType<typeof useInstitutionVault>;
+const InstitutionVaultContext = createContext<InstVault | null>(null);
+
+export const useUnlockedInstitutionVault = (): InstVault => {
+  const ctx = useContext(InstitutionVaultContext);
+  if (!ctx) throw new Error("useUnlockedInstitutionVault must be inside InstitutionalLayout");
+  return ctx;
+};
+
 const LayoutContent = ({ children }: { children: ReactNode }) => {
-  const { loading, user } = useInstitutionalAuth();
+  const { loading, user, institutionId } = useInstitutionalAuth();
   const {
     isUnlocked,
     hasPassphrase,
@@ -14,12 +24,19 @@ const LayoutContent = ({ children }: { children: ReactNode }) => {
     createPassphrase,
     unlockVault,
   } = useVaultEncryption(user?.id);
+  const instVault = useInstitutionVault(institutionId);
 
   useEffect(() => {
     if (user?.id) {
       checkPassphraseExists();
     }
   }, [user?.id, checkPassphraseExists]);
+
+  useEffect(() => {
+    if (isUnlocked && institutionId) {
+      instVault.checkPassphraseExists();
+    }
+  }, [isUnlocked, institutionId, instVault.checkPassphraseExists]);
 
   if (loading) {
     return (
@@ -41,11 +58,25 @@ const LayoutContent = ({ children }: { children: ReactNode }) => {
     );
   }
 
+  if (!instVault.isUnlocked) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-white">
+        <VaultPassphraseGate
+          hasPassphrase={instVault.hasPassphrase}
+          onCreatePassphrase={instVault.createPassphrase}
+          onUnlock={instVault.unlockVault}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex h-screen bg-white">
-      <InstitutionalSidebar />
-      <main className="flex-1 overflow-auto">{children}</main>
-    </div>
+    <InstitutionVaultContext.Provider value={instVault}>
+      <div className="flex h-screen bg-white">
+        <InstitutionalSidebar />
+        <main className="flex-1 overflow-auto">{children}</main>
+      </div>
+    </InstitutionVaultContext.Provider>
   );
 };
 
