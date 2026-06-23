@@ -94,6 +94,9 @@ Deno.serve(async (req) => {
     const institutionPublicKey: string = keyRow.public_key;
 
     // Persist each ciphertext blob into the private institution-documents bucket.
+    // Per-file wrapped keys + IVs are kept in the sealed payload on the submission row,
+    // so the server retains no plaintext index of which file is which.
+    const storedFiles: Array<{ path: string; size: number; wrapped_key_b64: string; iv_hex: string; version: string }> = [];
     for (const f of encryptedFiles) {
       const objectPath = `${linkRow.institution_id}/${linkData.id}/${crypto.randomUUID()}.enc`;
       const blob = new Blob([b64ToBytes(f.ciphertext_b64)], { type: "application/octet-stream" });
@@ -101,17 +104,21 @@ Deno.serve(async (req) => {
         .from("institution-documents")
         .upload(objectPath, blob, { contentType: "application/octet-stream", upsert: false });
       if (upErr) throw upErr;
-
-      await supabase.from("institution_documents").insert({
-        institution_id: linkRow.institution_id,
-        storage_path: objectPath,
-        original_filename_hint: f.original_name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 40),
-        size_bytes: f.size,
-        wrapped_key: f.wrapped_key_b64,
-        iv: f.iv_hex,
-        encryption_version: f.version,
+      storedFiles.push({
+        path: objectPath,
+        size: f.size,
+        wrapped_key_b64: f.wrapped_key_b64,
+        iv_hex: f.iv_hex,
+        version: f.version,
       });
     }
+
+    // Seal the stored-file index (paths + per-file keys + IVs) under the institution
+    // public key so only the institution can pair a path with its decryption key.
+    const sealedIndex = await sealStringWithPublicKey(
+      JSON.stringify({ files: storedFiles }),
+      institutionPublicKey,
+    );
 
     // Determine document types
     const docTypes = encryptedFiles.map(f => {
@@ -159,6 +166,11 @@ Deno.serve(async (req) => {
       payload_wrapped_key: sealedPayload?.wrapped_key_b64 ?? null,
       payload_iv: sealedPayload?.iv_hex ?? null,
       encryption_version: sealedPayload?.version ?? "v1-rsa-oaep-4096+aes-256-gcm",
+      // Sealed index lives alongside narrative for now; readable only by institution.
+      assessment_narrative: JSON.stringify({
+        sealed_narrative: sealedNarrative,
+        sealed_file_index: sealedIndex,
+      }),
     });
 
     if (subErr) throw subErr;
