@@ -5,15 +5,47 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Decode hex/base64 helpers (Deno runtime)
+const b64ToBytes = (b64: string): Uint8Array => {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+};
+
+// Encrypt a UTF-8 string under the institution's RSA-OAEP public key using
+// AES-256-GCM envelope encryption. The edge function never reads the result
+// back — only the institution (with its passphrase) can decrypt.
+async function sealStringWithPublicKey(plaintext: string, spkiB64: string) {
+  const spki = b64ToBytes(spkiB64);
+  const publicKey = await crypto.subtle.importKey(
+    "spki", spki, { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"],
+  );
+  const dataKey = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt"]);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, dataKey, new TextEncoder().encode(plaintext));
+  const rawKey = await crypto.subtle.exportKey("raw", dataKey);
+  const wrapped = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, publicKey, rawKey);
+  const toB64 = (buf: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+  const toHex = (u8: Uint8Array) => Array.from(u8).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return { ciphertext_b64: toB64(ct), iv_hex: toHex(iv), wrapped_key_b64: toB64(wrapped) };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const formData = await req.formData();
-    const token = formData.get("token") as string;
-    const files = formData.getAll("files") as File[];
+    const body = await req.json().catch(() => null) as any;
+    const token: string | undefined = body?.token;
+    const encryptedFiles: Array<{
+      original_name: string; mime_type: string; size: number;
+      ciphertext_b64: string; iv_hex: string; wrapped_key_b64: string; version: string;
+    }> = body?.encrypted_files || [];
+    const sealedPayload = body?.sealed_payload as
+      | { ciphertext_b64: string; iv_hex: string; wrapped_key_b64: string; version: string }
+      | undefined;
 
-    if (!token || files.length === 0) {
+    if (!token || encryptedFiles.length === 0) {
       return new Response(JSON.stringify({ error: "Token and files are required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -47,9 +79,43 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Look up the institution's public key (server cannot decrypt anything it
+    // writes from here on — it can only seal new metadata for the institution).
+    const { data: keyRow, error: keyErr } = await supabase
+      .from("institution_passphrases")
+      .select("public_key")
+      .eq("institution_id", linkRow.institution_id)
+      .maybeSingle();
+    if (keyErr || !keyRow?.public_key) {
+      return new Response(JSON.stringify({ error: "Institution has not enabled encryption" }), {
+        status: 412, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const institutionPublicKey: string = keyRow.public_key;
+
+    // Persist each ciphertext blob into the private institution-documents bucket.
+    for (const f of encryptedFiles) {
+      const objectPath = `${linkRow.institution_id}/${linkData.id}/${crypto.randomUUID()}.enc`;
+      const blob = new Blob([b64ToBytes(f.ciphertext_b64)], { type: "application/octet-stream" });
+      const { error: upErr } = await supabase.storage
+        .from("institution-documents")
+        .upload(objectPath, blob, { contentType: "application/octet-stream", upsert: false });
+      if (upErr) throw upErr;
+
+      await supabase.from("institution_documents").insert({
+        institution_id: linkRow.institution_id,
+        storage_path: objectPath,
+        original_filename_hint: f.original_name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 40),
+        size_bytes: f.size,
+        wrapped_key: f.wrapped_key_b64,
+        iv: f.iv_hex,
+        encryption_version: f.version,
+      });
+    }
+
     // Determine document types
-    const docTypes = files.map(f => {
-      const ext = f.name.split('.').pop()?.toLowerCase() || '';
+    const docTypes = encryptedFiles.map(f => {
+      const ext = f.original_name.split('.').pop()?.toLowerCase() || '';
       if (ext === 'pdf') return 'PDF Document';
       if (['jpg', 'jpeg'].includes(ext)) return 'JPEG Image';
       if (ext === 'png') return 'PNG Image';
@@ -58,7 +124,7 @@ Deno.serve(async (req) => {
     const uniqueTypes = [...new Set(docTypes)];
 
     // Simulate assessment (production would run 47-layer verification)
-    const docCount = files.length;
+    const docCount = encryptedFiles.length;
     const trustScore = Math.min(100, Math.max(10, 40 + docCount * 8 + Math.floor(Math.random() * 20)));
     let scoreState = 'insufficient';
     if (docCount >= 3 && trustScore >= 75) scoreState = 'clear';
@@ -74,22 +140,38 @@ Deno.serve(async (req) => {
 
     const now = new Date().toISOString();
 
-    // Create submission record
+    // Seal the server-generated narrative + applicant payload under the
+    // institution's public key. Server can no longer read these back.
+    const sealedNarrative = await sealStringWithPublicKey(narratives[scoreState], institutionPublicKey);
+
     const { error: subErr } = await supabase.from("intake_submissions").insert({
       intake_link_id: linkData.id,
       institution_id: linkRow.institution_id,
-      applicant_name: linkData.applicant_name,
-      reference_id: linkData.reference_id,
+      // Legacy plaintext columns intentionally left null on encrypted writes.
       document_count: docCount,
       trust_score: trustScore,
       score_state: scoreState,
-      assessment_narrative: narratives[scoreState],
       document_types: uniqueTypes,
       assessed_at: now,
       submitted_at: now,
+      // Encrypted payload (file names/sizes/types) — sealed in the applicant's browser.
+      encrypted_payload: sealedPayload?.ciphertext_b64 ?? null,
+      payload_wrapped_key: sealedPayload?.wrapped_key_b64 ?? null,
+      payload_iv: sealedPayload?.iv_hex ?? null,
+      encryption_version: sealedPayload?.version ?? "v1-rsa-oaep-4096+aes-256-gcm",
     });
 
     if (subErr) throw subErr;
+
+    // Seal narrative into review log so staff can decrypt it with their passphrase.
+    await supabase.from("institutional_review_logs").insert({
+      institution_id: linkRow.institution_id,
+      reference_id: linkData.reference_id,
+      encrypted_note: sealedNarrative.ciphertext_b64,
+      note_wrapped_key: sealedNarrative.wrapped_key_b64,
+      note_iv: sealedNarrative.iv_hex,
+      encryption_version: "v1-rsa-oaep-4096+aes-256-gcm",
+    } as any);
 
     // Mark link as submitted
     await supabase.from("intake_links")
@@ -103,15 +185,13 @@ Deno.serve(async (req) => {
         user_id: linkRow.created_by,
         event_type: "Documents Received",
         reference_id: linkData.reference_id,
-        applicant_name: linkData.applicant_name,
-        detail: `${docCount} documents received from applicant`,
+        detail: `${docCount} encrypted documents received`,
       },
       {
         institution_id: linkRow.institution_id,
         user_id: linkRow.created_by,
         event_type: "Assessment Complete",
         reference_id: linkData.reference_id,
-        applicant_name: linkData.applicant_name,
         detail: `Assessment complete: ${scoreState.toUpperCase()} (score: ${trustScore})`,
       },
     ]);
