@@ -78,7 +78,8 @@ export const buildPassphraseMaterial = async (passphrase: string): Promise<Setup
 
   // verify blob
   const verifyBytes = new TextEncoder().encode(VERIFY_STRING);
-  const verifyBuf = verifyBytes.buffer.slice(verifyBytes.byteOffset, verifyBytes.byteOffset + verifyBytes.byteLength);
+  const verifyBuf = new ArrayBuffer(verifyBytes.byteLength);
+  new Uint8Array(verifyBuf).set(verifyBytes);
   const verify = await encryptData(verifyBuf, kek);
 
   // keypair
@@ -167,7 +168,8 @@ export const openFromInstitution = async (
 /** Encrypt a JSON-serializable value (UTF-8). */
 export const sealJsonForInstitution = async (value: unknown, publicKey: CryptoKey): Promise<SealedPayload> => {
   const bytes = new TextEncoder().encode(JSON.stringify(value));
-  const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  const buf = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buf).set(bytes);
   return sealForInstitution(buf, publicKey);
 };
 
