@@ -175,15 +175,9 @@ Deno.serve(async (req) => {
 
     if (subErr) throw subErr;
 
-    // Seal narrative into review log so staff can decrypt it with their passphrase.
-    await supabase.from("institutional_review_logs").insert({
-      institution_id: linkRow.institution_id,
-      reference_id: linkData.reference_id,
-      encrypted_note: sealedNarrative.ciphertext_b64,
-      note_wrapped_key: sealedNarrative.wrapped_key_b64,
-      note_iv: sealedNarrative.iv_hex,
-      encryption_version: "v1-rsa-oaep-4096+aes-256-gcm",
-    } as any);
+    // Note: the server-generated narrative is stored sealed inside the
+    // submission row above. Reviewer notes are added later via the dashboard,
+    // where they are encrypted client-side using useInstitutionVault.encryptJson.
 
     // Mark link as submitted
     await supabase.from("intake_links")
