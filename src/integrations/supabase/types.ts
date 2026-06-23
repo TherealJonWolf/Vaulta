@@ -1105,11 +1105,13 @@ export type Database = {
           document_type: string
           download_count: number
           encrypted_iv: string | null
+          encryption_version: string | null
           file_name: string
           file_path: string
           file_size: number
           id: string
           institution_id: string
+          iv: string | null
           last_downloaded_at: string | null
           last_downloaded_by: string | null
           mime_type: string
@@ -1121,6 +1123,7 @@ export type Database = {
           share_status: string
           transferred_at: string
           uploaded_via: string
+          wrapped_key: string | null
         }
         Insert: {
           applicant_name?: string | null
@@ -1131,11 +1134,13 @@ export type Database = {
           document_type: string
           download_count?: number
           encrypted_iv?: string | null
+          encryption_version?: string | null
           file_name: string
           file_path: string
           file_size?: number
           id?: string
           institution_id: string
+          iv?: string | null
           last_downloaded_at?: string | null
           last_downloaded_by?: string | null
           mime_type: string
@@ -1147,6 +1152,7 @@ export type Database = {
           share_status?: string
           transferred_at?: string
           uploaded_via?: string
+          wrapped_key?: string | null
         }
         Update: {
           applicant_name?: string | null
@@ -1157,11 +1163,13 @@ export type Database = {
           document_type?: string
           download_count?: number
           encrypted_iv?: string | null
+          encryption_version?: string | null
           file_name?: string
           file_path?: string
           file_size?: number
           id?: string
           institution_id?: string
+          iv?: string | null
           last_downloaded_at?: string | null
           last_downloaded_by?: string | null
           mime_type?: string
@@ -1173,6 +1181,7 @@ export type Database = {
           share_status?: string
           transferred_at?: string
           uploaded_via?: string
+          wrapped_key?: string | null
         }
         Relationships: [
           {
@@ -1194,6 +1203,44 @@ export type Database = {
             columns: ["possession_request_id"]
             isOneToOne: false
             referencedRelation: "document_possession_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      institution_passphrases: {
+        Row: {
+          created_at: string
+          institution_id: string
+          public_key: string
+          salt: string
+          updated_at: string
+          verify_blob: string
+          wrapped_private_key: string
+        }
+        Insert: {
+          created_at?: string
+          institution_id: string
+          public_key: string
+          salt: string
+          updated_at?: string
+          verify_blob: string
+          wrapped_private_key: string
+        }
+        Update: {
+          created_at?: string
+          institution_id?: string
+          public_key?: string
+          salt?: string
+          updated_at?: string
+          verify_blob?: string
+          wrapped_private_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institution_passphrases_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: true
+            referencedRelation: "institutions"
             referencedColumns: ["id"]
           },
         ]
@@ -1306,9 +1353,13 @@ export type Database = {
           action: string
           badge_codes: string[]
           created_at: string
+          encrypted_note: string | null
+          encryption_version: string | null
           id: string
           institution_id: string
           metadata: Json
+          note_iv: string | null
+          note_wrapped_key: string | null
           notes: string | null
           reviewer_name: string | null
           reviewer_user_id: string
@@ -1321,9 +1372,13 @@ export type Database = {
           action: string
           badge_codes?: string[]
           created_at?: string
+          encrypted_note?: string | null
+          encryption_version?: string | null
           id?: string
           institution_id: string
           metadata?: Json
+          note_iv?: string | null
+          note_wrapped_key?: string | null
           notes?: string | null
           reviewer_name?: string | null
           reviewer_user_id: string
@@ -1336,9 +1391,13 @@ export type Database = {
           action?: string
           badge_codes?: string[]
           created_at?: string
+          encrypted_note?: string | null
+          encryption_version?: string | null
           id?: string
           institution_id?: string
           metadata?: Json
+          note_iv?: string | null
+          note_wrapped_key?: string | null
           notes?: string | null
           reviewer_name?: string | null
           reviewer_user_id?: string
@@ -1457,9 +1516,13 @@ export type Database = {
           created_at: string
           document_count: number
           document_types: string[] | null
+          encrypted_payload: string | null
+          encryption_version: string | null
           id: string
           institution_id: string
           intake_link_id: string
+          payload_iv: string | null
+          payload_wrapped_key: string | null
           reference_id: string
           score_state: string
           submitted_at: string
@@ -1472,9 +1535,13 @@ export type Database = {
           created_at?: string
           document_count?: number
           document_types?: string[] | null
+          encrypted_payload?: string | null
+          encryption_version?: string | null
           id?: string
           institution_id: string
           intake_link_id: string
+          payload_iv?: string | null
+          payload_wrapped_key?: string | null
           reference_id: string
           score_state?: string
           submitted_at?: string
@@ -1487,9 +1554,13 @@ export type Database = {
           created_at?: string
           document_count?: number
           document_types?: string[] | null
+          encrypted_payload?: string | null
+          encryption_version?: string | null
           id?: string
           institution_id?: string
           intake_link_id?: string
+          payload_iv?: string | null
+          payload_wrapped_key?: string | null
           reference_id?: string
           score_state?: string
           submitted_at?: string
@@ -1592,10 +1663,14 @@ export type Database = {
           created_at: string
           document_hash: string | null
           document_id: string | null
+          encrypted_note: string | null
+          encryption_version: string | null
           file_name: string
           id: string
           institution_id: string | null
           mime_type: string | null
+          note_iv: string | null
+          note_wrapped_key: string | null
           review_decision: string | null
           review_notes: string | null
           reviewed_at: string | null
@@ -1613,10 +1688,14 @@ export type Database = {
           created_at?: string
           document_hash?: string | null
           document_id?: string | null
+          encrypted_note?: string | null
+          encryption_version?: string | null
           file_name: string
           id?: string
           institution_id?: string | null
           mime_type?: string | null
+          note_iv?: string | null
+          note_wrapped_key?: string | null
           review_decision?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
@@ -1634,10 +1713,14 @@ export type Database = {
           created_at?: string
           document_hash?: string | null
           document_id?: string | null
+          encrypted_note?: string | null
+          encryption_version?: string | null
           file_name?: string
           id?: string
           institution_id?: string | null
           mime_type?: string | null
+          note_iv?: string | null
+          note_wrapped_key?: string | null
           review_decision?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
@@ -2411,6 +2494,13 @@ export type Database = {
           institution_type: string
           logo_path: string
           welcome_message: string
+        }[]
+      }
+      get_institution_public_key_for_token: {
+        Args: { p_token: string }
+        Returns: {
+          institution_id: string
+          public_key: string
         }[]
       }
       get_user_institution: { Args: { _user_id: string }; Returns: string }

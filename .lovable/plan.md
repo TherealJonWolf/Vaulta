@@ -1,80 +1,78 @@
-# Implementation Plan — 5 Scoped Maintenance Fixes
+## Goal
 
-Before touching code, here is the exact set of files I expect to read/modify for each issue. No new features, no unrelated refactors.
+Make every byte of applicant data flowing into the Sovereign Sector (institutional side) **unreadable to the server, Lovable, and admins** — only an institution that holds its passphrase can decrypt. Mirror the existing tenant vault model, but adapted for the intake flow where applicants don't have the institution's passphrase.
 
-## 1. UI layout fix — Technical Overview / Edge Functions table
+## Cryptographic design
 
-**Investigate**
-- `src/pages/ApiReference.tsx` (Edge Functions / endpoints rendering)
-- `src/pages/Documentation.tsx` and any institutional "technical overview" page (likely `src/institutional/pages/InstitutionalReporting.tsx` or a settings/overview page) — locate the actual table that lists `generate-trust-report`, `veriff-session`, `stripe-webhook`.
+Each institution sets a **Vault Passphrase** once (no recovery — same policy as tenant vault).
 
-**Change (smallest possible)**
-- Wrap table in `overflow-x-auto` container, add `break-all` / `whitespace-normal` / `min-w-0` on path + description cells, switch to a responsive `<dl>`-style stacked layout under `md:` breakpoint where a table is too wide.
-- No content, ordering, or styling-system changes beyond what's needed to stop the clipping.
+On setup, in the browser:
 
-## 2. Encryption performance — move PBKDF2 + AES-GCM into a Web Worker
+```text
+salt           = 32 random bytes
+KEK            = PBKDF2-SHA256(passphrase, salt, 100k iters)  → AES-256-GCM
+RSA-OAEP-4096  = generated keypair
+public_key     = exported SPKI (published, world-readable for that institution)
+private_key    = exported PKCS8, AES-GCM-encrypted with KEK   (stored, server-opaque)
+verify_blob    = AES-GCM(KEK, "VAULTA_INST_VERIFY")           (passphrase check)
+```
 
-**Investigate**
-- `src/lib/encryption.ts` (algorithms, current API)
-- `src/hooks/useVaultEncryption.ts` (callers: `deriveKeyFromPassword`, `encryptData`, `decryptData`)
-- Other call sites via ripgrep for `deriveKeyFromPassword|encryptData|decryptData|encryptFile|decryptFile`.
+Server stores only: `salt`, `verify_blob`, `wrapped_private_key`, `public_key`. **It never sees the passphrase, KEK, or private key.**
 
-**Change**
-- Add `src/lib/encryption.worker.ts` — a typed Web Worker that handles `derive`, `encrypt`, `decrypt`, `hash` messages. Keep crypto behaviour byte-identical (same PBKDF2 params, same AES-GCM 12-byte IV / 128-bit tag).
-- Add `src/lib/encryptionClient.ts` — a thin typed wrapper that posts messages with request IDs and resolves promises. Exports the same function names so callers don't change.
-- Update `src/lib/encryption.ts` to re-export from `encryptionClient` (keeping the existing pure functions as a fallback for tests/SSR where `Worker` is unavailable).
-- `useVaultEncryption.ts` continues to call the same functions; no API change.
-- Keys still flow through `CryptoKey` handles transferred via `postMessage` (structured clone supports `CryptoKey`).
+On intake (public `/submit/:token`):
+1. Browser fetches the institution's `public_key` via an RPC scoped to the intake token.
+2. For each file: generate fresh AES-256-GCM `data_key` + 12-byte IV, encrypt file → `ciphertext`.
+3. Wrap `data_key` with the institution's RSA-OAEP public key → `wrapped_key`.
+4. Upload `{ciphertext, iv, wrapped_key}` to `institution-documents` bucket + metadata row.
+5. Encrypt structured intake fields (applicant name, ref id, document types, file names) the same way — random data key, RSA-wrapped.
 
-**Validate**
-- Existing tests in `src/test/sovereignSectorEncryption.e2e.test.ts` and `sovereignSectorLargeDocument.e2e.test.ts` continue to pass against the pure-function fallback (Node/vitest has no `Worker`).
+On staff view (institutional dashboard):
+1. Existing passphrase gate (already required for the dashboard) derives KEK and unwraps the institution private key into a session-only `CryptoKey`.
+2. For each item: unwrap data key with private key → decrypt payload → render in-memory.
 
-## 3. PDF execution — delegate heavy work out of Edge runtime
+Server-generated content (assessment narrative, automated scores) is encrypted by the edge function using the institution's **public** key after computing — server still can't read it back, only the institution can.
 
-**Investigate**
-- `supabase/functions/issue-assessment-report/index.ts`
-- `supabase/functions/adverse-action-pdf/index.ts`
-- Look for existing "Railway background service" hook — likely an env var like `RAILWAY_PDF_URL` / `PDF_SERVICE_URL` or a similar dispatcher already referenced in the repo. If none exists, I will use a single `PDF_SERVICE_URL` secret as the closest equivalent (no new infra invented).
+## Files
 
-**Change**
-- Refactor both edge functions so they:
-  1. Authenticate + authorize (unchanged).
-  2. Build the signed JSON payload (unchanged).
-  3. If `PDF_SERVICE_URL` is set, `fetch` the external service with a shared-secret header and stream the returned PDF back. Otherwise fall back to the existing inline jsPDF path (preserves current behaviour when no service is configured).
-- No business-logic or report-content changes.
+### New
+- `src/institutional/lib/institutionEncryption.ts` — keypair gen, wrap/unwrap, file + JSON encrypt/decrypt helpers (uses existing `src/lib/encryption.ts` + worker).
+- `src/institutional/hooks/useInstitutionVault.ts` — mirror of `useVaultEncryption`: `checkPassphraseExists`, `createPassphrase`, `unlockVault`, `decryptFile`, `decryptJson`, `lockVault`. Holds session-only unwrapped private key.
+- `src/institutional/components/InstitutionVaultGate.tsx` — set/unlock UI shown before the dashboard renders (extends current institutional passphrase gate).
+- `supabase/functions/get-institution-public-key/index.ts` — `verify_jwt = false`; accepts intake token, returns `{ public_key, institution_id }` only if token is valid + active. No private material exposed.
+- `supabase/migrations/<ts>_institution_e2e_encryption.sql`:
+  - `CREATE TABLE public.institution_passphrases (institution_id uuid PK, salt text, verify_blob text, wrapped_private_key text, public_key text, created_at, updated_at)` with GRANTs + RLS (members read their own; admins of that institution write once).
+  - Add nullable columns to `institution_documents`: `wrapped_key text`, `iv text`, `encryption_version text` (default `'v1-rsa-oaep-4096+aes-256-gcm'`).
+  - Add nullable encrypted-payload columns to `intake_submissions`: `encrypted_payload text`, `payload_wrapped_key text`, `payload_iv text` (existing plaintext columns kept nullable for back-compat; new rows write encrypted only).
+  - Add encrypted columns to `institutional_review_logs` and `manual_review_queue` for reviewer notes/narratives: `encrypted_note`, `note_wrapped_key`, `note_iv`.
+  - RPC `get_institution_public_key_for_token(p_token text)` (SECURITY DEFINER) returning the public key + institution_id when the token is valid.
 
-## 4. Region routing — standardized region tag
+### Edited
+- `src/pages/SubmitDocuments.tsx` — fetch public key, encrypt each file in-browser via the existing `src/lib/encryption.worker.ts`, post ciphertext + wrapped key as multipart. UI copy stays the same; only the network payload changes.
+- `supabase/functions/institutional-submit/index.ts` — receive ciphertext blobs, write them to `institution-documents` bucket, persist encrypted metadata. Generate the narrative server-side, then encrypt it with the institution's public key (fetched by `institution_id`) before insert. No plaintext payload columns written for new submissions.
+- `supabase/functions/download-institution-document/index.ts` — return raw ciphertext + wrapped key + iv to authorized staff; decryption happens in the browser.
+- `src/institutional/pages/InstitutionalDashboard.tsx`, `InstitutionalIntake.tsx`, `ManualReviewQueue.tsx`, `DocumentsOnFile.tsx`, `ReviewActivityLog.tsx`, `FraudRiskPanel.tsx` — pull encrypted blobs, decrypt via `useInstitutionVault`, render in-memory. Show "Unlock vault to view" placeholder when locked.
+- `src/institutional/lib/reviewLog.ts` — encrypt reviewer notes before insert, decrypt on read.
+- `src/institutional/InstitutionalRoutes.tsx` — mount `InstitutionVaultGate` ahead of all `/institutional/*` routes that read applicant data.
 
-**Investigate**
-- `institutions`, `institution_documents`, and `documents` tables (column lists via `supabase--read_query`).
-- Upload paths: `src/components/DocumentUpload.tsx`, `src/institutional/components/DocumentPossessionRequest.tsx`, edge function `download-institution-document`.
+### Tests
+- `src/test/institutionEncryption.unit.test.ts` — roundtrip: setup → encrypt-as-applicant (public key only) → unlock → decrypt; wrong passphrase fails; tampered ciphertext throws.
+- Extend `src/test/sovereignSectorEncryption.e2e.test.ts` with intake → dashboard decrypt flow (mocked Supabase).
 
-**Change (smallest)**
-- Single migration: add nullable `region text` to `institutions` and `institution_documents` (default `null`, no backfill, no RLS change). Tables already exist; no new GRANTs needed.
-- Upload code reads `institution.region` (if present) and writes it into `institution_documents.region` on insert. Storage path remains the same; the column is the routing identifier downstream consumers can honour.
-- No tenant-visible behaviour change when `region` is null.
+## Security properties preserved
 
-## 5. Test hardening — FraudRiskPanel + raceGuardedFetch
+- Server never sees plaintext, passphrase, KEK, or private key.
+- Lost passphrase = unrecoverable institution data (matches user choice).
+- RLS unchanged on existing tables; new table follows the user-roles pattern + GRANT block.
+- No changes to tenant vault, auth, or RBAC.
+- Existing rows remain readable (plaintext columns kept nullable); only new writes are encryption-only.
 
-**Investigate**
-- `src/institutional/components/FraudRiskPanel.test.tsx`
-- `src/institutional/lib/raceGuardedFetch.test.ts`
-- `src/test/setup.ts` for existing MSW/fetch mocking utilities.
+## Out of scope (will not touch)
 
-**Change**
-- Add a small `vi.fn()`-based `fetch` mock helper (no new framework). Use existing vitest + jsdom.
-- Add cases: Stripe 500 + retry, Veriff timeout, Resend dropped webhook (no response), Lovable AI Gateway slow (>2s) + abort, success-after-retry. Assert fallback UI / error toasts / no double-submit for the panel; assert race-guard discards stale responses and surfaces `AbortError`.
+- Tenant vault, document verification pipeline, billing, MFA, Veriff, RBAC roles.
+- Migrating historical plaintext rows to encrypted form — backfill is a separate task; flagged in code with a TODO.
+- Multi-admin escrow or recovery codes (explicitly declined).
 
-## Validation steps after each fix
-- `bunx vitest run` for the touched test files.
-- Re-run `documentRequestFlow.e2e.test.ts`, `sovereignSectorEncryption.e2e.test.ts`, `sovereignSectorLargeDocument.e2e.test.ts` after the worker refactor.
-- Visual check of the technical-overview page in preview at mobile + desktop widths.
-- Confirm no RLS / policy / GRANT changes other than the single additive `region` column migration.
+## Risks / open questions
 
-## Out of scope (will stop and report if encountered)
-- Any new product surface, new route, new auth rule.
-- Rewriting the encryption protocol or PDF content.
-- Changing existing RLS policies.
-- Introducing a new test runner, MSW, or Playwright.
-
-Please approve and I will proceed in the order above, validating after each step.
+- RSA-OAEP-4096 keygen in the browser is ~1–3s; acceptable one-time during passphrase setup, runs in the existing crypto worker.
+- Applicants can no longer view their own submitted files post-upload (they have no decryption key) — acceptable for institutional intake, matches the "Sovereign Sector" trust model.

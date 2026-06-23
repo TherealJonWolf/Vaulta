@@ -4,6 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Upload, CheckCircle, AlertTriangle, Loader2, FileText, X, Clock } from "lucide-react";
 import { toast } from "sonner";
+import {
+  importInstitutionPublicKey,
+  sealForInstitution,
+  sealJsonForInstitution,
+} from "@/institutional/lib/institutionEncryption";
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 const MAX_FILES = 20;
@@ -119,12 +124,50 @@ const SubmitDocuments = () => {
     setSubmitting(true);
     try {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const formData = new FormData();
-      formData.append("token", token);
-      files.forEach(f => formData.append("files", f));
+
+      // 1) Fetch institution public key (the only key material exposed publicly).
+      const keyRes = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/get-institution-public-key`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) },
+      );
+      if (!keyRes.ok) {
+        throw new Error("This institution has not enabled secure submissions yet.");
+      }
+      const { public_key } = await keyRes.json();
+      const publicKey = await importInstitutionPublicKey(public_key);
+
+      // 2) Envelope-encrypt every file in the browser. Plaintext never leaves the device.
+      const encryptedFiles = await Promise.all(
+        files.map(async (f) => {
+          const buf = await f.arrayBuffer();
+          const sealed = await sealForInstitution(buf, publicKey);
+          return {
+            original_name: f.name,
+            mime_type: f.type,
+            size: f.size,
+            ...sealed,
+          };
+        }),
+      );
+
+      // 3) Envelope-encrypt structured applicant payload (file list, names, sizes).
+      const sealedPayload = await sealJsonForInstitution(
+        {
+          file_names: files.map((f) => f.name),
+          file_sizes: files.map((f) => f.size),
+          file_types: files.map((f) => f.type),
+          submitted_at: new Date().toISOString(),
+        },
+        publicKey,
+      );
+
       const res = await fetch(
         `https://${projectId}.supabase.co/functions/v1/institutional-submit`,
-        { method: "POST", body: formData }
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, encrypted_files: encryptedFiles, sealed_payload: sealedPayload }),
+        },
       );
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Submission failed" }));
