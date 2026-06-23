@@ -24,12 +24,13 @@ export const bytesToHex = (b: Uint8Array | ArrayBuffer): string => {
   return out;
 };
 
-export const hexToBytes = (hex: string): Uint8Array => {
+export const hexToBytes = (hex: string): Uint8Array<ArrayBuffer> => {
   const clean = hex.trim();
   if (clean.length % 2 !== 0) throw new Error("Invalid hex length");
-  const out = new Uint8Array(clean.length / 2);
+  const buf = new ArrayBuffer(clean.length / 2);
+  const out = new Uint8Array(buf);
   for (let i = 0; i < out.length; i++) out[i] = parseInt(clean.substr(i * 2, 2), 16);
-  return out;
+  return out as Uint8Array<ArrayBuffer>;
 };
 
 const bufToB64 = (buf: ArrayBuffer): string => {
